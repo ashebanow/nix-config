@@ -6,10 +6,6 @@
   home.username = "ashebanow";
   home.homeDirectory = "/home/ashebanow";
 
-
-  # install direnv hook
-  # eval "$(direnv hook zsh)"
-
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
   # introduces backwards incompatible changes.
@@ -29,6 +25,7 @@
     pkgs.gh
     pkgs.htop
     pkgs.less
+    pkgs.neofetch
     pkgs.ripgrep
     pkgs.starship
     pkgs.zoxide
@@ -51,10 +48,11 @@
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
-    # # Building this configuration will create a copy of 'dotfiles/screenrc' in
-    # # the Nix store. Activating the configuration will then make '~/.screenrc' a
-    # # symlink to the Nix store copy.
-    # ".screenrc".source = dotfiles/screenrc;
+    ".config/ackrc".source = dotfiles/ackrc;
+    ".config/git/config.local".source = dotfiles/git/config.local;
+    ".config/starship.toml".source = dotfiles/starship.toml;
+    ".config/tmux/tmux.conf".source = dotfiles/tmux.conf;
+    ".vimrc".source = dotfiles/vimrc;
 
     # # You can also set the file content immediately.
     # ".gradle/gradle.properties".text = ''
@@ -74,7 +72,9 @@
   #
   # if you don't want to manage your shell through Home Manager.
   home.sessionVariables = {
-    # EDITOR = "emacs";
+    EDITOR = "vim";
+    ACKRC = "~/.config/ackrc";
+    SCREENRC = "~/.config/screenrc";
   };
 
   home.shellAliases = {
@@ -84,47 +84,207 @@
     cls="clear";
     diff="delta";
     diskspace="df -hl";
+    gst = "git status -sb";
+    gl = "git pull --prune";
+    gp = "git push origin HEAD";
+    gc = "git commit";
+    gca = "git commit -a";
+    gco = "git checkout";
+    gcb = "git copy-branch-name";
+    gb = "git branch";
+    gac = "git add -A && git commit -m";
     grep="rg";
     less="bat";
-    # l="exa -FG";
-    # la="exa -aFG --icons";
-    # ll="exa -alF --icons";
-    # ls="exa -F";
+    l="exa -FG";
+    la="exa -aFG --icons";
+    ll="exa -alF --icons";
+    ls="exa -FG --icons";
     more="bat";
   };
 
-programs = {
-  bat = {
-    enable = true;
-    config = {
-      pager = "less -FR";
-      theme = "Solarized (dark)";
+  programs = {
+    bat = {
+      enable = true;
+      config = {
+        pager = "less -FR";
+        theme = "Solarized (dark)";
+      };
     };
+
+    # direnv configuration.
+    direnv = {
+      enable = true;
+      enableZshIntegration = true;
+      nix-direnv.enable = true;
+    };
+
+    exa = {
+      enable = true;
+      icons = true;
+    };
+
+    # git configuration
+    git = {
+      enable = true;
+      # lots more to come...
+      userName = "Andrew Shebanow";
+      userEmail = "ashebanow@gmail.com";
+
+      aliases = {
+        undo = "reset HEAD~1 --mixed";
+        amend = "commit -a --amend";
+      };
+
+      attributes = [
+        "*_spec.rb diff=rspec"
+        "*.c     diff=cpp"
+        "*.c++   diff=cpp"
+        "*.cc    diff=cpp"
+        "*.cpp   diff=cpp"
+        "*.cs    diff=csharp"
+        "*.css   diff=css"
+        "*.el    diff=lisp"
+        "*.erb   diff=html"
+        "*.ex    diff=elixir"
+        "*.exs   diff=elixir"
+        "*.go    diff=golang"
+        "*.h     diff=cpp"
+        "*.h++   diff=cpp"
+        "*.hh    diff=cpp"
+        "*.hpp   diff=cpp"
+        "*.html  diff=html"
+        "*.lisp  diff=lisp"
+        "*.m     diff=objc"
+        "*.md    diff=markdown"
+        "*.mdown diff=markdown"
+        "*.mm    diff=objc"
+        "*.php   diff=php"
+        "*.pl    diff=perl"
+        "*.py    diff=python"
+        "*.rake  diff=ruby"
+        "*.rb    diff=ruby"
+        "*.rs    diff=rust"
+        "*.xhtml diff=html"
+        "*.xhtml diff=html"
+      ];
+
+      extraConfig = {
+        color = {
+          ui = "auto";
+        };
+        # diff = {
+        #   tool = "vimdiff";
+        #   mnemonicprefix = true;
+        # };
+        # merge = {
+        #   tool = "splice";
+        # };
+        push = {
+          default = "simple";
+        };
+        pull = {
+          rebase = true;
+        };
+        branch = {
+          autosetupmerge = true;
+        };
+        rerere = {
+          enabled = true;
+        };
+        include = {
+          path = "~/config/gitconfig.local";
+        };
+      };
+
+      ignores = [
+        # General
+        "*~"
+        "*.swp"
+        "scratchpad"
+
+        # Compiled source #
+        ###################
+        "*.com"
+        "*.class"
+        "*.dll"
+        "*.exe"
+        "*.o"
+        "*.so"
+
+        # Packages #
+        ############
+        # it's better to unpack these files and commit the raw source
+        # git has its own built in compression methods
+        "*.7z"
+        "*.dmg"
+        "*.gz"
+        "*.iso"
+        "*.jar"
+        "*.rar"
+        "*.tar"
+        "*.zip"
+
+        # Logs and databases #
+        ######################
+        "*.log"
+        "*.sql"
+        "*.sqlite"
+
+        # OS generated files #
+        ######################
+        ".DS_Store"
+        ".DS_Store?"
+        ".AppleDouble"
+        ".LSOverride"
+        "._*"
+        ".Spotlight-V100"
+        ".Trashes"
+        "ehthumbs.db"
+        "Thumbs.db"
+        ".DocumentRevisions-V100"
+        ".fseventsd"
+        ".Spotlight-V100"
+        ".TemporaryItems"
+        ".Trashes"
+        ".VolumeIcon.icns"
+        ".com.apple.timemachine.donotpresent"
+
+        # Directories potentially created on remote AFP share
+        ".AppleDB"
+        ".AppleDesktop"
+        "Network Trash Folder"
+        "Temporary Items"
+        ".apdisk"
+
+        # IDE files #
+        #############
+        "nbproject"
+        ".~lock.*"
+        ".buildpath"
+        ".idea"
+        ".project"
+        ".settings"
+        "composer.lock"
+      ];
+
+      # Put your encryption keys and other secret stuff in this file
+      includes = [ { path = "~/.config/git/config.local"; } ];
+    };
+
+    starship = {
+      enable = true;
+      enableZshIntegration = true;
+    };
+
+    # vscode = {
+    #   enable = true;
+    # };
+    
+    zoxide.enable = true;
+    zoxide.enableZshIntegration = true;
+
+    zsh.enable = true;
   };
-
-  exa = {
-    enable = true;
-    enableAliases = true;
-    icons = true;
-  };
-
-  # git configuration
-  git.enable = true;
-
-  # direnv configuration.
-  direnv.enable = true;
-  direnv.nix-direnv.enable = true;
-
-  starship = {
-    enable = true;
-    enableZshIntegration = true;
-  };
-  
-  zoxide.enable = true;
-  zoxide.enableZshIntegration = true;
-
-  zsh.enable = true;
-};
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
