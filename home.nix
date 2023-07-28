@@ -4,9 +4,11 @@
   nixpkgs.config.allowUnfree = true;
 
   imports = [
+    "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
     ./git.nix
     # ./neovim.nix
   ];
+
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "ashebanow";
@@ -110,6 +112,9 @@
   };
 
   programs = {
+    # Let Home Manager install and manage itself.
+    home-manager.enable = true;
+
     bat = {
       enable = true;
       config = {
@@ -135,9 +140,22 @@
       enableZshIntegration = true;
     };
 
-    # vscode = {
-    #   enable = true;
-    # };
+
+  #  vscode = {
+  #    enable = true;
+  #    enableExtensionUpdateCheck = false;
+  #    enableUpdateCheck = false;
+  #    mutableExtensionsDir = true;
+
+  #    extensions = [
+  #      pkgs.vscode-extensions.bbenoist.nix
+  #    ];
+
+  #    userSettings = {
+  #     "files.autoSave" = "off";
+  #     "[nix]"."editor.tabSize" = 2;
+  #    };
+  #  };
     
     zoxide.enable = true;
     zoxide.enableZshIntegration = true;
@@ -145,6 +163,7 @@
     zsh.enable = true;
   };
 
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
+  services = {
+    vscode-server.enable = true;
+  };
 }
