@@ -1,9 +1,11 @@
 format = """
-[](fg:#9A348E)\
-$username$hostname\
+[](#9A348E)\
+$os\
+$username\
+$hostname\
 [](fg:#9A348E bg:#33658A)\
 $nix_shell\
-[](fg:#33658A bg:#DA627D )\
+[](bg:#DA627D fg:#9A348E)\
 $directory\
 [](fg:#DA627D bg:#FCA17D)\
 $git_branch\
@@ -13,6 +15,7 @@ $c\
 $elixir\
 $elm\
 $golang\
+$gradle\
 $haskell\
 $java\
 $julia\
@@ -30,16 +33,20 @@ $time\
 # Disable the blank line at the start of the prompt
 # add_newline = false
 
-# You can also replace your username with a neat symbol like  to save some space
+# You can also replace your username with a neat symbol like   or disable this
+# and use the os module below
 [username]
 show_always = true
 style_user = "bg:#9A348E"
 style_root = "bg:#9A348E"
 format = '[$user ]($style)'
+disabled = false
 
-[hostname]
+# An alternative to the username module which displays a symbol that
+# represents the current operating system
+[os]
 style = "bg:#9A348E"
-format = '[@$hostname ]($style)'
+disabled = true # Disabled by default
 
 [directory]
 style = "bg:#DA627D"
@@ -50,15 +57,15 @@ truncation_symbol = "…/"
 # Here is how you can shorten some long paths by text replacement
 # similar to mapped_locations in Oh My Posh:
 [directory.substitutions]
-"Documents" = " "
+"Documents" = "󰈙 "
 "Downloads" = " "
 "Music" = " "
 "Pictures" = " "
 # Keep in mind that the order matters. For example:
-# "Important Documents" = "  "
+# "Important Documents" = " 󰈙 "
 # will not be replaced, because "Documents" was already substituted before.
 # So either put "Important Documents" before "Documents" or use the substituted version:
-# "Important  " = "  "
+# "Important 󰈙 " = " 󰈙 "
 
 [c]
 symbol = " "
@@ -94,6 +101,10 @@ symbol = " "
 style = "bg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
+[gradle]
+style = "bg:#86BBD8"
+format = '[ $symbol ($version) ]($style)'
+
 [haskell]
 symbol = " "
 style = "bg:#86BBD8"
@@ -115,7 +126,7 @@ style = "bg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
 [nim]
-symbol = " "
+symbol = "󰆥 "
 style = "bg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
@@ -130,7 +141,7 @@ style = "bg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
 [time]
-disabled = false
+disabled = true
 time_format = "%R" # Hour:Minute Format
 style = "bg:#33658A"
 format = '[ ♥ $time ]($style)'

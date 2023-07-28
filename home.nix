@@ -1,6 +1,12 @@
 { config, pkgs, ... }:
 
 {
+  nixpkgs.config.allowUnfree = true;
+
+  imports = [
+    ./git.nix
+    # ./neovim.nix
+  ];
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "ashebanow";
@@ -23,9 +29,12 @@
     pkgs.direnv
     pkgs.exa
     pkgs.gh
+    pkgs.git
+    pkgs.gnupg
     pkgs.htop
     pkgs.less
     pkgs.neofetch
+    # pkgs.neovim
     pkgs.ripgrep
     pkgs.starship
     pkgs.zoxide
@@ -49,7 +58,6 @@
   # plain files is through 'home.file'.
   home.file = {
     ".config/ackrc".source = dotfiles/ackrc;
-    ".config/git/config.local".source = dotfiles/git/config.local;
     ".config/starship.toml".source = dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = dotfiles/tmux.conf;
     ".vimrc".source = dotfiles/vimrc;
@@ -72,9 +80,8 @@
   #
   # if you don't want to manage your shell through Home Manager.
   home.sessionVariables = {
-    EDITOR = "vim";
+    EDITOR = "nvim";
     ACKRC = "~/.config/ackrc";
-    SCREENRC = "~/.config/screenrc";
   };
 
   home.shellAliases = {
@@ -121,154 +128,6 @@
     exa = {
       enable = true;
       icons = true;
-    };
-
-    # git configuration
-    git = {
-      enable = true;
-      # lots more to come...
-      userName = "Andrew Shebanow";
-      userEmail = "ashebanow@gmail.com";
-
-      aliases = {
-        undo = "reset HEAD~1 --mixed";
-        amend = "commit -a --amend";
-      };
-
-      attributes = [
-        "*_spec.rb diff=rspec"
-        "*.c     diff=cpp"
-        "*.c++   diff=cpp"
-        "*.cc    diff=cpp"
-        "*.cpp   diff=cpp"
-        "*.cs    diff=csharp"
-        "*.css   diff=css"
-        "*.el    diff=lisp"
-        "*.erb   diff=html"
-        "*.ex    diff=elixir"
-        "*.exs   diff=elixir"
-        "*.go    diff=golang"
-        "*.h     diff=cpp"
-        "*.h++   diff=cpp"
-        "*.hh    diff=cpp"
-        "*.hpp   diff=cpp"
-        "*.html  diff=html"
-        "*.lisp  diff=lisp"
-        "*.m     diff=objc"
-        "*.md    diff=markdown"
-        "*.mdown diff=markdown"
-        "*.mm    diff=objc"
-        "*.php   diff=php"
-        "*.pl    diff=perl"
-        "*.py    diff=python"
-        "*.rake  diff=ruby"
-        "*.rb    diff=ruby"
-        "*.rs    diff=rust"
-        "*.xhtml diff=html"
-        "*.xhtml diff=html"
-      ];
-
-      extraConfig = {
-        color = {
-          ui = "auto";
-        };
-        # diff = {
-        #   tool = "vimdiff";
-        #   mnemonicprefix = true;
-        # };
-        # merge = {
-        #   tool = "splice";
-        # };
-        push = {
-          default = "simple";
-        };
-        pull = {
-          rebase = true;
-        };
-        branch = {
-          autosetupmerge = true;
-        };
-        rerere = {
-          enabled = true;
-        };
-        include = {
-          path = "~/config/gitconfig.local";
-        };
-      };
-
-      ignores = [
-        # General
-        "*~"
-        "*.swp"
-        "scratchpad"
-
-        # Compiled source #
-        ###################
-        "*.com"
-        "*.class"
-        "*.dll"
-        "*.exe"
-        "*.o"
-        "*.so"
-
-        # Packages #
-        ############
-        # it's better to unpack these files and commit the raw source
-        # git has its own built in compression methods
-        "*.7z"
-        "*.dmg"
-        "*.gz"
-        "*.iso"
-        "*.jar"
-        "*.rar"
-        "*.tar"
-        "*.zip"
-
-        # Logs and databases #
-        ######################
-        "*.log"
-        "*.sql"
-        "*.sqlite"
-
-        # OS generated files #
-        ######################
-        ".DS_Store"
-        ".DS_Store?"
-        ".AppleDouble"
-        ".LSOverride"
-        "._*"
-        ".Spotlight-V100"
-        ".Trashes"
-        "ehthumbs.db"
-        "Thumbs.db"
-        ".DocumentRevisions-V100"
-        ".fseventsd"
-        ".Spotlight-V100"
-        ".TemporaryItems"
-        ".Trashes"
-        ".VolumeIcon.icns"
-        ".com.apple.timemachine.donotpresent"
-
-        # Directories potentially created on remote AFP share
-        ".AppleDB"
-        ".AppleDesktop"
-        "Network Trash Folder"
-        "Temporary Items"
-        ".apdisk"
-
-        # IDE files #
-        #############
-        "nbproject"
-        ".~lock.*"
-        ".buildpath"
-        ".idea"
-        ".project"
-        ".settings"
-        "composer.lock"
-      ];
-
-      # Put your encryption keys and other secret stuff in this file
-      includes = [ { path = "~/.config/git/config.local"; } ];
     };
 
     starship = {
