@@ -91,6 +91,7 @@
     cd="z";
     cdi="zi";
     cls="clear";
+    code="code-insiders";
     diff="delta";
     diskspace="df -hl";
     gst = "git status -sb";
@@ -140,7 +141,7 @@
       enableZshIntegration = true;
     };
 
-
+  # vscode should be enabled on interactive machines only
   #  vscode = {
   #    enable = true;
   #    enableExtensionUpdateCheck = false;
@@ -164,6 +165,8 @@
   };
 
   services = {
+    # TODO: this should really only be done on non-interactive hosts
+    # (WSL, servers, etc).
     vscode-server.enable = true;
   };
 }
