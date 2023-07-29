@@ -1,6 +1,6 @@
 { config, pkgs, ... }: {
   # home.file.".ssh/allowed_signers".text =
-  #   "* ${builtins.readFile /home/nelson/.ssh/id_ed25519.pub}";
+  #   "* ${builtins.readFile /home/ashebanow/.ssh/id_ed25519.pub}";
 
   programs = {
     git = {
