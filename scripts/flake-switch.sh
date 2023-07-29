@@ -3,14 +3,12 @@
 nix flake update
 
 if [ "$(uname -s)" == "Darwin" ]; then
+  echo "Running 'darwin-rebuild switch --flake '..."
   darwin-rebuild switch --flake .
 elif [ -f "/etc/NIXOS" ]; then
+  echo "Running 'sudo nixos-rebuild switch --flake '..."
   sudo nixos-rebuild switch --flake .
 else
-  # this seems to work, but a hack for sure...
-  # darwin-rebuild switch --flake .
-  # the "right way" would be to run home-manager standalone,
-  # but I worry that nixpkgs won't be set up properly to use
-  # unstable etc.
+  echo "Running 'home-manager switch --flake '..."
   home-manager switch --flake .
 fi
