@@ -7,6 +7,7 @@
 
   imports = [
     "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
+    <sops-nix/modules/home-manager/sops.nix>
     ./common/core.nix
     # ./common/neovim.nix
     ./common/git.nix

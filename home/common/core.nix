@@ -32,6 +32,7 @@
 
   home.packages = with pkgs; [
     ack
+    age
     bat
     direnv
     exa
@@ -47,6 +48,8 @@
     # neovim
     nixpkgs-fmt
     ripgrep
+    sops
+    sops-nix
     starship
     unzip
     zoxide
@@ -67,6 +70,21 @@
   ];
 
   fonts.fontconfig.enable = true;
+
+  # sops = {
+  #   # age.keyFile = "/home/ashebanow/.age-key.txt"; # must have no password!
+  #   # It's also possible to use a ssh key, but only when it has no password:
+  #   age.sshKeyPaths = [ "/home/ashebanow/.ssh/id_ed25519" ];
+  #   defaultSopsFile = ./secrets.yaml;
+  #   secrets.test = {
+  #     # sopsFile = ./secrets.yml.enc; # optionally define per-secret files
+
+  #     # %r gets replaced with a runtime directory, use %% to specify a '%'
+  #     # sign. Runtime dir is $XDG_RUNTIME_DIR on linux and $(getconf
+  #     # DARWIN_USER_TEMP_DIR) on darwin.
+  #     path = "%r/test.txt"; 
+  #   };
+  # };
 
   programs = {
     bat = {
