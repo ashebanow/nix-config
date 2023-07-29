@@ -32,16 +32,10 @@
       };
 
       homeConfigurations = {
-        MiracleMax = home-manager.lib.homeManagerConfiguration {
-          pkgs = darwinPkgs;
-          modules = [
-            ./home/home-darwin.nix
-          ];
-        };
-        liquid-ubuntu = home-manager.lib.homeManagerConfiguration {
+        ashebanow = home-manager.lib.homeManagerConfiguration {
           pkgs = wslPkgs;
           modules = [
-            ./home/home-wsl.nix
+            ./home/home.nix
           ];
         };
       };

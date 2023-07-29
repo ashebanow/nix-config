@@ -1,13 +1,12 @@
 { pkgs, ... }: {
 
-
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
-    ".config/ackrc".source = ../dotfiles/ackrc;
-    ".config/starship.toml".source = ../dotfiles/starship.toml;
-    ".config/tmux/tmux.conf".source = ../dotfiles/tmux.conf;
-    ".vimrc".source = ../dotfiles/vimrc;
+    ".config/ackrc".source = ../../dotfiles/ackrc;
+    ".config/starship.toml".source = ../../dotfiles/starship.toml;
+    ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
+    ".vimrc".source = ../../dotfiles/vimrc;
 
     # # You can also set the file content immediately.
     # ".gradle/gradle.properties".text = ''
@@ -92,11 +91,6 @@
       icons = true;
     };
 
-    starship = {
-      enable = true;
-      enableZshIntegration = true;
-    };
-
   # vscode should be enabled on interactive machines only
   #  vscode = {
   #    enable = true;
@@ -116,7 +110,7 @@
   
     zoxide = {
       enable = true;
-      zoxide.enableZshIntegration = true;
+      enableZshIntegration = true;
     };
   };
 }

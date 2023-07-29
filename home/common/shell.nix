@@ -1,7 +1,7 @@
 
 { pkgs, ... }:
 
-0{
+{
   home = {
     shellAliases = {
       cat="bat --paging=never";
@@ -39,7 +39,9 @@
       autocd = true;
       enableCompletion = true;
       enableAutosuggestions = true;
-      enableSyntaxHighlighting = true;
+      syntaxHighlighting = {
+        enable = true;
+      };
       oh-my-zsh = {
         enable = true;
         plugins = [
@@ -47,57 +49,17 @@
           "sudo"
         ];
       };
-
-      initExtra = ''
-        source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-        if [[ "$(uname)" != "Darwin" ]]; then
-          # hacky pyenv
-          export PYENV_ROOT="$HOME/.pyenv"
-          command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-          eval "$(pyenv init -)"
-          eval "$(pyenv virtualenv-init -)"
-          export PATH="/home/g/.local/bin:$PATH"
-        fi
-        nu
-      '';
-    };
-
-    nushell = {
-      enable = true;
-      shellAliases = aliases;
-      extraConfig = ''
-<<<<<<< Updated upstream
-          let-env config = {
-            edit_mode: vi
-            float_precision: 4
-            show_banner: false
-          }
-        let-env PROMPT_INDICATOR_VI_INSERT = ""
-        let-env PROMPT_INDICATOR_VI_NORMAL = ": "
-        let-env PROMPT_MULTILINE_INDICATOR = "::: "
-=======
-        let-env config = {
-          edit_mode: vi
-          float_precision: 4
-          show_banner: false
-        }
-        let-env PROMPT_INDICATOR_VI_INSERT = ""
-        let-env PROMPT_INDICATOR_VI_NORMAL = ": "
-        let-env PROMPT_MULTILINE_INDICATOR = "::: "
-
-        source ~/nix/scripts/nu/quan_util.nu
->>>>>>> Stashed changes
-      '';
     };
 
     starship = {
       enable = true;
-      settings = {
-        add_newline = true;
-        container = {
-          disabled = true;
-        };
-      };
+      enableZshIntegration = true;
+      # settings = {
+      #   add_newline = true;
+      #   container = {
+      #     disabled = true;
+      #   };
+      # };
     };
   };
 }
