@@ -1,7 +1,9 @@
-{ config, pkgs, ... }:
+{ config, nixpkgs, ... }:
 
 {
   nixpkgs.config.allowUnfree = true;
+  # home-manager.useUserPackages = true;
+
 
   imports = [
     "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
