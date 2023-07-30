@@ -23,7 +23,7 @@
     in
     {
       darwinConfigurations = {
-        MiracleMax = darwin.lib.darwinSystem {
+        miraclemax = darwin.lib.darwinSystem {
           system = darwinSystem;
           modules = [
             ./system/darwin/configuration.nix
