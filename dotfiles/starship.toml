@@ -51,20 +51,21 @@ format = '[ $user ]($style)'
 disabled = false
 
 [shlvl]
-style = "fg:#202020 bg:#DA627D"
+format='[ $symbol$shlvl ]($style)'
+style = "bg:#DA627D"
 disabled = false
 
 [hostname]
-format='[$ssh_symbol$hostname]($style) '
+format='[ $ssh_symbol$hostname ]($style) '
 trim_at='.'
 ssh_symbol='🌏'
-style = "fg:#202020 bg:#DA627D"
+style = "bg:#DA627D"
 disabled = false
 
 [nix_shell]
 symbol='❄️'
-style = "fg:#202020 bg:#DA627D"
-format = '[ $symbol $name $state ]($style)'
+style = "bg:#DA627D"
+format = '[ $symbol$name $state ]($style)'
 disabled = false
 
 [directory]
