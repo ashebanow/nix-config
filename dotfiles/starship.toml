@@ -56,7 +56,7 @@ style = "bg:#DA627D"
 disabled = false
 
 [hostname]
-format='[ $ssh_symbol$hostname ]($style) '
+format='[ $ssh_symbol$hostname ]($style)'
 trim_at='.'
 ssh_symbol='🌏'
 style = "bg:#DA627D"
