@@ -24,7 +24,7 @@ $docker_context\
 """
 
 # Handy format strings for debugging, add to the beginning of the appropriate
-# section of the prompt above.
+# section of the prompt above (without the leading '# ').
 # [ Remote ](bg:#DA627D)\
 # [ Lang Environment ](fg:#202020 bg:#86BBD8)\
 # [ Docker Context ](bg:#9A348E)\
@@ -51,19 +51,19 @@ format = '[ $user ]($style)'
 disabled = false
 
 [shlvl]
-style = "fg:#202020 bg:#33658A"
+style = "fg:#202020 bg:#DA627D"
 disabled = false
 
 [hostname]
 format='[$ssh_symbol$hostname]($style) '
 trim_at='.'
 ssh_symbol='🌏'
-style = "fg:#202020 bg:#33658A"
+style = "fg:#202020 bg:#DA627D"
 disabled = false
 
 [nix_shell]
 symbol='❄️'
-style = "fg:#202020 bg:#33658A"
+style = "fg:#202020 bg:#DA627D"
 format = '[ $symbol $name $state ]($style)'
 disabled = false
 
