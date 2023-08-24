@@ -34,6 +34,7 @@
     ack
     age
     bat
+    delta
     direnv
     exa
     gh
