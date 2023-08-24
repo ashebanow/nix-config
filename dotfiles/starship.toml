@@ -2,27 +2,21 @@ format = """
 [](#9A348E)\
 $os\
 $username\
+$shlvl\
 $hostname\
 [](fg:#9A348E bg:#33658A)\
 $nix_shell\
-[](bg:#DA627D fg:#9A348E)\
+[](fg:#9A348E bg:#DA627D)\
 $directory\
 [](fg:#DA627D bg:#FCA17D)\
 $git_branch\
 $git_status\
 [](fg:#FCA17D bg:#86BBD8)\
-$c\
-$elixir\
-$elm\
 $golang\
-$gradle\
-$haskell\
 $java\
-$julia\
 $nodejs\
-$nim\
+$ruby\
 $rust\
-$scala\
 [](fg:#86BBD8 bg:#06969A)\
 $docker_context\
 [](fg:#06969A bg:#33658A)\
@@ -50,6 +44,10 @@ trim_at='.'
 ssh_symbol='🌏'
 style = "bg:#9A348E"
 disabled = false
+
+[shlvl]
+disabled = false
+style = "bg:#9A348E"
 
 # An alternative to the username module which displays a symbol that
 # represents the current operating system
@@ -137,6 +135,11 @@ format = '[ $symbol ($version) ]($style)'
 
 [nim]
 symbol = "󰆥 "
+style = "bg:#86BBD8"
+format = '[ $symbol ($version) ]($style)'
+
+[ruby]
+symbol = "♦️"
 style = "bg:#86BBD8"
 format = '[ $symbol ($version) ]($style)'
 
