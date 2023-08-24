@@ -21,10 +21,10 @@
   outputs = inputs@{ nixpkgs, home-manager, darwin, ... }:
     let
       darwinSystem = "aarch64-darwin";
-      wslSystem = "x86_64-linux";
+      linuxSystem = "x86_64-linux";
 
       darwinPkgs = nixpkgs.legacyPackages.${darwinSystem};
-      wslPkgs = nixpkgs.legacyPackages.${wslSystem};
+      linuxPkgs = nixpkgs.legacyPackages.${linuxSystem};
     in
     {
       darwinConfigurations = {
@@ -39,7 +39,7 @@
 
       homeConfigurations = {
         ashebanow = home-manager.lib.homeManagerConfiguration {
-          pkgs = wslPkgs;
+          pkgs = linuxPkgs;
           modules = [
             ./home/home.nix
           ];
