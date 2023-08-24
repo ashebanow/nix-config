@@ -11,13 +11,14 @@
       url = "github:lnl7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # sops-nix = {
+    #   url = "github:Mic92/sops-nix";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
   };
 
-  outputs = inputs@{ nixpkgs, home-manager, darwin, sops-nix, ... }:
+  # outputs = inputs@{ nixpkgs, home-manager, darwin, sops-nix, ... }:
+  outputs = inputs@{ nixpkgs, home-manager, darwin, ... }:
     let
       darwinSystem = "aarch64-darwin";
       wslSystem = "x86_64-linux";
@@ -31,7 +32,7 @@
           system = darwinSystem;
           modules = [
             ./system/darwin/configuration.nix
-            sops-nix.nixosModules.sops
+            # sops-nix.nixosModules.sops
           ];
         };
       };

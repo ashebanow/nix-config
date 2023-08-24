@@ -1,4 +1,4 @@
-#!env bash
+#!/usr/bin/bash
 
 nix flake update
 

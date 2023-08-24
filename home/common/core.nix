@@ -48,8 +48,8 @@
     # neovim
     nixpkgs-fmt
     ripgrep
-    sops
-    sops-nix
+    # sops
+    # sops-nix
     starship
     unzip
     zoxide
