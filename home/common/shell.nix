@@ -12,7 +12,7 @@
       codi = "code-insiders .";
       diff="delta";
       diskspace="df -hl";
-      flake-checker="nix run github:DeterminateSystems/flake-checker"
+      flake-checker="nix run github:DeterminateSystems/flake-checker";
       gst = "git status -sb";
       gl = "git pull --prune";
       gp = "git push origin HEAD";
