@@ -4,15 +4,15 @@
 {
   home = {
     shellAliases = {
-      cat="bat --paging=never";
-      cd="z";
-      cdi="zi";
-      cls="clear";
-      code="code-insiders";
+      cat = "bat --paging=never";
+      cd = "z";
+      cdi = "zi";
+      cls = "clear";
+      code = "code-insiders";
       codi = "code-insiders .";
-      diff="delta";
-      diskspace="df -hl";
-      flake-checker="nix run github:DeterminateSystems/flake-checker";
+      diff = "delta";
+      diskspace = "df -hl";
+      flake-checker = "nix run github:DeterminateSystems/flake-checker";
       gst = "git status -sb";
       gl = "git pull --prune";
       gp = "git push origin HEAD";
@@ -22,13 +22,13 @@
       gcb = "git copy-branch-name";
       gb = "git branch";
       gac = "git add -A && git commit -m";
-      grep="rg";
-      less="bat";
-      l="exa -FG";
-      la="exa -aFG --icons";
-      ll="exa -alF --icons";
-      ls="exa -FG --icons";
-      more="bat";
+      grep = "rg";
+      less = "bat";
+      l = "exa -FG";
+      la = "exa -aFG --icons";
+      ll = "exa -alF --icons";
+      ls = "exa -FG --icons";
+      more = "bat";
       nps = "nix search nixpkgs";
       nsh = "nix-shell -p";
     };
