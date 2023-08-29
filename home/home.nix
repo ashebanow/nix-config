@@ -12,6 +12,7 @@
     # ./common/neovim.nix
     ./common/git.nix
     ./common/shell.nix
+    # ./common/vscode.nix
   ];
 
   # Home Manager needs a bit of information about you and the paths it should
@@ -33,9 +34,4 @@
     home-manager.enable = true;
   };
 
-  services = {
-    # TODO: this should really only be done on non-interactive hosts
-    # (WSL, servers, etc).
-    vscode-server.enable = true;
-  };
 }

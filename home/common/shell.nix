@@ -8,8 +8,8 @@
       cd = "z";
       cdi = "zi";
       cls = "clear";
-      code = "code-insiders";
-      codi = "code-insiders .";
+      # there is no insiders package
+      # code = mkIf (pkgs.installed "vscode-insiders") "code";
       diff = "delta";
       diskspace = "df -hl";
       flake-checker = "nix run github:DeterminateSystems/flake-checker";
