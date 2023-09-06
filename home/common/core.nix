@@ -53,6 +53,7 @@
     # sops-nix
     starship
     unzip
+    wishlist
     zoxide
     zsh
 
