@@ -2,9 +2,9 @@
   description = "main flake for my nix configuration";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/archive/release-23.05.tar.gz";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     darwin = {
@@ -27,6 +27,16 @@
       linuxPkgs = nixpkgs.legacyPackages.${linuxSystem};
     in
     {
+      nixosConfigurations = {
+        virt1 = nixpkgs.lib.nixosSystem {
+          packages = linuxSystem;
+          specialArgs = inputs; # forward inputs to modules
+          modules = [
+            ./system/nixos/configuration.Nix
+          ];
+        };
+      };
+
       darwinConfigurations = {
         miraclemax = darwin.lib.darwinSystem {
           system = darwinSystem;
