@@ -39,14 +39,15 @@
     exa
     gh
     git
+    glances
     glow
     gnupg
+    gum
     htop
     hyperfine
     jq
     less
     neofetch
-    # neovim
     nixpkgs-fmt
     ripgrep
     # sops

@@ -52,7 +52,7 @@
     };
     loginwindow = {
       GuestEnabled = false;
-      autoLoginUser = "Andrew Shebanow";
+      # autoLoginUser = "Andrew Shebanow";
     };
   };
 
