@@ -2,15 +2,18 @@
   description = "main flake for my nix configuration";
 
   inputs = {
+    # Package sets
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    darwin = {
-      url = "github:lnl7/nix-darwin";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-stable-darwin.url = "github:nixos/nixpkgs/nixpkgs-23.05-darwin";
+    nixos-stable.url = "github:nixos/nixpkgs/nixos-23.05";
+
+    # Environment/system management
+    darwin.url = "github:lnl7/nix-darwin";
+    darwin.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.url = "github:nix-community/home-manager/release-23.05";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
     # sops-nix = {
     #   url = "github:Mic92/sops-nix";
     #   inputs.nixpkgs.follows = "nixpkgs";
@@ -29,7 +32,7 @@
     {
       nixosConfigurations = {
         virt1 = nixpkgs.lib.nixosSystem {
-          packages = linuxSystem;
+          packages = linuxPkgs;
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./system/nixos/virt1-configuration.nix

@@ -40,9 +40,9 @@
       autocd = true;
       enableCompletion = true;
       enableAutosuggestions = true;
-      syntaxHighlighting = {
-        enable = true;
-      };
+      # syntaxHighlighting = {
+      #   enable = true;
+      # };
       oh-my-zsh = {
         enable = true;
         plugins = [
