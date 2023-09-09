@@ -32,7 +32,7 @@
     {
       nixosConfigurations = {
         virt1 = nixpkgs.lib.nixosSystem {
-          packages = linuxPkgs;
+          system = linuxSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./system/nixos/virt1-configuration.nix

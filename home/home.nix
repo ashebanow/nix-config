@@ -2,7 +2,7 @@
 
 {
   nixpkgs.config.allowUnfree = true;
-  # home-manager.useUserPackages = true;
+  home-manager.useUserPackages = true;
 
 
   imports = [
