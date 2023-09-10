@@ -33,7 +33,6 @@
       nixosConfigurations = {
         virt1 = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
-          # packages = linuxPkgs;
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./system/nixos/virt1-configuration.nix
@@ -49,7 +48,6 @@
         };
         virt2 = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
-          # packages = linuxPkgs;
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./system/nixos/virt2-configuration.nix
