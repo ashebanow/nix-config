@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
-nix flake update
+# NOTE: for standalone home manager on linux, you need to install
+# home manager manually:
+#
+#   nix-channel --add https://github.com/nix-community/home-manager/archive/release-23.05.tar.gz home-manager
+#   nix-channel --update
+#
+# (use the version number appropriate for your platform)
+
+nix flake update --commit-lock-file
 
 if [ "$(uname -s)" == "Darwin" ]; then
   echo "Running 'darwin-rebuild switch --flake .'..."
