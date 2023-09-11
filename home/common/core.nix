@@ -7,6 +7,7 @@
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
+    ".config/nix/nix.conf".source = ../../dotfiles/nix.conf;
     ".vimrc".source = ../../dotfiles/vimrc;
 
     # # You can also set the file content immediately.

@@ -11,12 +11,12 @@
 nix flake update --commit-lock-file
 
 if [ "$(uname -s)" == "Darwin" ]; then
-  echo "Running 'darwin-rebuild switch --flake .'..."
+  echo "Running darwin-rebuild..."
   darwin-rebuild switch --show-trace --flake .
 elif [ -f "/etc/NIXOS" ]; then
-  echo "Running 'sudo nixos-rebuild --impure switch --flake .'..."
+  echo "Running sudo nixos-rebuild..."
   sudo nixos-rebuild switch --impure --flake .
 else
-  echo "Running 'home-manager switch --impure --flake .'..."
+  echo "Running home-manager switch..."
   home-manager switch --impure --flake .
 fi

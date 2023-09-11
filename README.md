@@ -17,6 +17,9 @@ Do a ```sudo nixos-rebuild switch``` and then reboot the system.
 ```zsh
 $ ~/nix-config/scripts/flake-switch.sh
 ```
+If you get errors complaining that nix-command and flakes features
+are note enabled, copy dotfiles/nix.conf to ~/.config/nix/. You'll need to
+delete it once the command above runs successfully, then run it again.
 
 ## Linux Systems
 1. Install nix using the Deterministic Systems installer:
