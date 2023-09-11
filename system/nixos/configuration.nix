@@ -1,21 +1,18 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
+# FIXME: we need to pass in a hostname to use for the setup here
 
 { config, pkgs, ... }:
 
 {
   imports =
     [ # Include the results of the hardware scan.
-      ./virt2-hardware-configuration.nix
+      ./$HOSTNAME-hardware-configuration.nix
     ];
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  networking.hostName = "virt2"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+  networking.hostName = $HOSTNAME;
 
   # Enable networking
   networking.networkmanager.enable = true;

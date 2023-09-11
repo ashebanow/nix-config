@@ -5,11 +5,11 @@ dest_ip=""
 
 case "$dest_machine" in
   storage )
-    dest_ip="10.4.0.9";;
-  virt )
-    dest_ip="10.40.0.11";;
-  virt2-vm )
-    dest_ip="10.40.0.34";;
+    dest_ip="10.50.0.70";;
+  virt1 )
+    dest_ip="10.50.0.43";;
+  virt2 )
+    dest_ip="10.50.0.73";;
   liquid-ubuntu )
     dest_ip="172.26.103.196";;
   miraclemax )
@@ -22,7 +22,7 @@ case "$dest_machine" in
     echo "    gateway"
     echo "    storage"
     echo "    virt"
-    echo "    virt2-vm"
+    echo "    virt2"
     echo "    liquid-ubuntu"
     echo "    miraclemax"
     exit 1

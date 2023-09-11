@@ -14,8 +14,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  networking.hostName = "virt1"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+  networking.hostName = $HOSTNAME;
 
   # Enable networking
   networking.networkmanager.enable = true;
@@ -117,29 +116,16 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    ack
     age
-    bat
-    delta
-    direnv
-    exa
-    gh
     git
-    glow
     gnupg
-    htop
-    hyperfine
-    jq
     less
     neofetch
     nixpkgs-fmt
-    ripgrep
-    starship
+    openssh
     unzip
     vim
     wget
-    wishlist
-    zoxide
     zsh
   ];
 
