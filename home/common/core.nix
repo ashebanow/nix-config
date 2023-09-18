@@ -34,34 +34,17 @@
 
   home.packages = with pkgs; [
     ack
-    age
-    bat
-    curl
-    delta
-    dig
-    direnv
-    exa
+    firefox
     gh
-    git
-    glances
     glow
-    gnupg
+    google-chrome
     gum
-    htop
     hyperfine
-    jq
-    less
     lego
-    neofetch
-    nixpkgs-fmt
-    ripgrep
     # sops
     # sops-nix
     starship
-    unzip
     wishlist
-    zoxide
-    zsh
 
     # It is sometimes useful to fine-tune packages, for example, by applying
     # overrides. You can do that directly here, just don't forget the

@@ -104,11 +104,6 @@
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
-    packages = with pkgs; [
-      google-chrome
-      firefox
-      kitty
-    ];
   };
 
   # Allow unfree packages
@@ -118,15 +113,27 @@
   # $ nix search wget
   environment.systemPackages = with pkgs; [
     age
+    bat
+    curl
+    delta
+    dig
+    direnv
+    exa
     git
+    glances
     gnupg
+    htop
+    jq
+    kitty
     less
     neofetch
     nixpkgs-fmt
     openssh
+    ripgrep
     unzip
     vim
     wget
+    zoxide
     zsh
   ];
 
