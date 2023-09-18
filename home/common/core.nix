@@ -36,7 +36,9 @@
     ack
     age
     bat
+    curl
     delta
+    dig
     direnv
     exa
     gh
@@ -49,6 +51,7 @@
     hyperfine
     jq
     less
+    lego
     neofetch
     nixpkgs-fmt
     ripgrep

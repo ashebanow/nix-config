@@ -197,6 +197,6 @@ in
   services = {
     # TODO: this should really only be done on non-interactive hosts
     # (WSL, servers, etc).
-    vscode-server.enable = true;
+    # vscode-server.enable = true;
   };
 }
