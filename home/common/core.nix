@@ -34,13 +34,16 @@
 
   home.packages = with pkgs; [
     ack
+    direnv
     firefox
     gh
+    glances
     glow
     google-chrome
     gum
     hyperfine
     lego
+    nix-direnv
     # sops
     # sops-nix
     starship

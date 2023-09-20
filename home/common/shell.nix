@@ -24,10 +24,12 @@
       gac = "git add -A && git commit -m";
       grep = "rg";
       less = "bat";
-      l = "exa -FG";
-      la = "exa -aFG --icons";
-      ll = "exa -alF --icons";
-      ls = "exa -FG --icons";
+      # l = "exa -FG";
+      la = "exa -aFG --color=auto --icons";
+      ll = "exa -alF --color=auto --icons";
+      llt = "exa -alF --sort modified -r --color=auto --icons";
+      ls = "exa -FG --color=auto --icons";
+      ltree = "exa -lFDT --sort modified --color=auto --icons";
       more = "bat";
       nps = "nix search nixpkgs";
       nsh = "nix-shell -p";
