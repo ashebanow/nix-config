@@ -118,9 +118,11 @@
     dig
     direnv
     exa
+    firefox
     git
     glances
     gnupg
+    google-chrome
     htop
     jq
     kitty

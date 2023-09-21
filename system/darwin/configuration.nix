@@ -1,16 +1,6 @@
 { pkgs, ... }:
 
 {
-  imports = [
-    ./common/core.nix
-    ./common/git.nix
-    ./common/shell.nix
-    # ./common/neovim.nix
-    # <sops-nix/modules/home-manager/sops.nix>
-    # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
-    # ./common/vscode.nix
-  ];
-
   nix = {
     package = pkgs.nixFlakes;
     settings = {
@@ -25,13 +15,10 @@
   };
 
   services.nix-daemon.enable = true;
-  services.openssh.enable = true;
 
   users.users.ashebanow = {
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "storage" ];
     home = "/Users/ashebanow";
-    isNormalUser = true;
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
@@ -43,8 +30,34 @@
 
   # set up zsh as default shell
   programs.zsh.enable = true;
-  users.defaultUserShell = pkgs.zsh;
-  environment.shells = with pkgs; [ zsh ];
+
+    # List packages installed in system profile. To search, run:
+  # $ nix search wget
+  environment.systemPackages = with pkgs; [
+    age
+    bat
+    curl
+    delta
+    dig
+    direnv
+    exa
+    git
+    glances
+    gnupg
+    htop
+    jq
+    kitty
+    less
+    neofetch
+    nixpkgs-fmt
+    openssh
+    ripgrep
+    unzip
+    vim
+    wget
+    zoxide
+    zsh
+  ];
 
   homebrew = {
     enable = true;
@@ -52,9 +65,43 @@
       autoUpdate = true;
       upgrade = true;
     };
+    # Note that the mac apps which auto-update themselves are commented out
+    # here. You'll need to uncomment them to get them installed initially on
+    # a new mac.
     casks = [
-      "warp"
+      "1password-cli"
+      "ableton-live-suite"
+      "android-studio"
+      "app-cleaner"
+      # "arc"
+      "discord"
+      "disk-diet"
+      # "docker"
+      # "firefox"
+      "font-droid-sans-mono-nerd-font"
+      "font-jetbrains-mono-nerd-font"
+      "font-profont-nerd-font"
+      "font-roboto-mono-nerd-font"
+      "font-sauce-code-pro-nerd-font"
+      # "google-chrome"
+      # "google-drive"
+      # "intellij-idea"
+      # "karabiner-elements"
+      # "microsoft-auto-update"
+      # "microsoft-office"
+      "monitorcontrol"
+      # "native-access"
+      "parsec"
+      "postico"
+      "postman"
+      "raycast"
+      "sf-symbols"
+      # "slack"
+      # "soundsource"
+      "temurin"
+      # "tg-pro"
       # "visual-studio-code"
+      # "warp"
     ];
   };
 

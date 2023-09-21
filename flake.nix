@@ -71,7 +71,7 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home.nix;
+              home-manager.users.ashebanow = import ./home/home-darwin.nix;
             }
             # sops-nix.nixosModules.sops
           ];
