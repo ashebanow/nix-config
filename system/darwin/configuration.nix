@@ -1,9 +1,15 @@
 { pkgs, ... }:
 
 {
-  services.nix-daemon.enable = true;
-
-  users.users.ashebanow.home = "/Users/ashebanow";
+  imports = [
+    ./common/core.nix
+    ./common/git.nix
+    ./common/shell.nix
+    # ./common/neovim.nix
+    # <sops-nix/modules/home-manager/sops.nix>
+    # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
+    # ./common/vscode.nix
+  ];
 
   nix = {
     package = pkgs.nixFlakes;
@@ -18,25 +24,39 @@
     };
   };
 
-  programs.zsh.enable = true;
+  services.nix-daemon.enable = true;
+  services.openssh.enable = true;
 
-  # homebrew = {
-  #   enable = true;
-  #   onActivation = {
-  #     autoUpdate = true;
-  #     upgrade = true;
-  #   };
-  #   casks = [
-  #     "discord"
-  #     "warp"
-  #     "epic-games"
-  #     "zed"
-  #     "rectangle"
-  #     "livebook"
-  #     "rio"
-  #     "visual-studio-code"
-  #   ];
-  # };
+  users.users.ashebanow = {
+    description = "Andrew Shebanow";
+    extraGroups = [ "networkmanager" "wheel" "storage" ];
+    home = "/Users/ashebanow";
+    isNormalUser = true;
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
+    ];
+    shell = pkgs.zsh;
+  };
+
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
+  # set up zsh as default shell
+  programs.zsh.enable = true;
+  users.defaultUserShell = pkgs.zsh;
+  environment.shells = with pkgs; [ zsh ];
+
+  homebrew = {
+    enable = true;
+    onActivation = {
+      autoUpdate = true;
+      upgrade = true;
+    };
+    casks = [
+      "warp"
+      # "visual-studio-code"
+    ];
+  };
 
   system.defaults = {
     dock = {

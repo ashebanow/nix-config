@@ -43,6 +43,7 @@
               home-manager.users.ashebanow = import ./home/home.nix;
 
               # Optionally, use home-manager.extraSpecialArgs to pass
+              # arguments to home.nix
             }
           ];
         };
@@ -56,9 +57,6 @@
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.users.ashebanow = import ./home/home.nix;
-
-              # Optionally, use home-manager.extraSpecialArgs to pass
-              # arguments to home.nix
             }
           ];
         };
@@ -69,6 +67,12 @@
           system = darwinSystem;
           modules = [
             ./system/darwin/configuration.nix
+            home-manager.darwinModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.ashebanow = import ./home/home.nix;
+            }
             # sops-nix.nixosModules.sops
           ];
         };
