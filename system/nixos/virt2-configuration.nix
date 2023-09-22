@@ -112,30 +112,14 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    age
-    bat
-    curl
-    delta
-    dig
-    direnv
-    exa
-    firefox
     git
-    glances
     gnupg
-    google-chrome
-    htop
-    jq
     kitty
-    less
-    neofetch
-    nixpkgs-fmt
     openssh
     ripgrep
     unzip
     vim
     wget
-    zoxide
     zsh
   ];
 

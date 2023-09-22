@@ -33,25 +33,47 @@
   };
 
   home.packages = with pkgs; [
-    ack
-    direnv
-    gh
-    glances
-    glow
-    gum
-    hyperfine
-    lego
-    nix-direnv
     # sops
     # sops-nix
+    ack
+    age
+    bat
+    curl
+    delta
+    dig
+    direnv
+    exa
+    gh
+    git
+    glances
+    glow
+    gnupg
+    gum
+    htop
+    hyperfine
+    jq
+    kitty
+    lego
+    less
+    neofetch
+    nerdfonts
+    nix-direnv
+    nixpkgs-fmt
+    openssh
+    ripgrep
     starship
+    unzip
+    vim
+    wget
     wishlist
+    zoxide
+    zsh
 
     # It is sometimes useful to fine-tune packages, for example, by applying
     # overrides. You can do that directly here, just don't forget the
     # parentheses. Maybe you want to install Nerd Fonts with a limited number of
     # fonts?
-    (nerdfonts.override { fonts = [ "SourceCodePro" ]; })
+    # (nerdfonts.override { fonts = [ "SourceCodePro" ]; })
 
     # You can also create simple shell scripts directly inside your
     # configuration. For example, this adds a command 'my-hello' to your
@@ -102,23 +124,6 @@
       icons = true;
     };
 
-  # vscode should be enabled on interactive machines only
-  #  vscode = {
-  #    enable = true;
-  #    enableExtensionUpdateCheck = false;
-  #    enableUpdateCheck = false;
-  #    mutableExtensionsDir = true;
-
-  #    extensions = [
-  #      pkgs.vscode-extensions.bbenoist.nix
-  #    ];
-
-  #    userSettings = {
-  #     "files.autoSave" = "off";
-  #     "[nix]"."editor.tabSize" = 2;
-  #    };
-  #  };
-  
     zoxide = {
       enable = true;
       enableZshIntegration = true;
