@@ -71,7 +71,7 @@
       # "karabiner-elements"
       # "microsoft-auto-update"
       # "microsoft-office"
-      "monitorcontrol"
+      # "monitorcontrol"
       # "native-access"
       "parsec"
       "postico"
