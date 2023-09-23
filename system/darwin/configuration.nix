@@ -39,7 +39,70 @@
     vim
     wget
     zsh
+    # these are here temporarily until we fix home manager
+    # sops
+    # sops-nix
+    ack
+    age
+    bat
+    curl
+    delta
+    dig
+    direnv
+    exa
+    gh
+    glances
+    glow
+    gnupg
+    gum
+    htop
+    hyperfine
+    jq
+    kitty
+    lego
+    less
+    neofetch
+    nerdfonts
+    nix-direnv
+    nixpkgs-fmt
+    ripgrep
+    starship
+    unzip
+    wishlist
+    zoxide
   ];
+
+  # temporary until home manager is restored.
+    programs = {
+    bat = {
+      enable = true;
+      extraPackages = with pkgs.bat-extras; [ batdiff batman batgrep batwatch prettybat batpipe ];
+      config = {
+        pager = "less -FR";
+        theme = "Solarized (dark)";
+      };
+    };
+
+    # direnv configuration.
+    direnv = {
+      enable = true;
+      enableZshIntegration = true;
+      nix-direnv = {
+        enable = true;
+      };
+    };
+
+    exa = {
+      enable = true;
+      icons = true;
+    };
+
+    zoxide = {
+      enable = true;
+      enableZshIntegration = true;
+    };
+  };
+
 
   homebrew = {
     enable = true;
