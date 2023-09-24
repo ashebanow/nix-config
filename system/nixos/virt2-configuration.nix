@@ -14,11 +14,17 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  networking.hostName = "virt2"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-
-  # Enable networking
-  networking.networkmanager.enable = true;
+  networking {
+    networkmanager.enable = true;
+    # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+    hostName = "virt2"; # Define your hostname.
+    firewall {
+      enable = true;
+      # Open ports in the firewall.
+      allowedTCPPorts = [ 22 ];
+      # allowedUDPPorts = [ ... ];
+    };
+  };
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
@@ -101,9 +107,6 @@
     isNormalUser = true;
     description = "Andrew Shebanow";
     extraGroups = [ "networkmanager" "wheel" "storage" ];
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
-    ];
   };
 
   # Allow unfree packages
@@ -115,7 +118,6 @@
     git
     gnupg
     kitty
-    openssh
     ripgrep
     unzip
     vim
@@ -137,15 +139,6 @@
   environment.shells = with pkgs; [ zsh ];
 
   # List services that you want to enable:
-
-  # Enable the OpenSSH daemon.
-  services.openssh.enable = true;
-
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

@@ -19,9 +19,6 @@
   users.users.ashebanow = {
     description = "Andrew Shebanow";
     home = "/Users/ashebanow";
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
-    ];
     shell = pkgs.zsh;
   };
 
@@ -35,7 +32,6 @@
   # $ nix search wget
   environment.systemPackages = with pkgs; [
     git
-    openssh
     vim
     wget
     zsh

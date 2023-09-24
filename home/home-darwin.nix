@@ -5,6 +5,7 @@
 
   imports = [
     ./common/core.nix
+    ./common/ssh.nix
     ./common/git.nix
     ./common/shell.nix
     # ./common/neovim.nix

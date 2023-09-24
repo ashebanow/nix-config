@@ -38,6 +38,7 @@
             ./system/nixos/virt1-configuration.nix
             home-manager.nixosModules.home-manager
             {
+              home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.users.ashebanow = import ./home/home.nix;
@@ -54,6 +55,7 @@
             ./system/nixos/virt2-configuration.nix
             home-manager.nixosModules.home-manager
             {
+              home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.users.ashebanow = import ./home/home.nix;
@@ -68,6 +70,7 @@
           modules = [
             ./system/darwin/configuration.nix
             home-manager.darwinModules.home-manager {
+              home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
               home-manager.users.ashebanow = import ./home/home-darwin.nix;
@@ -78,6 +81,10 @@
       };
 
       homeConfigurations = {
+        home-manager.verbose = true;
+        home-manager.useGlobalPkgs = true;
+        home-manager.useUserPackages = true;
+
         ashebanow = home-manager.lib.homeManagerConfiguration {
           pkgs = linuxPkgs;
           modules = [
