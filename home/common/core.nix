@@ -3,7 +3,6 @@
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
-    ".config/ackrc".source = ../../dotfiles/ackrc;
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
@@ -35,7 +34,6 @@
   home.packages = with pkgs; [
     # sops
     # sops-nix
-    ack
     age
     bat
     curl
