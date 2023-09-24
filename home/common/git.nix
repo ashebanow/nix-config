@@ -8,6 +8,14 @@
       userName = "Andrew Shebanow";
       userEmail = "ashebanow@gmail.com";
 
+      # Sign all commits using ssh key
+      # commit.gpgsign = true;
+      # gpg.format = "ssh";
+      # gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
+      # user.signingkey = "~/.ssh/id_ed25519.pub";
+
+      # MISSING: support for 1password-based signing
+
       aliases = {
         a = "add";
         amend = "commit -a --amend";
@@ -87,16 +95,19 @@
       ];
 
       extraConfig = {
+        # core.editor = "${vscode}/bin/code --wait";
+
         color = {
           ui = "auto";
         };
-        # diff = {
-        #   tool = "vimdiff";
-        #   mnemonicprefix = true;
-        # };
-        # merge = {
-        #   tool = "splice";
-        # };
+        diff = {
+          tool = "delta";
+          mnemonicprefix = true;
+        };
+        merge = {
+          tool = "delta";
+          # conflictstyle = "diff3";
+        };
         push = {
           default = "simple";
         };
@@ -109,12 +120,6 @@
         rerere = {
           enabled = true;
         };
-
-        # Sign all commits using ssh key
-        # commit.gpgsign = true;
-        # gpg.format = "ssh";
-        # gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
-        # user.signingkey = "~/.ssh/id_ed25519.pub";
       };
 
       ignores = [
@@ -187,11 +192,6 @@
         "composer.lock"
         ".envrc"
       ];
-
-      # signing = {
-        # key = "";   # TODO: Use SECRETS MANAGEMENT
-        # signByDefault = true;
-      # };
     };
   };
 }
