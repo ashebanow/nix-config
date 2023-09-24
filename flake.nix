@@ -67,12 +67,11 @@
           system = darwinSystem;
           modules = [
             ./system/darwin/configuration.nix
-            # home-manager.darwinModules.home-manager
-            # {
-            #   home-manager.useGlobalPkgs = true;
-            #   home-manager.useUserPackages = true;
-            #   home-manager.users.ashebanow = import ./home/home-darwin.nix;
-            # }
+            home-manager.darwinModules.home-manager {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.ashebanow = import ./home/home-darwin.nix;
+            }
             # sops-nix.nixosModules.sops
           ];
         };

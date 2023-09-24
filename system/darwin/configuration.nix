@@ -72,37 +72,6 @@
     zoxide
   ];
 
-  # temporary until home manager is restored.
-    programs = {
-    bat = {
-      enable = true;
-      extraPackages = with pkgs.bat-extras; [ batdiff batman batgrep batwatch prettybat batpipe ];
-      config = {
-        pager = "less -FR";
-        theme = "Solarized (dark)";
-      };
-    };
-
-    # direnv configuration.
-    direnv = {
-      enable = true;
-      enableZshIntegration = true;
-      nix-direnv = {
-        enable = true;
-      };
-    };
-
-    exa = {
-      enable = true;
-      icons = true;
-    };
-
-    zoxide = {
-      enable = true;
-      enableZshIntegration = true;
-    };
-  };
-
 
   homebrew = {
     enable = true;
