@@ -41,7 +41,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home.nix;
+              home-manager.users.ashebanow = import ./home/home-nixos.nix;
 
               # Optionally, use home-manager.extraSpecialArgs to pass
               # arguments to home.nix
@@ -58,7 +58,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home.nix;
+              home-manager.users.ashebanow = import ./home/home-nixos.nix;
             }
           ];
         };

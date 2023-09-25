@@ -5,11 +5,12 @@
 
   imports = [
     ./common/core.nix
-    ./common/ssh.nix
     ./common/git.nix
     ./common/shell.nix
     # ./common/neovim.nix
+    #
     # <sops-nix/modules/home-manager/sops.nix>
+    #
     # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
     # ./common/vscode.nix
   ];

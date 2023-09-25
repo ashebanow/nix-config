@@ -26,6 +26,14 @@
     };
   };
 
+  services.openssh = {
+    enable = true;
+    # require public key authentication for better security
+    settings.PasswordAuthentication = false;
+    settings.KbdInteractiveAuthentication = false;
+    # settings.PermitRootLogin = "yes";
+  };
+
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
 
@@ -107,6 +115,9 @@
     isNormalUser = true;
     description = "Andrew Shebanow";
     extraGroups = [ "networkmanager" "wheel" "storage" ];
+    authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow"
+    ];
   };
 
   # Allow unfree packages
@@ -137,6 +148,8 @@
   programs.zsh.enable = true;
   users.defaultUserShell = pkgs.zsh;
   environment.shells = with pkgs; [ zsh ];
+
+  fonts.fontDir.enable = true;
 
   # List services that you want to enable:
 

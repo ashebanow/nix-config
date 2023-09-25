@@ -15,6 +15,8 @@
     ACKRC = "~/.config/ackrc";
   };
 
+  fonts.fontconfig.enable = true;
+
   home.packages = with pkgs; [
     # sops
     # sops-nix
@@ -38,6 +40,7 @@
     lego
     less
     neofetch
+    (nerdfonts.override { fonts = [ "JetBrainsMono" "RobotoMono" "SourceCodePro" ]; })
     nix-direnv
     nixpkgs-fmt
     ripgrep
@@ -49,23 +52,6 @@
     zoxide
     zsh
   ];
-
-  fonts = {
-    fontDir.enable = true;
-    fontconfig = {
-      enable = true;
-      defaultFonts = {
-        monospace = [
-          "SauceCodePro Nerd Font"
-        ];
-      };
-    };
-    fonts = with pkgs; [
-      (nerdfonts.override { fonts = [ "JetBrainsMono", "RobotoMono", "SourceCodePro" ]; })
-      corefonts # Microsoft free fonts
-      noto-fonts
-    ];
-  };
 
   programs = {
     bat = {

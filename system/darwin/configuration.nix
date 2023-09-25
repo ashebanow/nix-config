@@ -58,7 +58,6 @@
     lego
     less
     neofetch
-    nerdfonts
     nix-direnv
     nixpkgs-fmt
     ripgrep
@@ -68,6 +67,7 @@
     zoxide
   ];
 
+  fonts.fontDir.enable = true;
 
   homebrew = {
     enable = true;
