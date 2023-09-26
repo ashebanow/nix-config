@@ -103,6 +103,7 @@
       "sf-symbols"
       # "slack"
       # "soundsource"
+      "steam"
       "temurin"
       # "tg-pro"
       # "visual-studio-code"
