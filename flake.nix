@@ -20,7 +20,6 @@
     # };
   };
 
-  # outputs = inputs@{ nixpkgs, home-manager, darwin, sops-nix, ... }:
   outputs = inputs@{ nixpkgs, home-manager, darwin, ... }:
     let
       darwinSystem = "aarch64-darwin";
@@ -41,7 +40,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home-nixos.nix;
+              home-manager.users.ashebanow = import ./home/home.nix;
 
               # Optionally, use home-manager.extraSpecialArgs to pass
               # arguments to home.nix
@@ -58,7 +57,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home-nixos.nix;
+              home-manager.users.ashebanow = import ./home/home.nix;
             }
           ];
         };
@@ -73,7 +72,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home-darwin.nix;
+              home-manager.users.ashebanow = import ./home/home.nix;
             }
             # sops-nix.nixosModules.sops
           ];
