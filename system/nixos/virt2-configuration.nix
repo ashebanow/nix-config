@@ -18,7 +18,7 @@
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
     hostName = "virt2"; # Define your hostname.
-    firewall {
+    firewall = {
       enable = true;
       # Open ports in the firewall.
       allowedTCPPorts = [ 22 ];
