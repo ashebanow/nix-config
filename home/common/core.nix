@@ -10,7 +10,11 @@
     ".vimrc".source = ../../dotfiles/vimrc;
     ".ssh/config".source = ../../dotfiles/ssh/config;
     ".ssh/id_ed25519.pub".source = ../../dotfiles/ssh/id_ed25519.pub;
-    ".ssh/known_hosts".source = ../../dotfiles/ssh/known_hosts;
+    ".ssh/authorized_keys".source = ../../dotfiles/ssh/authorized_keys;
+
+    # known_hosts files don't work well when read-only.
+    # why can't ssh do config files the linux standard way? sigh...
+    # ".ssh/known_hosts".source = ../../dotfiles/ssh/known_hosts;
   };
 
   home.sessionVariables = {
