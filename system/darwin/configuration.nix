@@ -31,7 +31,6 @@
     # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
-    cachix
     git
     vim
     wget
@@ -42,6 +41,7 @@
     ack
     age
     bat
+    cachix
     curl
     delta
     dig
@@ -87,7 +87,7 @@
       # "arc"
       "discord"
       "disk-diet"
-      # "docker"
+      "docker"
       # "firefox"
       # "google-chrome"
       # "google-drive"

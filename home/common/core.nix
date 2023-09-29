@@ -28,6 +28,7 @@
     # sops-nix
     age
     bat
+    cachix
     curl
     delta
     dig
