@@ -6,7 +6,7 @@
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
-    ".config/nix/nix.conf".source = ../../dotfiles/nix.conf;
+    # ".config/nix/".source = ../../dotfiles/nix.conf;
     ".vimrc".source = ../../dotfiles/vimrc;
     ".ssh/config".source = ../../dotfiles/ssh/config;
     ".ssh/id_ed25519.pub".source = ../../dotfiles/ssh/id_ed25519.pub;
