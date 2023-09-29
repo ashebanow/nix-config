@@ -5,13 +5,17 @@ Host *
 Host github.com github
   User git
 
+Host gateway gateway.local gateway.lan
+  # HostName 10.40.0.1
+  HostName 10.50.0.1
+
 Host storage storage.local storage.lan
   # HostName 10.40.0.9
-  HostName 10.50.0.102
+  HostName 10.50.0.123
 
-# Host virt1 virt1.local virt1.lan
-#   # HostName 10.40.0.17
-#   HostName 10.50.0.73
+Host virt1 virt1.local virt1.lan
+  # HostName 10.40.0.11
+  HostName 10.50.0.11
 
 Host virt2 virt2.local virt2.lan
   # HostName 10.40.0.17
