@@ -1,6 +1,7 @@
 Host *
-    IdentityFile ~/.ssh/id_ed25519
-    # IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+  User ashebanow
+  IdentityFile ~/.ssh/id_ed25519
+  # IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
 
 Host github.com github
   User git
@@ -22,8 +23,7 @@ Host virt2 virt2.local virt2.lan
   HostName 10.50.0.73
 
 # Host 192.168.86.68
-#     KexAlgorithms +diffie-hellman-group1-sha1
-#     Ciphers aes128-cbc,3des-cbc,aes192-cbc,aes256-cbc
-#     User ashebanow
-#     PubkeyAcceptedAlgorithms +ssh-rsa
-#     HostkeyAlgorithms +ssh-rsa
+#   KexAlgorithms +diffie-hellman-group1-sha1
+#   Ciphers aes128-cbc,3des-cbc,aes192-cbc,aes256-cbc
+#   PubkeyAcceptedAlgorithms +ssh-rsa
+#   HostkeyAlgorithms +ssh-rsa
