@@ -21,7 +21,7 @@
     firewall = {
       enable = true;
       # Open ports in the firewall.
-      allowedTCPPorts = [ 22, 2049 ];
+      allowedTCPPorts = [ 22 2049 ];
       # allowedUDPPorts = [ ... ];
     };
   };
