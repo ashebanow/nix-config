@@ -18,7 +18,6 @@
     };
   };
 
-  services.nix-daemon.enable = true;
   imports =
     [ # Include the results of the hardware scan.
       ./virt2-hardware-configuration.nix
