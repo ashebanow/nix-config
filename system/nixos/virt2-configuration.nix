@@ -45,6 +45,10 @@
 
   # Mount nfs shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
+  boot.initrd = {
+    supportedFilesystems = [ "nfs" ];
+    kernelModules = [ "nfs" ];
+  };
   fileSystems."/mnt/users/appdata" = {
     device = "storage.local:/appdata";
     fsType = "nfs";
@@ -159,6 +163,7 @@
     git
     gnupg
     kitty
+    nfs-utils
     ripgrep
     unzip
     vim
