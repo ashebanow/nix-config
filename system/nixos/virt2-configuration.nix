@@ -5,6 +5,20 @@
 { config, pkgs, ... }:
 
 {
+  nix = {
+    package = pkgs.nixFlakes;
+    settings = {
+      experimental-features = "nix-command flakes";
+      auto-optimise-store = true;
+      trusted-users = [ "root" "ashebanow" ];
+      warn-dirty = false;
+    };
+    gc = {
+      automatic = true;
+    };
+  };
+
+  services.nix-daemon.enable = true;
   imports =
     [ # Include the results of the hardware scan.
       ./virt2-hardware-configuration.nix
