@@ -21,7 +21,11 @@
   };
 
   outputs = inputs@{ nixpkgs, home-manager, darwin, ... }:
-    substituters = https://cache.nixos.org https://cache.nixos.org/ https://cattivi-public.cachix.org
+    substituters = [
+      https://cache.nixos.org
+      https://cache.nixos.org/
+      https://cattivi-public.cachix.org
+    ];
     trusted-public-keys = [
       cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
       cattivi-public.cachix.org-1:qQQ8FHPoEibPtL1FTZTmVbUL78KW2zCRk+LZPsRiwQ4=
