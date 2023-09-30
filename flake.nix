@@ -21,27 +21,6 @@
   };
 
   outputs = inputs@{ nixpkgs, home-manager, darwin, ... }:
-    substituters = [
-      https://cache.nixos.org
-      https://cache.nixos.org/
-      https://cattivi-public.cachix.org
-    ];
-    trusted-public-keys = [
-      cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-      cattivi-public.cachix.org-1:qQQ8FHPoEibPtL1FTZTmVbUL78KW2zCRk+LZPsRiwQ4=
-    ];
-
-    nix = {
-      package = pkgs.nixFlakes;
-      settings = {
-        experimental-features = "nix-command flakes";
-        auto-optimise-store = true;
-        trusted-users = [ "root" "ashebanow" ];
-        warn-dirty = false;
-      };
-      gc.automatic = true;
-    };
-
     let
       darwinSystem = "aarch64-darwin";
       linuxSystem = "x86_64-linux";

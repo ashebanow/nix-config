@@ -4,9 +4,7 @@
   nix = {
     package = pkgs.nixFlakes;
     settings = {
-      experimental-features = "nix-command flakes";
       auto-optimise-store = true;
-      trusted-users = [ "root" "ashebanow" ];
       warn-dirty = false;
     };
     gc = {
