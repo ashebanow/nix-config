@@ -14,14 +14,14 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  networking {
+  networking = {
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
     hostName = "virt1"; # Define your hostname.
-    firewall {
+    firewall = {
       enable = true;
       # Open ports in the firewall.
-      allowedTCPPorts = [ 22 ];
+      allowedTCPPorts = [ 22 2049 ];
       # allowedUDPPorts = [ ... ];
     };
   };
@@ -29,10 +29,46 @@
   services.openssh = {
     enable = true;
     # require public key authentication for better security
-    settings.PasswordAuthentication = false;
-    settings.KbdInteractiveAuthentication = false;
+    # settings.PasswordAuthentication = false;
+    # settings.KbdInteractiveAuthentication = false;
     # settings.PermitRootLogin = "yes";
   };
+
+  virtualisation.docker = {
+    enable = true;
+    enableOnBoot = true;
+    # storageDriver can be null or one of "aufs", "btrfs", "devicemapper",
+    # "overlay", "overlay2", "zfs". Default is null, which is "autodetect"
+    # storageDriver = "zfs";
+  };
+  users.extraGroups.docker.members = [ "ashebanow" ];
+
+  # Mount nfs shares from storage machine. All of these are set to automount
+  # on first use, and unmount after 10 minutes
+  boot.initrd = {
+    supportedFilesystems = [ "nfs" ];
+    kernelModules = [ "nfs" ];
+  };
+  fileSystems."/mnt/users/appdata" = {
+    device = "storage.local:/appdata";
+    fsType = "nfs";
+    options = [ "x-systemd.automount" "noauto" ];
+  };
+  # fileSystems."/mnt/users/backups" = {
+  #   device = "storage.local:/backups";
+  #   fsType = "nfs";
+  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+  # };
+  # fileSystems."/mnt/users/isos" = {
+  #   device = "storage.local:/isos";
+  #   fsType = "nfs";
+  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+  # };
+  # fileSystems."/mnt/users/media" = {
+  #   device = "storage.local:/media";
+  #   fsType = "nfs";
+  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+  # };
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
@@ -64,13 +100,13 @@
   services.xserver.displayManager.gdm.autoSuspend = false;
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
-        if (action.id == "org.freedesktop.login1.suspend" ||
-            action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
-            action.id == "org.freedesktop.login1.hibernate" ||
-            action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
-        {
-            return polkit.Result.NO;
-        }
+      if (action.id == "org.freedesktop.login1.suspend" ||
+          action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
+          action.id == "org.freedesktop.login1.hibernate" ||
+          action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
+      {
+        return polkit.Result.NO;
+      }
     });
   '';
     # Disable the GNOME3/GDM auto-suspend feature that cannot be disabled in GUI!
@@ -115,9 +151,6 @@
     isNormalUser = true;
     description = "Andrew Shebanow";
     extraGroups = [ "networkmanager" "wheel" "storage" ];
-    authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow"
-    ];
   };
 
   # Allow unfree packages
@@ -126,9 +159,11 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    docker-compose  
     git
     gnupg
     kitty
+    nfs-utils
     ripgrep
     unzip
     vim
@@ -160,5 +195,4 @@
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "23.05"; # Did you read the comment?
-
 }

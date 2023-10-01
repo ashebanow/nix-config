@@ -4,9 +4,7 @@
   nix = {
     package = pkgs.nixFlakes;
     settings = {
-      experimental-features = "nix-command flakes";
       auto-optimise-store = true;
-      trusted-users = [ "root" "ashebanow" ];
       warn-dirty = false;
     };
     gc = {
@@ -41,6 +39,7 @@
     ack
     age
     bat
+    cachix
     curl
     delta
     dig
@@ -86,7 +85,7 @@
       # "arc"
       "discord"
       "disk-diet"
-      # "docker"
+      "docker"
       # "firefox"
       # "google-chrome"
       # "google-drive"

@@ -1,8 +1,8 @@
-# Created by https://www.toptal.com/developers/gitignore/api/macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go
-# Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go
-
 result
 secrets.yaml
+
+# Created by https://www.toptal.com/developers/gitignore/api/macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go
+# Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
