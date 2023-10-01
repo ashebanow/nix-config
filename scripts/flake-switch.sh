@@ -8,8 +8,6 @@
 #
 # (use the version number appropriate for your platform)
 
-nix flake update --commit-lock-file
-
 if [ "$(uname -s)" == "Darwin" ]; then
   echo "Running darwin-rebuild..."
   darwin-rebuild switch --show-trace --flake .
