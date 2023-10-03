@@ -4,9 +4,6 @@
   inputs = {
     # Package sets
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
-    # nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-stable-darwin.url = "github:nixos/nixpkgs/nixpkgs-23.05-darwin";
-    nixos-stable.url = "github:nixos/nixpkgs/nixos-23.05";
 
     # Environment/system management
     darwin.url = "github:lnl7/nix-darwin";
@@ -52,8 +49,7 @@
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./system/nixos/virt2-configuration.nix
-            home-manager.nixosModules.home-manager
-            {
+            home-manager.nixosModules.home-manager {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
