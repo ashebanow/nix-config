@@ -32,8 +32,5 @@
   # release notes.
   home.stateVersion = "23.05"; # Please read the comment before changing.
 
-  programs = {
-    # Let Home Manager install and manage itself.
-    home-manager.enable = true;
-  };
+  programs.home-manager.enable = true;
 }
