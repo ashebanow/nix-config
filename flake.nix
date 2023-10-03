@@ -49,8 +49,7 @@
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./system/nixos/virt2-configuration.nix
-            home-manager.nixosModules.home-manager
-            {
+            home-manager.nixosModules.home-manager {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
