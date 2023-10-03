@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-nix flake update --commit-lock-file
+nix flake update --recreate-lock-file
 nix-store --gc
