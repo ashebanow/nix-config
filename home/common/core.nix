@@ -3,10 +3,11 @@
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
-    ".config/starship.toml".source = ../../dotfiles/starship.toml;
-    ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
+    ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/nix/nix.conf".source = ../../dotfiles/nix.conf;
+    ".config/starship.toml".source = ../../dotfiles/starship.toml;
+    ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".vimrc".source = ../../dotfiles/vimrc;
     ".ssh/config".source = ../../dotfiles/ssh/config;
     ".ssh/id_ed25519.pub".source = ../../dotfiles/ssh/id_ed25519.pub;
