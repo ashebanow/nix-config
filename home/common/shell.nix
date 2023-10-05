@@ -4,6 +4,7 @@
 {
   home = {
     shellAliases = {
+      ack = "rg";
       cat = "bat --paging=never";
       cd = "z";
       cdi = "zi";
