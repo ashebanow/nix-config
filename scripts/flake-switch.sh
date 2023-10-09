@@ -15,6 +15,6 @@ elif [ -f "/etc/NIXOS" ]; then
   echo "Running sudo nixos-rebuild..."
   sudo nixos-rebuild switch --impure --flake .
 else
-  echo "Running home-manager switch..."
-  home-manager switch --impure --flake .
+  echo "Running home-manager..."
+  home-manager switch -v -L --debug --show-trace --impure --flake .
 fi
