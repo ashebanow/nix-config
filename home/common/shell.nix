@@ -44,12 +44,16 @@
       autocd = true;
       enableCompletion = true;
       enableAutosuggestions = true;
+      initExtra = ''
+        path+=('/home/ashebanow/.local/bin')
+      '';
       # syntaxHighlighting = {
       #   enable = true;
       # };
       oh-my-zsh = {
         enable = true;
         plugins = [
+          "docker"
           "git"
           "sudo"
         ];
