@@ -1,7 +1,7 @@
 format = """
 [](fg:#9A348E)\
-$os\
 $username\
+$os\
 [](fg:#9A348E bg:#DA627D)\
 $shlvl\
 $hostname\
@@ -12,12 +12,22 @@ $directory\
 $git_branch\
 $git_status\
 [](fg:#FCA17D bg:#86BBD8)\
+$bun\
 $c\
+$container\
+$dart\
+$docker_context\
 $golang\
+$helm\
 $java\
+$kotlin\
+$kubernetes\
 $nodejs\
 $ruby\
 $rust\
+$swift\
+$terraform\
+$vagrant\
 [](fg:#86BBD8 bg:#9A348E)\
 $docker_context\
 [](fg:#9A348E)
@@ -35,20 +45,41 @@ $docker_context\
 # Disable the blank line at the start of the prompt
 # add_newline = false
 
-# An alternative to the username module which displays a symbol that
-# represents the current operating system
-[os]
-style = "bg:#9A348E"
-disabled = true # Disabled by default
-
 # You can also replace your username with a neat symbol like   or disable this
 # and use the os module below
 [username]
 show_always = true
-style_user = "bg:#9A348E"
-style_root = "bg:#9A348E"
-format = '[ $user ]($style)'
+style_user = "fg:#EEEEEE bg:#9A348E"
+style_root = "fg:#EE0000 bg:#9A348E"
+format = '[$user]($style)'
 disabled = false
+
+# An alternative to the username module which displays a symbol that
+# represents the current operating system
+[os]
+format = '[\($symbol\)]($style)'
+style = "fg:#EEEEEE bg:#9A348E"
+disabled = false
+
+# redefine OS emojis without trailing spaces, ugh
+[os.symbols]
+Arch = "🎗️"
+CentOS = "💠"
+Debian = "🌀"
+Fedora = "🎩"
+FreeBSD = "😈"
+Linux = "🐧"
+Macos = "🍎"
+Mint = "🌿"
+NixOS = "❄️"
+OpenBSD = "🐡"
+openSUSE = "🦎"
+Redhat = "🎩"
+RedHatEnterprise = "🎩"
+SUSE = "🦎"
+Unknown = "❓"
+Ubuntu = "🎯"
+Windows = ""
 
 [shlvl]
 format='[ $symbol$shlvl ]($style)'
@@ -65,7 +96,8 @@ disabled = false
 [nix_shell]
 symbol='❄️'
 style = "bg:#DA627D"
-format = '[ $symbol$name $state ]($style)'
+heuristic = true
+format = '[ $symbol $name ]($style)'
 disabled = false
 
 [directory]
@@ -77,20 +109,17 @@ truncation_symbol = "…/"
 # Here is how you can shorten some long paths by text replacement
 # similar to mapped_locations in Oh My Posh:
 [directory.substitutions]
-"~/Development" = "󰦬 "
-"~/Downloads" = " "
-"Documents" = "󰈙 "
-"Music" = " "
-"Pictures" = " "
+"~" = "\uf7dd "
+"~/Development" = "\ue5fb "
+"~/Downloads" = "  "
+"Documents" = "\U000f19f6 "
+"Music" = "  "
+"Pictures" = "  "
 # Keep in mind that the order matters. For example:
-# "Important Documents" = " 󰈙 "
+# "Important Documents " = "\U000f19f6 "
 # will not be replaced, because "Documents" was already substituted before.
 # So either put "Important Documents" before "Documents" or use the substituted version:
-# "Important 󰈙 " = " 󰈙 "
-
-[docker_context]
-style = "bg:#06969A"
-format = '[ $symbol$context ]($style)'
+# "Important \U000f19f6 " = "\U000f19f6 "
 
 [git_branch]
 style = "fg:#202020 bg:#FCA17D"
@@ -108,46 +137,43 @@ format = '[ $time ]($style)'
 
 ################################################################
 
+[bun]
+format = '[ 🍔($version) ]($style)'
+
 [c]
 style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
 
-[elixir]
-style = "fg:#202020 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
+[container]
+format = '[ $symbol($name) ]($style)'
 
-[elm]
-style = "fg:#202020 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
+[dart]
+format = '[ $symbol($version ) ]($style)'
+
+[docker_context]
+format = '[ $symbol($context) ]($style)'
 
 [golang]
 style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
 
-[gradle]
-style = "fg:#202020 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
-
-[haskell]
-style = "fg:#202020 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
+[helm]
+format = '[ $symbol($version ) ]($style)'
 
 [java]
 symbol = " "
 style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
 
-[julia]
-symbol = " "
-style = "fg:#202020 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
+[kotlin]
+format = '[ $symbol($version ) ]($style)'
+
+[kubernetes]
+format = '[ $symbol$context(\($namespace\)) ]($style)'
+#disabled = false
 
 [nodejs]
 symbol = ""
-style = "fg:#202020 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
-
-[nim]
 style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
 
@@ -159,6 +185,11 @@ format = '[ $symbol($version) ]($style)'
 style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
 
-[scala]
-style = "fg:#202020 bg:#86BBD8"
+[swift]
+format = '[ $symbol($version) ]($style)'
+
+[terraform]
+format = '[🏎💨 $workspace] ($style)'
+
+[vagrant]
 format = '[ $symbol($version) ]($style)'
