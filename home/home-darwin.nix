@@ -19,7 +19,7 @@
   # manage.
   home.username = "ashebanow";
 
-  home.homeDirectory = "/home/ashebanow";
+  home.homeDirectory = "/Users/ashebanow";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
