@@ -30,8 +30,8 @@ $terraform\
 $vagrant\
 [](fg:#86BBD8 bg:#9A348E)\
 $docker_context\
-[](fg:#9A348E)
-\\$ """
+[](fg:#9A348E) \
+\\$"""
 
 # Handy format strings for debugging, add to the beginning of the appropriate
 # section of the prompt above (without the leading '# ').
