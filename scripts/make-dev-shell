@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+if [ $# -eq 0 ]; then
+    echo "Usage: make-dev-shell <lang>"
+    echo "  Possible languages:"
+    echo "    clojure"
+    echo "    csharp"
+    echo "    cue"
+    echo "    dhall"
+    echo "    elixir"
+    echo "    elm"
+    echo "    gleam"
+    echo "    go"
+    echo "    hashi"
+    echo "    java"
+    echo "    kotlin"
+    echo "    latex"
+    echo "    nickel"
+    echo "    nim"
+    echo "    nix"
+    echo "    node"
+    echo "    ocaml"
+    echo "    opa"
+    echo "    php"
+    echo "    protobuf"
+    echo "    pulumi"
+    echo "    purescript"
+    echo "    ruby"
+    echo "    rust"
+    echo "    scala"
+    echo "    shell"
+    echo "    zig"
+    exit 1
+fi
+
+nix flake init -t "github:the-nix-way/dev-templates#$1"
+direnv allow

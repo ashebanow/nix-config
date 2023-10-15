@@ -3,6 +3,11 @@
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
+    ".local/bin/copy-ssh-keys".source = ../../scripts/copy-ssh-keys;
+    ".local/bin/flake-switch".source = ../../scripts/flake-switch;
+    ".local/bin/flake-update".source = ../../scripts/flake-update;
+    ".local/bin/list-cloudflare-ips".source = ../../scripts/list-cloudflare-ips;
+    ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/nix/nix.conf".source = ../../dotfiles/nix.conf;

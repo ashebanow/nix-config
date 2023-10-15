@@ -47,3 +47,42 @@ Similar to Linux systems above, but you need to use Darwin. More details coming 
 2. git commit signing
 3. secrets in general
 4. vscode config
+
+
+For debian:
+
+```bash
+sudo apt update && sudo apt install -y
+apt install -y wget curl git vim zsh
+
+sudo chsh -s $(which zsh) $USER
+
+# WSL only:
+sudo vim /etc/hostname
+# edit the hostname to whatever you want. Make it different from the
+# underlying windows hostname, though. I usually just append the distro name.
+
+
+```
+
+Add these lines to the /etc/wsl.conf (note you will need to run your editor
+with sudo privileges, e.g: sudo nano /etc/wsl.conf):
+
+```bash
+[boot]
+systemd=true
+```
+
+If using WSL, reboot it via ```wsl --shutdown``` in PowerShell and open a
+new terminal window. For non-WSL, just close down your terminal session and
+open a new one. You may get a prompt about creating zsh files, you can skip
+creating them since our next step will take care of them.
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+# you will need to provide sudo password and confirm default settings.
+
+git clone https://github.com/ashebanow/nix-config.git
+cd nix-config
+```
+
