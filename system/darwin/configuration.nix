@@ -33,37 +33,8 @@
     vim
     wget
     zsh
-    # these are here temporarily until we fix home manager
     # sops
     # sops-nix
-    ack
-    age
-    bat
-    cachix
-    curl
-    delta
-    dig
-    direnv
-    exa
-    gh
-    glances
-    glow
-    gnupg
-    gum
-    htop
-    hyperfine
-    jq
-    kitty
-    lego
-    less
-    neofetch
-    nix-direnv
-    nixpkgs-fmt
-    ripgrep
-    starship
-    unzip
-    wishlist
-    zoxide
   ];
 
   fonts.fontDir.enable = true;
