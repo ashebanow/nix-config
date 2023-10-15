@@ -13,9 +13,9 @@ if [ "$(uname -s)" == "Darwin" ]; then
   darwin-rebuild switch --show-trace --flake "$HOME/nix-config"
 elif [ -f "/etc/NIXOS" ]; then
   echo "Running sudo nixos-rebuild..."
-  sudo nixos-rebuild switch --impure --flake "$HOME/nix-config"
+  sudo nixos-rebuild switch --flake "$HOME/nix-config"
 else
   echo "Running home-manager..."
-  # home-manager switch -v -L --debug --show-trace --impure --flake .
-  home-manager switch --show-trace --impure --flake "$HOME/nix-config"
+  # home-manager switch -v -L --debug --show-trace --flake .
+  home-manager switch --show-trace --flake "$HOME/nix-config"
 fi
