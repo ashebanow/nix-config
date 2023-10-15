@@ -45,10 +45,7 @@
       enableCompletion = true;
       enableAutosuggestions = true;
       initExtra = ''
-        # hack it and put both linux and darwin
-        # home dirs in path.
-        path+=('/home/ashebanow/.local/bin')
-        path+=('/Users/ashebanow/.local/bin')
+        path+=('~/.local/bin')
       '';
       # syntaxHighlighting = {
       #   enable = true;
