@@ -26,7 +26,6 @@ $nodejs\
 $ruby\
 $rust\
 $swift\
-$terraform\
 $vagrant\
 [](fg:#86BBD8 bg:#9A348E)\
 $docker_context\
@@ -187,9 +186,6 @@ format = '[ $symbol($version) ]($style)'
 
 [swift]
 format = '[ $symbol($version) ]($style)'
-
-[terraform]
-format = '[🏎💨 $workspace] ($style)'
 
 [vagrant]
 format = '[ $symbol($version) ]($style)'
