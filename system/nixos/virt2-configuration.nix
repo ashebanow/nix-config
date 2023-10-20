@@ -85,7 +85,7 @@
     #   fsType = "nfs";
     #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
     # }
-  }
+  };
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
