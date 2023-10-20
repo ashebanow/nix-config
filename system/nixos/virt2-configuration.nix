@@ -5,6 +5,8 @@
 { config, pkgs, ... }:
 
 {
+  nix.settings.experimental-feautures = [ "nix-command", "flakes" ];
+
   imports =
     [ # Include the results of the hardware scan.
       ./virt2-hardware-configuration.nix
