@@ -205,7 +205,7 @@
     kitty
     nfs-utils
     ripgrep
-    smbclient
+    samba
     unzip
     vim
     wget
