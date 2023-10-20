@@ -75,17 +75,17 @@
     #   device = "storage.local:/mnt/users/backups";
     #   fsType = "nfs";
     #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-    # },
+    # };
     # "/mnt/users/isos" = {
     #   device = "storage.local:/mnt/users/isos";
     #   fsType = "nfs";
     #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-    # },
+    # };
     # "/mnt/users/media" = {
     #   device = "storage.local:/mnt/users/media";
     #   fsType = "nfs";
     #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-    # }
+    # };
   };
 
   # Set your time zone.
