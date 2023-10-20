@@ -53,13 +53,14 @@
   # FIXME: replace with vault secrets
   services.rpcbind.enable = true;
   services.nfs.server.enable = true;
+  services.gvfs.enable = true;
   boot.initrd = {
     supportedFilesystems = [ "nfs" ];
     kernelModules = [ "nfs" ];
   };
   fileSystems = {
     "/mnt/users/appdata" = {
-      device = "storage:/mnt/users/appdata";
+      device = "//storage/mnt/users/appdata";
       fsType = "cifs";
       options = let
         # this line prevents hanging on network split
@@ -69,7 +70,7 @@
 
       # fsType = "nfs";
       # options = [ "x-systemd.automount" "noauto" ];
-    }
+    };
     # "/mnt/users/backups" = {
     #   device = "storage.local:/mnt/users/backups";
     #   fsType = "nfs";
