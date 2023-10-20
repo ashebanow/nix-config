@@ -62,29 +62,50 @@
     "/mnt/users/appdata" = {
       device = "//storage/mnt/users/appdata";
       fsType = "cifs";
-      options = let
-        # this line prevents hanging on network split
-        automount_opts = "x-systemd.automount,noauto,x-systemd.idle-timeout=60,x-systemd.device-timeout=5s,x-systemd.mount-timeout=5s";
-
-      in ["${automount_opts},credentials=/etc/nixos/smb-secrets"];
-
-      # fsType = "nfs";
-      # options = [ "x-systemd.automount" "noauto" ];
+      options = [
+        "x-systemd.automount"
+        "noauto"
+        "credentials=/etc/nixos/smb-secrets"
+        "x-systemd.idle-timeout=60"
+        "x-systemd.device-timeout=5s"
+        "x-systemd.mount-timeout=5s"
+      ];
     };
     # "/mnt/users/backups" = {
-    #   device = "storage.local:/mnt/users/backups";
-    #   fsType = "nfs";
-    #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+    #   device = "//storage/mnt/users/backups";
+    #   fsType = "cifs";
+    #   options = [
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "credentials=/etc/nixos/smb-secrets"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
+    #   ];
     # };
     # "/mnt/users/isos" = {
-    #   device = "storage.local:/mnt/users/isos";
-    #   fsType = "nfs";
-    #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+    #   device = "//storage/mnt/users/isos";
+    #   fsType = "cifs";
+    #   options = [
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "credentials=/etc/nixos/smb-secrets"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
+    #   ];
     # };
     # "/mnt/users/media" = {
-    #   device = "storage.local:/mnt/users/media";
-    #   fsType = "nfs";
-    #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+    #   device = "//storage/mnt/users/media";
+    #   fsType = "cifs";
+    #   options = [
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "credentials=/etc/nixos/smb-secrets"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
+    #   ];
     # };
   };
 
@@ -177,12 +198,14 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    cifs-utils
     docker-compose  
     git
     gnupg
     kitty
     nfs-utils
     ripgrep
+    smbclient
     unzip
     vim
     wget
