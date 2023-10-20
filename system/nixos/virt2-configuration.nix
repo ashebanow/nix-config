@@ -5,7 +5,7 @@
 { config, pkgs, ... }:
 
 {
-  nix.settings.experimental-feautures = [ "nix-command", "flakes" ];
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   imports =
     [ # Include the results of the hardware scan.
