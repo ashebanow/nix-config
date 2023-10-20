@@ -47,30 +47,45 @@
 
   # Mount nfs shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
+  #
+  # NOTE THAT YOU MUST CREATE/COPY the '/etc/nixos/smb-secrets' file to the
+  # machine, with USERNAME, DOMAIN and PASSWORD defined on separate lines.
+  # FIXME: replace with vault secrets
+  services.rpcbind.enable = true;
+  services.nfs.server.enable = true;
   boot.initrd = {
     supportedFilesystems = [ "nfs" ];
     kernelModules = [ "nfs" ];
   };
-  fileSystems."/mnt/users/appdata" = {
-    device = "storage.local:/appdata";
-    fsType = "nfs";
-    options = [ "x-systemd.automount" "noauto" ];
-  };
-  # fileSystems."/mnt/users/backups" = {
-  #   device = "storage.local:/backups";
-  #   fsType = "nfs";
-  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-  # };
-  # fileSystems."/mnt/users/isos" = {
-  #   device = "storage.local:/isos";
-  #   fsType = "nfs";
-  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-  # };
-  # fileSystems."/mnt/users/media" = {
-  #   device = "storage.local:/media";
-  #   fsType = "nfs";
-  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-  # };
+  fileSystems = {
+    "/mnt/users/appdata" = {
+      device = "storage:/mnt/users/appdata";
+      fsType = "cifs";
+      options = let
+        # this line prevents hanging on network split
+        automount_opts = "x-systemd.automount,noauto,x-systemd.idle-timeout=60,x-systemd.device-timeout=5s,x-systemd.mount-timeout=5s";
+
+      in ["${automount_opts},credentials=/etc/nixos/smb-secrets"];
+
+      # fsType = "nfs";
+      # options = [ "x-systemd.automount" "noauto" ];
+    };
+    # "/mnt/users/backups" = {
+    #   device = "storage.local:/mnt/users/backups";
+    #   fsType = "nfs";
+    #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+    # };
+    # "/mnt/users/isos" = {
+    #   device = "storage.local:/mnt/users/isos";
+    #   fsType = "nfs";
+    #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+    # };
+    # "/mnt/users/media" = {
+    #   device = "storage.local:/mnt/users/media";
+    #   fsType = "nfs";
+    #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
+    # };
+  }
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
