@@ -5,6 +5,8 @@
 { config, pkgs, ... }:
 
 {
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
   imports =
     [ # Include the results of the hardware scan.
       ./virt2-hardware-configuration.nix
@@ -45,30 +47,67 @@
 
   # Mount nfs shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
+  #
+  # NOTE THAT YOU MUST CREATE/COPY the '/etc/nixos/smb-secrets' file to the
+  # machine, with USERNAME, DOMAIN and PASSWORD defined on separate lines.
+  # FIXME: replace with vault secrets
+  services.rpcbind.enable = true;
+  services.nfs.server.enable = true;
+  services.gvfs.enable = true;
   boot.initrd = {
     supportedFilesystems = [ "nfs" ];
     kernelModules = [ "nfs" ];
   };
-  fileSystems."/mnt/users/appdata" = {
-    device = "storage.local:/appdata";
-    fsType = "nfs";
-    options = [ "x-systemd.automount" "noauto" ];
+  fileSystems = {
+    "/mnt/users/appdata" = {
+      device = "//storage/mnt/users/appdata";
+      fsType = "cifs";
+      options = [
+        "x-systemd.automount"
+        "noauto"
+        "credentials=/etc/nixos/smb-secrets"
+        "x-systemd.idle-timeout=60"
+        "x-systemd.device-timeout=5s"
+        "x-systemd.mount-timeout=5s"
+      ];
+    };
+    # "/mnt/users/backups" = {
+    #   device = "//storage/mnt/users/backups";
+    #   fsType = "cifs";
+    #   options = [
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "credentials=/etc/nixos/smb-secrets"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
+    #   ];
+    # };
+    # "/mnt/users/isos" = {
+    #   device = "//storage/mnt/users/isos";
+    #   fsType = "cifs";
+    #   options = [
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "credentials=/etc/nixos/smb-secrets"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
+    #   ];
+    # };
+    # "/mnt/users/media" = {
+    #   device = "//storage/mnt/users/media";
+    #   fsType = "cifs";
+    #   options = [
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "credentials=/etc/nixos/smb-secrets"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
+    #   ];
+    # };
   };
-  # fileSystems."/mnt/users/backups" = {
-  #   device = "storage.local:/backups";
-  #   fsType = "nfs";
-  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-  # };
-  # fileSystems."/mnt/users/isos" = {
-  #   device = "storage.local:/isos";
-  #   fsType = "nfs";
-  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-  # };
-  # fileSystems."/mnt/users/media" = {
-  #   device = "storage.local:/media";
-  #   fsType = "nfs";
-  #   options = [ "x-systemd.automount" "noauto" "x-systemd.idle-timeout=600" ];
-  # };
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
@@ -159,12 +198,14 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    cifs-utils
     docker-compose  
     git
     gnupg
     kitty
     nfs-utils
     ripgrep
+    samba
     unzip
     vim
     wget

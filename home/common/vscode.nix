@@ -43,7 +43,6 @@ in
     # Provided by Nixpkgs
     esbenp.prettier-vscode
     formulahendry.auto-close-tag
-    # kamikillerto.vscode-colorize
     redhat.vscode-yaml
     rust-lang.rust-analyzer
     tamasfe.even-better-toml
@@ -62,23 +61,17 @@ in
       version = "1.0.9";
       sha256 = "sha256-5pGDKme46uT1/35WkTGL3n8ecc7wUBkHVId9VpT7c2U=";
     })
-    # (extension {
-    #   publisher = "HashiCorp";
-    #   name = "HCL";
-    #   version = "0.2.1";
-    #   sha256 = "sha256-5dBLDJ7Wgv7p3DY0klqxtgo2/ckAHoMOm8G1mDOlzZc=";
-    # })
+    (extension {
+      publisher = "HashiCorp";
+      name = "HCL";
+      version = "0.2.1";
+      sha256 = "sha256-5dBLDJ7Wgv7p3DY0klqxtgo2/ckAHoMOm8G1mDOlzZc=";
+    })
     (extension {
       publisher = "HashiCorp";
       name = "terraform";
       version = "2.23.0";
       sha256 = "sha256-3v2hEf/cEd7NiXfk7eJbmmdyiQJ7bWl9TuaN+y5k+e0=";
-    })
-    (extension {
-      publisher = "Gleam";
-      name = "gleam";
-      version = "2.0.0";
-      sha256 = "sha256-P71WDMYidD1qz4EQpVOer2npRe16glRcOA/I76jkZuM=";
     })
     (extension {
       publisher = "golang";
