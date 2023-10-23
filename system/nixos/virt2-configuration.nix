@@ -243,6 +243,7 @@
       "SpellcheckEnabled" = true;
       "SpellcheckLanguage" = [ "en-US" ];
     };
+  };
 
   # List services that you want to enable:
 
