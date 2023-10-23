@@ -227,6 +227,23 @@
 
   fonts.fontDir.enable = true;
 
+  programs._1password.enable = true;
+  # programs._1password-gui.enable = true;
+
+  programs.chromium = {
+    enable = true;
+    extensions = [
+      "cjpalhdlnbpafiamejdnhcphjbkeiagm" # ublock origin
+      "aeblfdkhhhdcdjpifhhbdiojplfjncoa" # 1password
+    ];
+    extraOpts = {
+      "BrowserSignin" = 1;
+      "SyncDisabled" = false;
+      "PasswordManagerEnabled" = false;
+      "SpellcheckEnabled" = true;
+      "SpellcheckLanguage" = [ "en-US" ];
+    };
+
   # List services that you want to enable:
 
   # This value determines the NixOS release from which the default

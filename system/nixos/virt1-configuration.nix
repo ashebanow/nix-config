@@ -159,6 +159,7 @@
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment.systemPackages = with pkgs; [
+    chromium
     docker-compose  
     git
     gnupg
@@ -185,6 +186,26 @@
   environment.shells = with pkgs; [ zsh ];
 
   fonts.fontDir.enable = true;
+
+  programs._1password.enable = true;
+  # programs._1password-gui.enable = true;
+
+  programs.chromium = {
+    enable = true;
+    extensions = [
+      "cjpalhdlnbpafiamejdnhcphjbkeiagm" # ublock origin
+      "aeblfdkhhhdcdjpifhhbdiojplfjncoa" # 1password
+    ];
+    extraOpts = {
+      "BrowserSignin" = 1;
+      "SyncDisabled" = false;
+      "PasswordManagerEnabled" = false;
+      "SpellcheckEnabled" = true;
+      "SpellcheckLanguage" = [ "en-US" ];
+    };
+};
+
+
 
   # List services that you want to enable:
 

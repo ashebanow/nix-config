@@ -35,7 +35,6 @@
     age
     bat
     cachix
-    chromium
     curl
     delta
     dig
@@ -75,21 +74,6 @@
         pager = "less -FR";
         theme = "Solarized (dark)";
       };
-    };
-
-    chromium = {
-      enable = true;
-      extraOpts = {
-        "BrowserSignin" = 1;
-        "SyncDisabled" = false;
-        "PasswordManagerEnabled" = false;
-        "SpellcheckEnabled" = true;
-        "SpellcheckLanguage" = [ "en-US" ];
-      };
-      extensions = [
-        "cjpalhdlnbpafiamejdnhcphjbkeiagm" # ublock origin
-        "aeblfdkhhhdcdjpifhhbdiojplfjncoa" # 1password
-      ];
     };
 
     # direnv configuration.
