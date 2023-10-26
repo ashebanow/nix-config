@@ -250,7 +250,15 @@
   };
 
   # List services that you want to enable:
-  services.qemuGuest.enable = true; 
+  services.qemuGuest.enable = true;
+  programs.dconf.enable = true;
+  programs.dconf.settings = {
+    "org/virt-manager/virt-manager/connections" = {
+      autoconnect = ["qemu:///system"];
+      uris = ["qemu:///system"];
+    };
+  };
+
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
