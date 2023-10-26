@@ -13,6 +13,7 @@
   boot.kernelModules = [ "kvm-amd" "kvm-intel" ];
   boot.extraModulePackages = [ ];
   virtualisation.libvirtd.enable = true;
+  programs.dconf.enable = true; # needed for libvirt
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/c0faee53-2b3b-405d-91f0-d7cdd30fd6e1";
