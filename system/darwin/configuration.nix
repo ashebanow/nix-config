@@ -18,6 +18,9 @@
     description = "Andrew Shebanow";
     home = "/Users/ashebanow";
     shell = pkgs.zsh;
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
+    ];
   };
 
   # Allow unfree packages
