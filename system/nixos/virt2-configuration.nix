@@ -189,7 +189,10 @@
     shell = pkgs.zsh;
     isNormalUser = true;
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "storage" ];
+    extraGroups = [ "networkmanager" "wheel" "storage" "libvirtd" ];
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
+    ];
   };
 
   # Allow unfree packages
@@ -208,6 +211,7 @@
     samba
     unzip
     vim
+    virt-manager
     wget
     zsh
   ];
@@ -246,6 +250,8 @@
   };
 
   # List services that you want to enable:
+  services.qemuGuest.enable = true;
+  programs.dconf.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
