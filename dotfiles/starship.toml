@@ -28,7 +28,6 @@ $rust\
 $swift\
 $vagrant\
 [](fg:#86BBD8 bg:#9A348E)\
-[](fg:#9A348E)
 \\$ """
 
 # Handy format strings for debugging, add to the beginning of the appropriate
@@ -137,54 +136,63 @@ format = '[ $time ]($style)'
 
 [bun]
 format = '[ 🍔($version) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [c]
-style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [container]
 format = '[ $symbol($name) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [dart]
 format = '[ $symbol($version ) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [docker_context]
 format = '[ $symbol($context) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [golang]
-style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [helm]
 format = '[ $symbol($version ) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [java]
 symbol = " "
-style = "fg:#202020 bg:#86BBD8"
+style = "fg:#000000 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
 
 [kotlin]
 format = '[ $symbol($version ) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [kubernetes]
 format = '[ $symbol$context(\($namespace\)) ]($style)'
 #disabled = false
+style = "fg:#000000 bg:#86BBD8"
 
 [nodejs]
 symbol = ""
-style = "fg:#202020 bg:#86BBD8"
+style = "fg:#000000 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
 
 [ruby]
-style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [rust]
-style = "fg:#202020 bg:#86BBD8"
 format = '[ $symbol($version) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [swift]
 format = '[ $symbol($version) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
 
 [vagrant]
 format = '[ $symbol($version) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
