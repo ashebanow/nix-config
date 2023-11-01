@@ -45,6 +45,7 @@
     htop
     hyperfine
     jq
+    just
     kitty
     lego
     less

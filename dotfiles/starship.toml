@@ -21,12 +21,13 @@ $helm\
 $java\
 $kotlin\
 $kubernetes\
+${custom.nixlang}\
 $nodejs\
 $ruby\
 $rust\
 $swift\
 $vagrant\
-[](fg:#86BBD8 bg:#9A348E)\
+[ ](fg:#86BBD8 bg:#000000)\
 \\$ """
 
 # Handy format strings for debugging, add to the beginning of the appropriate
@@ -195,3 +196,11 @@ style = "fg:#000000 bg:#86BBD8"
 [vagrant]
 format = '[ $symbol($version) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
+
+[custom.nixlang]
+command = "nix --version | sed -e 's/nix (Nix) //g'"
+symbol='❄️'
+format = '[ $symbol ($output) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
+require_repo = true
+detect_extensions = ['nix']
