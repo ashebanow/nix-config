@@ -35,6 +35,7 @@
     dig
     direnv
     exa
+    foreman
     gh
     git
     glances
@@ -51,12 +52,15 @@
     (nerdfonts.override { fonts = [ "JetBrainsMono" "RobotoMono" "SourceCodePro" ]; })
     nix-direnv
     nixpkgs-fmt
+    overmind
     ripgrep
     starship
+    tmux
     unzip
     vim
     wget
     wishlist
+    yarn
     zoxide
     zsh
   ];
