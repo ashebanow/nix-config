@@ -24,8 +24,8 @@ $ruby\
 $rust\
 $swift\
 $vagrant\
-[ ](fg:#86BBD8 bg:#000000)\
-\\$ """
+[](fg:#86BBD8 bg:#000000)\
+"""
 
 # Handy format strings for debugging, add to the beginning of the appropriate
 # section of the prompt above (without the leading '# ').
@@ -76,12 +76,12 @@ Ubuntu = "🎯"
 Windows = ""
 
 [shlvl]
-format='[ $symbol$shlvl ]($style)'
-style = "bg:#DA627D"
 disabled = false
+format='[$symbol$shlvl ]($style)'
+style = "bg:#DA627D"
 
 [hostname]
-format='[ $ssh_symbol$hostname ]($style)'
+format='[$ssh_symbol$hostname ]($style)'
 trim_at='.'
 ssh_symbol='🌏'
 style = "bg:#DA627D"
@@ -91,8 +91,8 @@ disabled = false
 symbol='❄️'
 style = "bg:#DA627D"
 heuristic = true
-format = '[ $symbol $name ]($style)'
-disabled = false
+format = '[$symbol $name ]($style)'
+disabled = true
 
 [directory]
 style = "bg:#33658A"
@@ -121,7 +121,7 @@ format = '[ $symbol($branch) ]($style)'
 
 [git_status]
 style = "fg:#202020 bg:#FCA17D"
-format = '[ $all_status$ahead_behind ]($style)'
+format = '[$all_status$ahead_behind ]($style)'
 
 [time]
 disabled = true
