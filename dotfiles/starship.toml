@@ -12,10 +12,7 @@ $directory\
 $git_branch\
 $git_status\
 [](fg:#FCA17D bg:#86BBD8)\
-$bun\
-$c\
 $container\
-$dart\
 $golang\
 $helm\
 $java\
@@ -134,20 +131,8 @@ format = '[ $time ]($style)'
 
 ################################################################
 
-[bun]
-format = '[ 🍔($version) ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
-[c]
-format = '[ $symbol($version) ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
 [container]
 format = '[ $symbol($name) ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
-[dart]
-format = '[ $symbol($version ) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [docker_context]
@@ -155,20 +140,20 @@ format = '[ $symbol($context) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [golang]
-format = '[ $symbol($version) ]($style)'
+format = '[$symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [helm]
-format = '[ $symbol($version ) ]($style)'
+format = '[$symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [java]
-symbol = " "
+format = '[$symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
+symbol = " "
 
 [kotlin]
-format = '[ $symbol($version ) ]($style)'
+format = '[$symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [kubernetes]
@@ -177,30 +162,26 @@ format = '[ $symbol$context(\($namespace\)) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [nodejs]
+format = '[$symbol ]($style)'
+style = "fg:#FFE53D bg:#86BBD8"
 symbol = ""
-style = "fg:#000000 bg:#86BBD8"
-format = '[ $symbol($version) ]($style)'
 
 [ruby]
-format = '[ $symbol($version) ]($style)'
-style = "fg:#000000 bg:#86BBD8"
+format = '[$symbol ]($style)'
+style = "fg:#E0115F bg:#86BBD8"
+symbol = ""
 
 [rust]
-format = '[ $symbol($version) ]($style)'
+format = '[$symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [swift]
-format = '[ $symbol($version) ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
-[vagrant]
-format = '[ $symbol($version) ]($style)'
+format = '[$symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [custom.nixlang]
-command = "nix --version | sed -e 's/nix (Nix) //g'"
-symbol='❄️'
-format = '[ $symbol ($output) ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-require_repo = true
+# command = "nix --version | sed -e 's/nix (Nix) //g'"
 detect_extensions = ['nix']
+format = '[$symbol ]($style)'
+style = "fg:#000000 bg:#86BBD8"
+symbol='❄️'
