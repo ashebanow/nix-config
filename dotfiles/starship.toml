@@ -185,3 +185,38 @@ detect_extensions = ['nix']
 format = '[$symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 symbol='❄️'
+
+#######################################################################
+
+[palettes.solarized_dark]
+# Ordered from darker to lighter
+base03    = "#002b36"   # background tones
+base02    = "#073642"
+base01    = "#586e75"   # content tones
+base00    = "#657b83"
+base0     = "#839496"
+base1     = "#93a1a1"
+base2     = "#eee8d5"   # background tones
+base3     = "#fdf6e3"
+# Accent colors
+blue      = "#268bd2"   
+cyan      = "#2aa198"
+green     = "#859900"
+magenta   = "#d33682"
+orange    = "#cb4b16"
+red       = "#dc322f"
+violet    = "#6c71c4"
+yellow    = "#b58900"
+# Semantic Colors
+user_section_fg      = "#6c71c4" # yellow
+user_section_bg      = "#002b36" # base03
+shell_section_fg     = "#6c71c4" # violet
+shell_section_bg     = "#fdf6e3" # base3
+directory_section_fg = "#cb4b16" # orange
+directory_section_bg = "#073642" # base02
+git_section_fg       = "#d33682" # magenta
+git_section_bg       = "#eee8d5" # base2
+language_section_fg  = "#2aa198" # cyan
+language_section_bg  = "#586e75" # base01
+
+
