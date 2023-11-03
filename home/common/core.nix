@@ -32,6 +32,7 @@
     delta
     dig
     direnv
+    diskus
     exa
     foreman
     gh
