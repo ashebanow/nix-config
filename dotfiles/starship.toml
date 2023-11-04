@@ -1,6 +1,5 @@
 format = """
 [](fg:#9A348E)\
-$username\
 $os\
 [](fg:#9A348E bg:#DA627D)\
 $shlvl\
@@ -34,10 +33,14 @@ $vagrant\
 # [ Docker Context ](bg:#9A348E)\
 
 # Get editor completions based on the config schema
-"$schema" = 'https://starship.rs/config-schema.json'
+'$schema' = 'https://starship.rs/config-schema.json'
 
-# Disable the blank line at the start of the prompt
-# add_newline = false
+# Disables the custom module
+[custom]
+disabled = false
+
+[line_break]
+disabled = true
 
 # You can also replace your username with a neat symbol like   or disable this
 # and use the os module below
@@ -51,33 +54,33 @@ disabled = false
 # An alternative to the username module which displays a symbol that
 # represents the current operating system
 [os]
-format = '[\($symbol\)]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#EEEEEE bg:#9A348E"
 disabled = false
 
 # redefine OS emojis without trailing spaces, ugh
 [os.symbols]
-Arch = "🎗️"
-CentOS = "💠"
-Debian = "🌀"
-Fedora = "🎩"
-FreeBSD = "😈"
-Linux = "🐧"
-Macos = "🍎"
-Mint = "🌿"
-NixOS = "❄️"
-OpenBSD = "🐡"
-openSUSE = "🦎"
-Redhat = "🎩"
-RedHatEnterprise = "🎩"
-SUSE = "🦎"
-Unknown = "❓"
-Ubuntu = "🎯"
-Windows = ""
+Arch = "🎗️ Arch"
+CentOS = "💠 CentOS"
+Debian = "🌀 Debian"
+Fedora = "🎩 Fedora"
+FreeBSD = "😈 FreeBSD"
+Linux = "🐧 Linux"
+Macos = " macOS"
+Mint = "🌿 Mint"
+NixOS = "❄️ NixOS"
+OpenBSD = "🐡 OpenBSD"
+openSUSE = "🦎 openSUSE"
+Redhat = "🎩 Redhat"
+RedHatEnterprise = "🎩 RedHatEnterprise"
+SUSE = "🦎 SUSE"
+Unknown = "❓ Unknown"
+Ubuntu = "🎯 Ubuntu"
+Windows = " Windows"
 
 [shlvl]
 disabled = false
-format='[$symbol$shlvl ]($style)'
+format='[ SHLVL: $shlvl ]($style)'
 style = "bg:#DA627D"
 
 [hostname]
@@ -140,20 +143,20 @@ format = '[ $symbol($context) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [golang]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [helm]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [java]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 symbol = " "
 
 [kotlin]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [kubernetes]
@@ -162,27 +165,27 @@ format = '[ $symbol$context(\($namespace\)) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [nodejs]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#FFE53D bg:#86BBD8"
 symbol = ""
 
 [ruby]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#E0115F bg:#86BBD8"
 symbol = ""
 
 [rust]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [swift]
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
 [custom.nixlang]
 # command = "nix --version | sed -e 's/nix (Nix) //g'"
 detect_extensions = ['nix']
-format = '[$symbol ]($style)'
+format = '[ $symbol ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 symbol='❄️'
 
