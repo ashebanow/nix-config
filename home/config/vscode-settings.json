@@ -3,16 +3,19 @@
     "editor.formatOnSave": false
   },
   "[nix]": {
-    "editor.defaultFormatter": "B4dM4n.nixpkgs-fmt"
+    "editor.defaultFormatter": "B4dM4n.nixpkgs-fmt",
+    "editor.formatOnSave": true
   },
   "[python]": {
     "editor.formatOnType": true
   },
   "[rust]": {
-    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
   },
   "[toml]": {
-    "editor.defaultFormatter": "tamasfe.even-better-toml"
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
+    "editor.formatOnSave": true
   },
   "[txt]": {
     "editor.formatOnSave": false
@@ -52,7 +55,7 @@
 
   "prettier.singleQuote": false,
 
-  "redhat.telemetry.enabled": true
+  "redhat.telemetry.enabled": true,
 
   "search.exclude": {
     "**/.direnv": true,
