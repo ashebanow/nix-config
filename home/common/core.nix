@@ -50,6 +50,7 @@
     less
     neofetch
     (nerdfonts.override { fonts = [ "JetBrainsMono" "RobotoMono" "SourceCodePro" ]; })
+    nil # nix LSP
     nix-direnv
     nixpkgs-fmt
     overmind
