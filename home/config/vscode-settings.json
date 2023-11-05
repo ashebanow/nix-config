@@ -26,8 +26,9 @@
   },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.detectIndentation": false,
-  "editor.fontSize": 15,
-  "editor.fontFamily": "'SauceCodePro Nerd Font', 'SauceCodePro Nerd Font Mono', Menlo, Monaco, monospace",
+  "editor.fontFamily": "'SauceCodePro Nerd Font Mono', 'Cascadia Code', monospace",
+  "editor.fontLigatures": false,
+  "editor.fontSize": 14,
   "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
   "editor.insertSpaces": true,
@@ -47,7 +48,11 @@
   "git.autofetch": true,
   "git.confirmSync": false,
 
+  "go.toolsManagement.autoUpdate": true,
+
   "prettier.singleQuote": false,
+
+  "redhat.telemetry.enabled": true
 
   "search.exclude": {
     "**/.direnv": true,
@@ -63,14 +68,18 @@
     "typescriptreact"
   ],
 
+  "security.workspace.trust.untrustedFiles": "open",
+
   "svelte.enable-ts-plugin": true,
 
   "tabnine.experimentalAutoImports": true,
+  "tabnine.receiveBetaChannelUpdates": true,
 
   "terminal.explorerKind": "external",
   "terminal.external.osxExec": "Warp.app",
-  "terminal.integrated.fontFamily": "'SauceCodePro Nerd Font', 'SauceCodePro Nerd Font Mono', Menlo, Monaco, monospace",
- 
+  "terminal.integrated.fontSize": 12,
+  "terminal.integrated.fontWeightBold": "bold",
+
   "workbench.colorTheme": "Solarized Dark",
   "workbench.iconTheme": "material-icon-theme",
   "material-icon-theme.folders.color": "#42a5f5",
