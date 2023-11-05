@@ -81,7 +81,7 @@ Windows = " Windows"
 [shlvl]
 disabled = false
 format='[ SHLVL: $shlvl ]($style)'
-style = "bg:#DA627D"
+style = "fg:#EEEEEE bg:#DA627D"
 
 [hostname]
 format='[$ssh_symbol$hostname ]($style)'
