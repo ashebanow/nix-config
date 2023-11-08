@@ -73,6 +73,7 @@
       "postico"
       "postman"
       "raycast"
+      "retrobatch"
       "sf-symbols"
       # "slack"
       # "soundsource"
