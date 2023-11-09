@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Taken from https://gist.github.com/jaz303/7089132
 
 for dir in $(find . -name '.git' -type d)
 do
