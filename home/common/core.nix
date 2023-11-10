@@ -9,7 +9,6 @@
     ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
-    ".config/nix/nix.conf".source = ../../dotfiles/nix.conf;
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".vimrc".source = ../../dotfiles/vimrc;
