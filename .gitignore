@@ -1,5 +1,6 @@
-result
+result/
 secrets.yaml
+plugin/
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go

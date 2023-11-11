@@ -4,11 +4,11 @@
   # plain files is through 'home.file'.
   home.file = {
     ".local/bin/copy-ssh-keys".source = ../../scripts/copy-ssh-keys;
+    ".local/bin/find-dirty-gits".source = ../../scripts/find-dirty-gits;
     ".local/bin/list-cloudflare-ips".source = ../../scripts/list-cloudflare-ips;
     ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
-    ".config/nix/nix.conf".source = ../../dotfiles/nix.conf;
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".vimrc".source = ../../dotfiles/vimrc;
@@ -50,6 +50,7 @@
     less
     neofetch
     (nerdfonts.override { fonts = [ "JetBrainsMono" "RobotoMono" "SourceCodePro" ]; })
+    nil # nix LSP
     nix-direnv
     nixpkgs-fmt
     overmind

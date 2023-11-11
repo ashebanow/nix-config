@@ -23,7 +23,7 @@ $ruby\
 $rust\
 $swift\
 $vagrant\
-[](fg:#86BBD8 bg:#000000)\
+[ ](fg:#86BBD8 bg:#000000)\
 """
 
 # Handy format strings for debugging, add to the beginning of the appropriate

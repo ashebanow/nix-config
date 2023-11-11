@@ -87,5 +87,13 @@
   "workbench.iconTheme": "material-icon-theme",
   "material-icon-theme.folders.color": "#42a5f5",
   "material-icon-theme.activeIconPack": "react_redux",
-  "workbench.editor.highlightModifiedTabs": true
+  "workbench.editor.highlightModifiedTabs": true,
+
+  "nix.enableLanguageServer": true,
+  "nix.serverPath": "nil",
+  "nix.serverSettings": {
+      "nil": {
+      "formatting": { "command": ["nixpkgs-fmt"] }
+      }
+  }
 }

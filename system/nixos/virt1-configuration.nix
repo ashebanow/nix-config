@@ -20,8 +20,11 @@
     hostName = "virt1"; # Define your hostname.
     firewall = {
       enable = true;
-      # Open ports in the firewall.
-      allowedTCPPorts = [ 22 2049 ];
+      allowedTCPPorts = [ 
+        22              # ssh
+        80 443          # HTTP/HTTPS
+        2049            # nfs
+      ];
       # allowedUDPPorts = [ ... ];
     };
   };

@@ -1,6 +1,20 @@
 {
   description = "main flake for my nix configuration";
 
+  nixConfig = {
+    experimental-features = [ "nix-command" "flakes" ];
+    substituters = [
+      "https://cache.nixos.org/"
+    ];
+
+    extra-substituters = [
+      "https://cattivi-public.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "cattivi-public.cachix.org-1:qQQ8FHPoEibPtL1FTZTmVbUL78KW2zCRk+LZPsRiwQ4="
+    ];
+  };
+
   inputs = {
     # Package sets
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";

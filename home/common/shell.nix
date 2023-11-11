@@ -3,6 +3,11 @@
 
 {
   home = {
+    sessionPath = [ 
+        "$HOME/bin"
+        "$HOME/.local/bin"
+    ];
+
     shellAliases = {
       ack = "rg";
       cat = "bat --paging=never";
@@ -44,9 +49,6 @@
       autocd = true;
       enableCompletion = true;
       enableAutosuggestions = true;
-      initExtra = ''
-        path+=('~/.local/bin')
-      '';
       # syntaxHighlighting = {
       #   enable = true;
       # };
