@@ -3,6 +3,10 @@
 
 {
   home = {
+    sessionVariables = {
+      NIXPKGS_ALLOW_UNFREE = 1;
+    };
+
     sessionPath = [ 
         "$HOME/bin"
         "$HOME/.local/bin"

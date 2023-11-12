@@ -8,7 +8,7 @@ switch:
   if [ -f /etc/NIXOS ]; then
     sudo nixos-rebuild switch --flake "$HOME/nix-config"
   else
-    home-manager switch --show-trace --flake "$HOME/nix-config"
+    home-manager switch --impure --flake "$HOME/nix-config"
   fi
 
 update:
