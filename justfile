@@ -1,6 +1,6 @@
 [macos]
 switch:
-  darwin-rebuild switch --show-trace --flake "$HOME/nix-config"
+  darwin-rebuild switch --impure --flake "$HOME/nix-config"
 
 [linux]
 switch:
