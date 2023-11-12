@@ -56,6 +56,7 @@
     overmind
     ripgrep
     starship
+    termius
     tmux
     unzip
     vim
