@@ -166,17 +166,13 @@
   # $ nix search wget
   environment.systemPackages = with pkgs; [
     chromium
+    cifs-utils
     docker-compose  
-    git
-    gnupg
     kitty
     nfs-utils
-    ripgrep
-    unzip
-    vim
+    samba
+    termius
     virt-manager
-    wget
-    zsh
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
