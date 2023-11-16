@@ -190,9 +190,6 @@
 
   fonts.fontDir.enable = true;
 
-  programs._1password.enable = true;
-  # programs._1password-gui.enable = true;
-
   programs.chromium = {
     enable = true;
     extensions = [
@@ -206,6 +203,17 @@
       "SpellcheckEnabled" = true;
       "SpellcheckLanguage" = [ "en-US" ];
     };
+  };
+
+  # Enable the 1Password CLI, this also enables a SGUID wrapper so the CLI can authorize against the GUI app
+  programs._1password = {
+    enable = true;
+  };
+
+  # Enable the 1Passsword GUI with myself as an authorized user for polkit
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = [ "ashebanow" ];
   };
 
   # List services that you want to enable:

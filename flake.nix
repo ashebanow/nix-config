@@ -1,5 +1,5 @@
 {
-  description = "main flake for my nix configuration";
+  description = "ashebanow's way-too-complicated nix configuration";
 
   nixConfig = {
     experimental-features = [ "nix-command" "flakes" ];

@@ -13,6 +13,7 @@
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".vimrc".source = ../../dotfiles/vimrc;
     ".ssh/config".source = ../../dotfiles/ssh/config;
+    ".ssh/github_ed25519.pub".source = ../../dotfiles/ssh/github_ed25519.pub;
     ".ssh/id_ed25519.pub".source = ../../dotfiles/ssh/id_ed25519.pub;
   };
 
@@ -22,7 +23,11 @@
 
   fonts.fontconfig.enable = true;
 
+  services.lorri.enable = true;
+
   home.packages = with pkgs; [
+    _1password
+    _1password-gui
     # sops
     # sops-nix
     age
@@ -48,6 +53,7 @@
     kitty
     lego
     less
+    lorri
     neofetch
     (nerdfonts.override { fonts = [ "JetBrainsMono" "RobotoMono" "SourceCodePro" ]; })
     nil # nix LSP
