@@ -200,7 +200,6 @@
         ".project"
         ".settings"
         "composer.lock"
-        ".envrc"
       ];
     };
   };

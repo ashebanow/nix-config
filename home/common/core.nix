@@ -23,6 +23,8 @@
 
   fonts.fontconfig.enable = true;
 
+  services.lorri.enable = true;
+
   home.packages = with pkgs; [
     _1password
     _1password-gui
@@ -51,6 +53,7 @@
     kitty
     lego
     less
+    lorri
     neofetch
     (nerdfonts.override { fonts = [ "JetBrainsMono" "RobotoMono" "SourceCodePro" ]; })
     nil # nix LSP
