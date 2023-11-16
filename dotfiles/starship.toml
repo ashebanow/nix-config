@@ -1,5 +1,5 @@
 format = """
-[](fg:#9A348E)\
+[](fg:#9A348E bg:transparent)\
 $os\
 [](fg:#9A348E bg:#DA627D)\
 $shlvl\
@@ -23,7 +23,7 @@ $ruby\
 $rust\
 $swift\
 $vagrant\
-[ ](fg:#86BBD8 bg:#000000)\
+[ ](fg:#86BBD8 bg:transparent)\
 """
 
 # Handy format strings for debugging, add to the beginning of the appropriate
