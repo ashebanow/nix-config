@@ -24,6 +24,8 @@
   fonts.fontconfig.enable = true;
 
   home.packages = with pkgs; [
+    _1password
+    _1password-gui
     # sops
     # sops-nix
     age

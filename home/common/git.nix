@@ -12,11 +12,15 @@
       # Sign all commits using ssh key via 1password
       signing = {
         key = "~/.ssh/github_ed25519.pub";
-        signByDefault = false;  # off for now
-        # For 1password, we need to point the code signing flow to their app:
-        # signing.gpgPath = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
-        # signing.gpgPath = "C:/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign.exe"
-        # signing.gpgPath = ""
+        signByDefault = true;
+      };
+      # this is the way to point to 1password correctly, not by setting git's
+      # signing.gpgPath setting. See:
+      # https://discourse.nixos.org/t/cant-commit-with-git-after-installing-1password/34021
+      extraConfig = {
+        gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
+        gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
+        gpg.format = "ssh";
       };
 
       aliases = {

@@ -13,6 +13,7 @@
     ];
 
     shellAliases = {
+      start1p = "daemonize -e ~/.1password/stderr.log -o ~/.1password/stdout.log ${pkgs._1password-gui}/bin/1password --silent";
       ack = "rg";
       cat = "bat --paging=never";
       cls = "clear";
