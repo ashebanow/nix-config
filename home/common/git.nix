@@ -1,6 +1,7 @@
 { config, pkgs, ... }: {
   home.file.".ssh/allowed_signers".text =
-    "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
+    "* ${builtins.readFile ../../dotfiles/ssh/github_ed25519.pub}";
+    # "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
 
   programs = {
     git = {
@@ -8,15 +9,15 @@
       userName = "Andrew Shebanow";
       userEmail = "ashebanow@gmail.com";
 
-      # Sign all commits using ssh key
-      commit.gpgsign = true;
-      gpg.format = "ssh";
-      gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
-      # user.signingkey = "~/.ssh/github_ed25519.pub";
-      user.signingkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN8HGv9dOj86nJg1e1k1tLbskolAnL9sPnOYEOO4WNXv";
-      # gpg.program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
-      # gpg.program = "C:/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign.exe"
-      # gpg.program = ""
+      # Sign all commits using ssh key via 1password
+      signing = {
+        key = "~/.ssh/github_ed25519.pub";
+        signByDefault = false;  # off for now
+        # For 1password, we need to point the code signing flow to their app:
+        # signing.gpgPath = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+        # signing.gpgPath = "C:/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign.exe"
+        # signing.gpgPath = ""
+      };
 
       aliases = {
         a = "add";
