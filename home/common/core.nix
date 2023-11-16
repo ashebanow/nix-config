@@ -13,6 +13,7 @@
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".vimrc".source = ../../dotfiles/vimrc;
     ".ssh/config".source = ../../dotfiles/ssh/config;
+    ".ssh/github_ed25519.pub".source = ../../dotfiles/ssh/github_ed25519.pub;
     ".ssh/id_ed25519.pub".source = ../../dotfiles/ssh/id_ed25519.pub;
   };
 

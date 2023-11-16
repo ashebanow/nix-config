@@ -1,6 +1,6 @@
 { config, pkgs, ... }: {
-  # home.file.".ssh/allowed_signers".text =
-  #   "* ${builtins.readFile ~/.ssh/id_ed25519.pub}";
+  home.file.".ssh/allowed_signers".text =
+    "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
 
   programs = {
     git = {
@@ -9,12 +9,14 @@
       userEmail = "ashebanow@gmail.com";
 
       # Sign all commits using ssh key
-      # commit.gpgsign = true;
-      # gpg.format = "ssh";
-      # gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
-      # user.signingkey = "~/.ssh/id_ed25519.pub";
-
-      # MISSING: support for 1password-based signing
+      commit.gpgsign = true;
+      gpg.format = "ssh";
+      gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
+      # user.signingkey = "~/.ssh/github_ed25519.pub";
+      user.signingkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN8HGv9dOj86nJg1e1k1tLbskolAnL9sPnOYEOO4WNXv";
+      # gpg.program = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+      # gpg.program = "C:/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign.exe"
+      # gpg.program = ""
 
       aliases = {
         a = "add";
@@ -96,6 +98,9 @@
 
       extraConfig = {
         # core.editor = "${vscode}/bin/code --wait";
+
+        # on WSL ONLY, we want to use native ssh for git
+        # core.sshCommand = "ssh.exe";
 
         color = {
           ui = "auto";
