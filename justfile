@@ -11,7 +11,10 @@ switch:
     home-manager switch --impure --flake "$HOME/nix-config"
   fi
 
+gc:
+  #!/usr/bin/env bash
+  nix-collect-garbage --extra-experimental-features "nix-command flakes" --delete-old
+
 update:
   #!/usr/bin/env bash
-  nix flake update --commit-lock-file
-  nix-collect-garbage --delete-old
+  nix flake update --extra-experimental-features "nix-command flakes" --commit-lock-file
