@@ -52,7 +52,6 @@
     # here. You'll need to uncomment them to get them installed initially on
     # a new mac.
     casks = [
-      "1password-cli"
       "ableton-live-suite"
       "android-studio"
       "app-cleaner"
