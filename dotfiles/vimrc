@@ -1,4 +1,8 @@
 syntax on
 
+set expandtab
+set ai
+set tabstop=2
+
 " Wrap gitcommit file types at the appropriate length
 filetype indent plugin on
