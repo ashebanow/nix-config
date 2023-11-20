@@ -19,7 +19,7 @@
     # Package sets
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
 
-    darwin.url = "github:lnl7/nix-darwin";
+    darwin.url = "github:lnl7/nix-darwin/master";
     darwin.inputs.nixpkgs.follows = "nixpkgs";
 
     home-manager.url = "github:nix-community/home-manager/release-23.05";
