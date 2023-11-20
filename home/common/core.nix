@@ -34,6 +34,7 @@
     bat
     cachix
     curl
+    daemonize
     delta
     dig
     direnv
