@@ -17,11 +17,11 @@
       # this is the way to point to 1password correctly, not by setting git's
       # signing.gpgPath setting. See:
       # https://discourse.nixos.org/t/cant-commit-with-git-after-installing-1password/34021
-      extraConfig = {
-        # gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
-        gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
-        gpg.format = "ssh";
-      };
+      # extraConfig = {
+      #   # gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
+      #   gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
+      #   gpg.format = "ssh";
+      # };
 
       aliases = {
         a = "add";

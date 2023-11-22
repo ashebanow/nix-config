@@ -5,7 +5,16 @@
 { config, pkgs, ... }:
 
 {
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix = {
+    settings = {
+      auto-optimise-store = true;
+      experimental-features = [ "nix-command" "flakes" ];
+      warn-dirty = false;
+    };
+    gc = {
+      automatic = true;
+    };
+  };
 
   imports =
     [ # Include the results of the hardware scan.

@@ -9,7 +9,7 @@ $ cd nix-config
 ```
 3. Edit /etc/nixos/configuration.nix to have hostname set to $HOST, and add this line to the top of the outputs section:
 ```bash
-  nix.settings.experimental-features = [ "nix-command", "flakes" ];
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
 ```
 Do a ```sudo nixos-rebuild switch``` and then reboot the system.
 4. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/system/nixos/$HOST-hardware-configuration.nix```. 
