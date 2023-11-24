@@ -4,7 +4,7 @@ let
   inherit (pkgs) lorri;
 
 in {
-  environment.systemPackages = [ lorri ];
+  home.packages = [ pkgs.lorri ];
   launchd.user.agents = {
     "lorri" = {
       serviceConfig = {
