@@ -34,12 +34,12 @@
       gac = "git add -A && git commit -m";
       grep = "rg";
       less = "bat";
-      # l = "exa -FG";
-      la = "exa -aFG --color=auto --icons";
-      ll = "exa -alF --color=auto --icons";
-      llt = "exa -alF --sort modified -r --color=auto --icons";
-      ls = "exa -FG --color=auto --icons";
-      ltree = "exa -lFDT --sort modified --color=auto --icons";
+      # l = "eza -FG";
+      la = "eza -aFG --color=auto --icons";
+      ll = "eza -alF --color=auto --icons";
+      llt = "eza -alF --sort modified -r --color=auto --icons";
+      ls = "eza -FG --color=auto --icons";
+      ltree = "eza -lFDT --sort modified --color=auto --icons";
       more = "bat";
       nps = "nix search nixpkgs";
       nsh = "nix-shell -p";

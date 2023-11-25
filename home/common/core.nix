@@ -42,7 +42,7 @@
     dig
     direnv
     diskus
-    exa
+    eza
     foreman
     gh
     git
@@ -95,7 +95,7 @@
       };
     };
 
-    exa = {
+    eza = {
       enable = true;
       icons = true;
     };
