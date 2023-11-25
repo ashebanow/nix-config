@@ -35,6 +35,7 @@
     # sops-nix
     age
     bat
+    btop
     cachix
     curl
     daemonize
@@ -50,7 +51,6 @@
     glow
     gnupg
     gum
-    htop
     hyperfine
     jq
     just
@@ -66,6 +66,7 @@
     overmind
     ripgrep
     starship
+    tldr
     tmux
     unzip
     vim
