@@ -23,11 +23,6 @@
 
   fonts.fontconfig.enable = true;
 
-  # not working on macos with nix-darwin, even though the docs
-  # say it shoud work:
-  #     https://daiderd.com/nix-darwin/manual/index.html#opt-services.lorri.enable
-  # services.lorri.enable = true;
-
   home.packages = with pkgs; [
     _1password
     _1password-gui

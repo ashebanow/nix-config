@@ -4,6 +4,8 @@ let
   inherit (pkgs) lorri;
 
 in {
+  services.lorri.enable = true;
+
   home.packages = [ pkgs.lorri ];
   launchd.user.agents = {
     "lorri" = {
