@@ -58,6 +58,7 @@
       "android-studio"
       "app-cleaner"
       # "arc"
+      "devtoys"
       "discord"
       "disk-diet"
       "docker"
