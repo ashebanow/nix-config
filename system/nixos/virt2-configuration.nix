@@ -13,6 +13,8 @@
     };
     gc = {
       automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
     };
   };
 
@@ -57,7 +59,7 @@
   };
   users.extraGroups.docker.members = [ "ashebanow" ];
 
-  # Mount nfs shares from storage machine. All of these are set to automount
+  # Mount SMB shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
   #
   # NOTE THAT YOU MUST CREATE/COPY the '/etc/nixos/smb-secrets' file to the
