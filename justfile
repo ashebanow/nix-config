@@ -1,14 +1,14 @@
 [macos]
 switch:
-  darwin-rebuild switch --flake "$HOME/nix-config"
+  darwin-rebuild --show-trace switch --flake "$HOME/nix-config"
 
 [linux]
 switch:
   #!/usr/bin/env bash
   if [ -f /etc/NIXOS ]; then
-    sudo nixos-rebuild switch --flake "$HOME/nix-config"
+    sudo nixos-rebuild --show-trace switch --flake "$HOME/nix-config"
   else
-    home-manager switch --flake "$HOME/nix-config"
+    home-manager --show-trace switch --flake "$HOME/nix-config"
   fi
 
 gc:
