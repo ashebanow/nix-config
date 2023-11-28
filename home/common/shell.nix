@@ -5,6 +5,8 @@
   home = {
     sessionVariables = {
       NIXPKGS_ALLOW_UNFREE = 1;
+      # here so 1password doesn't ping:
+      OP_PLUGIN_ALIASES_SOURCED = 1;
     };
 
     sessionPath = [ 
@@ -13,7 +15,11 @@
     ];
 
     shellAliases = {
+      gh="op plugin run -- gh";
+      brew="op plugin run -- brew";
+      cachix="op plugin run -- cachix";
       start1p = "daemonize -e ~/.1password/stderr.log -o ~/.1password/stdout.log ${pkgs._1password-gui}/bin/1password --silent";
+
       ack = "rg";
       cat = "bat --paging=never";
       cls = "clear";
