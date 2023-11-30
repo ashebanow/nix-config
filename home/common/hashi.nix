@@ -3,7 +3,7 @@
   home.packages = with pkgs; [
     consul
     # damon
-    levant
+    # levant
     # nomad
     # nomad-autoscaler
     # nomad-pack
