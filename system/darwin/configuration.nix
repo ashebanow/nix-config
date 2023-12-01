@@ -32,8 +32,11 @@
   # set up zsh as default shell
   programs.zsh.enable = true;
 
-    # List packages installed in system profile. To search, run:
-  # $ nix search wget
+  # List packages installed in system profile. To search, run:
+  # $ nix search wget. We generally want to keep these system-specific
+  # configurations as small as possible and use home manager or shell.nix
+  # to install whats needed locally. Because nix uses symbolic links to point
+  # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
     git
     vim
