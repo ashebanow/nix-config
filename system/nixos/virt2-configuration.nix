@@ -23,6 +23,10 @@
       ./virt2-hardware-configuration.nix
     ];
 
+  # Bootloader
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
   networking = {
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
@@ -37,6 +41,9 @@
       # allowedUDPPorts = [ ... ];
     };
   };
+
+  # Enable network manager applet
+  programs.nm-applet.enable = true;
 
   services.openssh = {
     enable = true;
@@ -140,9 +147,13 @@
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
-  # Enable the GNOME Desktop Environment.
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
+  # Enable the MATE Desktop Environment.
+  services.xserver.displayManager.lightdm.enable = true;
+  services.xserver.desktopManager.mate.enable = true;
+
+  # # Enable the GNOME Desktop Environment.
+  # services.xserver.displayManager.gdm.enable = true;
+  # services.xserver.desktopManager.gnome.enable = true;
 
   # make sure we turn off suspending power
   powerManagement.enable = false;
@@ -266,6 +277,7 @@
 
   # List services that you want to enable:
   services.qemuGuest.enable = true;
+  virtualisation.libvirtd.enable = true;
   programs.dconf.enable = true;
 
   # This value determines the NixOS release from which the default
