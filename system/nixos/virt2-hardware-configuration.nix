@@ -8,10 +8,18 @@
     [ (modulesPath + "/profiles/qemu-guest.nix")
     ];
 
+  # Bootloader
+  boot.loader.grub = {
+    devices = [ "/dev/disk/by-uuid/08d354f7-4c5b-4860-b025-fd4723437b6d" ];
+  }
+
+  # Boot
   boot.initrd.availableKernelModules = [ "uhci_hcd" "ehci_pci" "ahci" "virtio_pci" "sr_mod" "virtio_blk" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
+
+  # Virtualization
   virtualisation.libvirtd.enable = true;
   programs.dconf.enable = true; # needed for libvirt
 

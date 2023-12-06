@@ -23,10 +23,6 @@
       ./virt2-hardware-configuration.nix
     ];
 
-  # Bootloader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
   networking = {
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
