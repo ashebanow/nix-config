@@ -20,7 +20,7 @@ Host virt1 virt1.local virt1.lan
 
 Host virt2 virt2.local virt2.lan
   # HostName 10.40.0.17
-  HostName 10.50.0.73
+  HostName 10.50.0.25
 
 # Example ILO4 config - needed for storage, virt1, virt2, virt3
 # Host 192.168.86.68
