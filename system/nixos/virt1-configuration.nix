@@ -23,7 +23,7 @@
       ./virt1-hardware-configuration.nix
     ];
 
-  # Bootloader.
+  # Bootloader
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
@@ -270,6 +270,7 @@
 
   # List services that you want to enable:
   services.qemuGuest.enable = true;
+  virtualisation.libvirtd.enable = true;
   programs.dconf.enable = true;
 
   # This value determines the NixOS release from which the default

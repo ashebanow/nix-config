@@ -8,12 +8,15 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
+  # Bootloader.
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
+  # Boot
   boot.initrd.availableKernelModules = [ "xhci_pci" "ehci_pci" "ahci" "uhci_hcd" "hpsa" "usbhid" "usb_storage" "sd_mod" "sr_mod" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" "kvm-intel" ];
   boot.extraModulePackages = [ ];
-  virtualisation.libvirtd.enable = true;
-  programs.dconf.enable = true; # needed for libvirt
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/c0faee53-2b3b-405d-91f0-d7cdd30fd6e1";

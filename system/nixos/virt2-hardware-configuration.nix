@@ -8,20 +8,19 @@
     [ (modulesPath + "/profiles/qemu-guest.nix")
     ];
 
+  # Boot
   boot.initrd.availableKernelModules = [ "uhci_hcd" "ehci_pci" "ahci" "virtio_pci" "sr_mod" "virtio_blk" ];
   boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-amd" "kvm-intel" ];
+  boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
-  virtualisation.libvirtd.enable = true;
-  programs.dconf.enable = true; # needed for libvirt
 
   fileSystems."/" =
-    { device = "/dev/disk/by-uuid/84e9353c-9633-418d-afa2-11ae0c3c01b3";
+    { device = "/dev/disk/by-uuid/95ff38b6-9630-4e4d-a415-adcafc42b07c";
       fsType = "ext4";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/9E33-429B";
+    { device = "/dev/disk/by-uuid/FFF5-8F2A";
       fsType = "vfat";
     };
 
