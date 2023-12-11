@@ -17,7 +17,7 @@
 
     Do a ```sudo nixos-rebuild switch``` and then reboot the system.
 
-4. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/system/nixos/$HOST-hardware-configuration.nix```. 
+4. Make a directory ```nix-config/hosts/$HOST```. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/hosts/```. 
 
 5. Edit the script ```~/nix-config/scripts/copy-ssh-keys.sh``` to understand your machine's hostnames and IP addresses if needed. Then run the script on a machine which has the necessary .ssh setup already, so that your private keys etc are transferred to the remote machine.
 

@@ -45,7 +45,7 @@
           system = linuxSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
-            ./system/nixos/virt1-configuration.nix
+            ./hosts/virt1/configuration.nix
             home-manager.nixosModules.home-manager
             {
               home-manager.verbose = true;
@@ -62,7 +62,7 @@
           system = linuxSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
-            ./system/nixos/virt2-configuration.nix
+            ./hosts/virt2/configuration.nix
             home-manager.nixosModules.home-manager {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
@@ -78,7 +78,7 @@
           system = darwinSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
-            ./system/darwin/configuration.nix
+            ./hosts/darwin-default/configuration.nix
             home-manager.darwinModules.home-manager {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
