@@ -51,7 +51,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home.nix;
+              home-manager.users.ashebanow = import ./hosts/nixos-default/home.nix;
 
               # Optionally, use home-manager.extraSpecialArgs to pass
               # arguments to home.nix
@@ -67,7 +67,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home.nix;
+              home-manager.users.ashebanow = import ./hosts/nixos-default/home.nix;
             }
           ];
         };
@@ -83,7 +83,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home-darwin.nix;
+              home-manager.users.ashebanow = import ./hosts/darwin-default/home.nix;
             }
             # sops-nix.nixosModules.sops
           ];
@@ -98,7 +98,7 @@
         ashebanow = home-manager.lib.homeManagerConfiguration {
           pkgs = linuxPkgs;
           modules = [
-            ./home/home.nix
+            ./hosts/nixos-default/home.nix
           ];
         };
       };
