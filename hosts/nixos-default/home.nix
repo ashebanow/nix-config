@@ -4,17 +4,17 @@
   nixpkgs.config.allowUnfree = true;
 
   imports = [
-    ../../home/common/core.nix
-    ../../home/common/git.nix
-    ../../home/common/hashi.nix
-    # ../../home/common/lorri.nix
-    ../../home/common/shell.nix
-    # ../../home/common/neovim.nix
+    ../../modules/core.nix
+    ../../modules/git.nix
+    ../../modules/hashi.nix
+    # ../../modules/lorri.nix
+    ../../modules/shell.nix
+    # ../../modules/neovim.nix
     #
     # <sops-nix/modules/home-manager/sops.nix>
     #
     # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
-    # ../../home/common/vscode.nix
+    # ../../modules/vscode.nix
   ];
 
   # Home Manager needs a bit of information about you and the paths it should
