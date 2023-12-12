@@ -41,6 +41,19 @@
     in
     {
       nixosConfigurations = {
+        shebanix = nixpkgs.lib.nixosSystem {
+          system = linuxSystem;
+          specialArgs = inputs; # forward inputs to modules
+          modules = [
+            ./hosts/shebanix/configuration.nix
+            home-manager.nixosModules.home-manager {
+              home-manager.verbose = true;
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.ashebanow = import ./hosts/nixos-default/home.nix;
+            }
+          ];
+        };
         virt1 = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
           specialArgs = inputs; # forward inputs to modules
