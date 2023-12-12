@@ -33,6 +33,7 @@
 
   outputs = inputs@{ nixpkgs, home-manager, darwin, ... }:
     let
+      linuxArmSystem = "aarch64-linux";
       darwinSystem = "aarch64-darwin";
       linuxSystem = "x86_64-linux";
 
@@ -42,7 +43,7 @@
     {
       nixosConfigurations = {
         shebanix = nixpkgs.lib.nixosSystem {
-          system = darwinSystem;
+          system = linuxArmSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./hosts/shebanix/configuration.nix
