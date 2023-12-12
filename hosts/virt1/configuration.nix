@@ -20,7 +20,7 @@
 
   imports =
     [ # Include the results of the hardware scan.
-      ./virt1-hardware-configuration.nix
+      ./hardware-configuration.nix
     ];
 
   # Bootloader

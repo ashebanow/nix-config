@@ -4,24 +4,24 @@
   nixpkgs.config.allowUnfree = true;
 
   imports = [
-    ./common/core.nix
-    ./common/git.nix
-    ./common/hashi.nix
-    # ./common/lorri.nix
-    ./common/shell.nix
-    # ./common/neovim.nix
+    ../../home/common/core.nix
+    ../../home/common/git.nix
+    ../../home/common/hashi.nix
+    # ../../home/common/lorri.nix
+    ../../home/common/shell.nix
+    # ../../home/common/neovim.nix
     #
     # <sops-nix/modules/home-manager/sops.nix>
     #
     # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
-    # ./common/vscode.nix
+    # ../../home/common/vscode.nix
   ];
 
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "ashebanow";
 
-  home.homeDirectory = "/Users/ashebanow";
+  home.homeDirectory = "/home/ashebanow";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release

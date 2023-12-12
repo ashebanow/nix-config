@@ -45,13 +45,13 @@
           system = linuxSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
-            ./system/nixos/virt1-configuration.nix
+            ./hosts/virt1/configuration.nix
             home-manager.nixosModules.home-manager
             {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home.nix;
+              home-manager.users.ashebanow = import ./hosts/nixos-default/home.nix;
 
               # Optionally, use home-manager.extraSpecialArgs to pass
               # arguments to home.nix
@@ -62,12 +62,12 @@
           system = linuxSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
-            ./system/nixos/virt2-configuration.nix
+            ./hosts/virt2/configuration.nix
             home-manager.nixosModules.home-manager {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home.nix;
+              home-manager.users.ashebanow = import ./hosts/nixos-default/home.nix;
             }
           ];
         };
@@ -78,12 +78,12 @@
           system = darwinSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
-            ./system/darwin/configuration.nix
+            ./hosts/darwin-default/configuration.nix
             home-manager.darwinModules.home-manager {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./home/home-darwin.nix;
+              home-manager.users.ashebanow = import ./hosts/darwin-default/home.nix;
             }
             # sops-nix.nixosModules.sops
           ];
@@ -98,7 +98,7 @@
         ashebanow = home-manager.lib.homeManagerConfiguration {
           pkgs = linuxPkgs;
           modules = [
-            ./home/home.nix
+            ./hosts/nixos-default/home.nix
           ];
         };
       };
