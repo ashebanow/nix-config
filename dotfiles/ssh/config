@@ -23,6 +23,10 @@ Host virt2 virt2.local virt2.lan
   # HostName 10.40.0.17
   HostName 10.50.0.33
 
+Host shebanix shebanix.local shebanix.lan
+  # HostName 10.40.0.17
+  HostName 10.211.55.3
+
 # Example ILO4 config - needed for storage, virt1, virt2, virt3
 # Host 192.168.86.68
 #   Ciphers 3des-cbc
