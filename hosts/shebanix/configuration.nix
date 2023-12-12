@@ -79,26 +79,26 @@
   # NOTE THAT YOU MUST CREATE/COPY the '/etc/nixos/smb-secrets' file to the
   # machine, with USERNAME, DOMAIN and PASSWORD defined on separate lines.
   # FIXME: replace with vault secrets
-  services.rpcbind.enable = true;
-  services.nfs.server.enable = true;
-  services.gvfs.enable = true;
-  boot.initrd = {
-    supportedFilesystems = [ "nfs" ];
-    kernelModules = [ "nfs" ];
-  };
-  fileSystems = {
-    "/mnt/users/appdata" = {
-      device = "//storage/mnt/users/appdata";
-      fsType = "cifs";
-      options = [
-        "x-systemd.automount"
-        "noauto"
-        "credentials=/etc/nixos/smb-secrets"
-        "x-systemd.idle-timeout=60"
-        "x-systemd.device-timeout=5s"
-        "x-systemd.mount-timeout=5s"
-      ];
-    };
+  # services.rpcbind.enable = true;
+  # services.nfs.server.enable = true;
+  # services.gvfs.enable = true;
+  # boot.initrd = {
+  #   supportedFilesystems = [ "nfs" ];
+  #   kernelModules = [ "nfs" ];
+  # };
+  # fileSystems = {
+  #   "/mnt/users/appdata" = {
+  #     device = "//storage/mnt/users/appdata";
+  #     fsType = "cifs";
+  #     options = [
+  #       "x-systemd.automount"
+  #       "noauto"
+  #       "credentials=/etc/nixos/smb-secrets"
+  #       "x-systemd.idle-timeout=60"
+  #       "x-systemd.device-timeout=5s"
+  #       "x-systemd.mount-timeout=5s"
+  #     ];
+  #   };
     # "/mnt/users/backups" = {
     #   device = "//storage/mnt/users/backups";
     #   fsType = "cifs";
@@ -135,7 +135,7 @@
     #     "x-systemd.mount-timeout=5s"
     #   ];
     # };
-  };
+  # };    
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
