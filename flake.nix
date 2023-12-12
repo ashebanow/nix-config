@@ -42,7 +42,7 @@
     {
       nixosConfigurations = {
         shebanix = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
+          system = darwinSystem;
           specialArgs = inputs; # forward inputs to modules
           modules = [
             ./hosts/shebanix/configuration.nix
