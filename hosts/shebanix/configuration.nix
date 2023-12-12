@@ -155,16 +155,27 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
+  programs.hyprland = {
+    enable = true; 
+    xwayland.hidpi = true;
+    xwayland.enable = true;
+  };
 
-  # Enable the MATE Desktop Environment.
-  services.xserver.displayManager.lightdm.enable = true;
-  services.xserver.desktopManager.mate.enable = true;
+  # Hint Electon apps to use wayland
+  environment.sessionVariables = {
+    NIXOS_OZONE_WL = "1";
+  };
 
-  # # Enable the GNOME Desktop Environment.
-  # services.xserver.displayManager.gdm.enable = true;
-  # services.xserver.desktopManager.gnome.enable = true;
+  # # Enable the X11 windowing system.
+  # services.xserver.enable = true;
+
+  # # Enable the MATE Desktop Environment.
+  # services.xserver.displayManager.lightdm.enable = true;
+  # services.xserver.desktopManager.mate.enable = true;
+
+  # # # Enable the GNOME Desktop Environment.
+  # # services.xserver.displayManager.gdm.enable = true;
+  # # services.xserver.desktopManager.gnome.enable = true;
 
   # make sure we turn off suspending power
   powerManagement.enable = false;
@@ -186,6 +197,16 @@
   systemd.targets.suspend.enable = false;
   systemd.targets.hibernate.enable = false;
   systemd.targets.hybrid-sleep.enable = false;
+
+  # enable screen sharing for wayland and hyperland
+  services.dbus.enable = true;
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true;
+    extraPortals = [
+      pkgs.xdg-desktop-portal-gtk
+    ];
+  };
 
   # Configure keymap in X11
   services.xserver = {
@@ -244,6 +265,17 @@
     nfs-utils
     samba
     virt-manager
+
+    hyprland
+    meson
+    swww # for wallpapers
+    wayland-protocols
+    wayland-utils
+    wl-clipboard
+    wlroots
+    xdg-desktop-portal-gtk
+    xdg-desktop-portal-hyprland
+    xwayland
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
