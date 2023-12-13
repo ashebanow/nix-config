@@ -18,6 +18,14 @@
     };
   };
 
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
+  nixpkgs.config.permittedInsecurePackages = [
+    "openssl-1.1.1u"
+    "python-2.7.18.6"
+  ];
+
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
@@ -143,16 +151,25 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
+  # Configure the X11 windowing system.
+  services.xserver = {
+    enable = true;
 
-  # Enable the MATE Desktop Environment.
-  services.xserver.displayManager.lightdm.enable = true;
-  services.xserver.desktopManager.mate.enable = true;
+    # Enable the MATE Desktop Environment.
+    displayManager.lightdm.enable = true;
+    desktopManager.mate.enable = true;
 
-  # # Enable the GNOME Desktop Environment.
-  # services.xserver.displayManager.gdm.enable = true;
-  # services.xserver.desktopManager.gnome.enable = true;
+    # Enable the GNOME Desktop Environment.
+    # displayManager.gdm.enable = true;
+    # desktopManager.gnome.enable = true;
+
+    modules = [ pkgs.xorg.xf86videofbdev ];
+    viderDrivers = [ "hyperv_fb" ];
+
+    # Configure keymap in X11
+    layout = "us";
+    xkbVariant = "";
+  };
 
   # make sure we turn off suspending power
   powerManagement.enable = false;
@@ -174,12 +191,6 @@
   systemd.targets.suspend.enable = false;
   systemd.targets.hibernate.enable = false;
   systemd.targets.hybrid-sleep.enable = false;
-
-  # Configure keymap in X11
-  services.xserver = {
-    layout = "us";
-    xkbVariant = "";
-  };
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
@@ -209,14 +220,11 @@
     shell = pkgs.zsh;
     isNormalUser = true;
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "storage" "libvirtd" ];
+    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
   };
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget. We generally want to keep these system-specific
@@ -285,5 +293,5 @@
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "23.05"; # Did you read the comment?
+  system.stateVersion = "23.11"; # Did you read the comment?
 }
