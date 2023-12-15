@@ -8,23 +8,18 @@ Host github.com github
   IdentityFile ~/.ssh/id_ed25519
 
 Host gateway gateway.local gateway.lan
-  # HostName 10.40.0.1
   HostName 10.50.0.1
 
 Host storage storage.local storage.lan
-  # HostName 10.40.0.9
-  HostName 10.50.0.123
+  HostName 10.50.0.13
 
 Host virt1 virt1.local virt1.lan
-  # HostName 10.40.0.11
   HostName 10.50.0.11
 
 Host virt2 virt2.local virt2.lan
-  # HostName 10.40.0.17
   HostName 10.50.0.33
 
 Host shebanix shebanix.local shebanix.lan
-  # HostName 10.40.0.17
   HostName 10.211.55.3
 
 # Example ILO4 config - needed for storage, virt1, virt2, virt3
