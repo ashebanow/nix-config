@@ -235,6 +235,7 @@
     chromium
     cifs-utils
     docker-compose
+    iputils
     kitty
     nfs-utils
     samba

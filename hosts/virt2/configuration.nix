@@ -239,7 +239,8 @@
     chromium
     cifs-utils
     docker-compose
-    k3s  
+    iputils
+    k3s
     kitty
     nfs-utils
     samba
