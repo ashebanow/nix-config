@@ -63,6 +63,7 @@
       "android-studio"
       "app-cleaner"
       # "arc"
+      "betterdisplay"
       "devtoys"
       "discord"
       "disk-diet"
