@@ -58,17 +58,17 @@
       autocd = true;
       enableCompletion = true;
       enableAutosuggestions = true;
-      # syntaxHighlighting = {
-      #   enable = true;
-      # };
-      oh-my-zsh = {
+      syntaxHighlighting = {
         enable = true;
-        plugins = [
-          "docker"
-          "git"
-          "sudo"
-        ];
       };
+      # oh-my-zsh = {
+      #   enable = true;
+      #   plugins = [
+      #     "docker"
+      #     "git"
+      #     "sudo"
+      #   ];
+      # };
     };
 
     starship = {

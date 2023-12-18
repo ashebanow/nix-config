@@ -10,11 +10,11 @@
     # ../../modules/lorri.nix
     ../../modules/shell.nix
     # ../../modules/neovim.nix
-    #
-    # <sops-nix/modules/home-manager/sops.nix>
-    #
+
     # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
     # ../../modules/vscode.nix
+
+    # <sops-nix/modules/home-manager/sops.nix>
   ];
 
   # Home Manager needs a bit of information about you and the paths it should

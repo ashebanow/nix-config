@@ -239,7 +239,6 @@
     chromium
     cifs-utils
     docker-compose
-    iputils
     k3s
     kitty
     nfs-utils
