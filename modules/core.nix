@@ -47,7 +47,6 @@
     gnupg
     gum
     hyperfine
-    iputils
     jq
     just
     kitty

@@ -7,6 +7,7 @@
     ../../modules/core.nix
     ../../modules/git.nix
     ../../modules/hashi.nix
+    ../../modules/iputils.nix
     # ../../modules/lorri.nix
     ../../modules/shell.nix
     # ../../modules/neovim.nix
