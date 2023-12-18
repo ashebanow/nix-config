@@ -220,7 +220,7 @@
   environment.systemPackages = with pkgs; [
     chromium
     cifs-utils
-    docker-compose  
+    docker-compose
     kitty
     nfs-utils
     samba

@@ -41,10 +41,12 @@
       linuxPkgs = nixpkgs.legacyPackages.${linuxSystem};
     in
     {
+      nix.registry.nixpkgs.flake = inputs.nixpkgs;
+
       nixosConfigurations = {
         shebanix = nixpkgs.lib.nixosSystem {
-          system = linuxArmSystem;
-          specialArgs = inputs; # forward inputs to modules
+          system = linuxSystem;
+          specialArgs = { inherit inputs; }; # forward inputs to modules
           modules = [
             ./hosts/shebanix/configuration.nix
             home-manager.nixosModules.home-manager {
@@ -57,7 +59,7 @@
         };
         virt1 = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
-          specialArgs = inputs; # forward inputs to modules
+          specialArgs = { inherit inputs; }; # forward inputs to modules
           modules = [
             ./hosts/virt1/configuration.nix
             home-manager.nixosModules.home-manager
@@ -74,7 +76,7 @@
         };
         virt2 = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
-          specialArgs = inputs; # forward inputs to modules
+          specialArgs = { inherit inputs; }; # forward inputs to modules
           modules = [
             ./hosts/virt2/configuration.nix
             home-manager.nixosModules.home-manager {
@@ -90,7 +92,7 @@
       darwinConfigurations = {
         miraclemax = darwin.lib.darwinSystem {
           system = darwinSystem;
-          specialArgs = inputs; # forward inputs to modules
+          specialArgs = { inherit inputs; }; # forward inputs to modules
           modules = [
             ./hosts/darwin-default/configuration.nix
             home-manager.darwinModules.home-manager {

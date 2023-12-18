@@ -18,6 +18,14 @@
     };
   };
 
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
+  nixpkgs.config.permittedInsecurePackages = [
+    "openssl-1.1.1u"
+    "python-2.7.18.6"
+  ];
+
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
@@ -37,24 +45,12 @@
         22              # ssh
         80 443          # HTTP/HTTPS
         2049            # nfs
-        6443            # k3s: required so that pods can reach the API server (running on port 6443 by default)
-        # 2379          # k3s, etcd clients: required if using a "High Availability Embedded etcd" configuration
-        # 2380          # k3s, etcd peers: required if using a "High Availability Embedded etcd" configuration
-      ];
-      allowedUDPPorts = [
-        # 8472          # k3s, flannel: required if using multi-node for inter-node networking
       ];
     };
   };
 
   # Enable network manager applet
   programs.nm-applet.enable = true;
-
-  services.k3s.enable = true;
-  services.k3s.role = "server";
-  services.k3s.extraFlags = toString [
-    # "--kubelet-arg=v=4" # Optionally add additional args to k3s
-  ];
 
   services.openssh = {
     enable = true;
@@ -155,27 +151,25 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  programs.hyprland = {
-    enable = true; 
-    xwayland.hidpi = true;
-    xwayland.enable = true;
+  # Configure the X11 windowing system.
+  services.xserver = {
+    enable = true;
+
+    # Enable the MATE Desktop Environment.
+    displayManager.lightdm.enable = true;
+    desktopManager.mate.enable = true;
+
+    # Enable the GNOME Desktop Environment.
+    # displayManager.gdm.enable = true;
+    # desktopManager.gnome.enable = true;
+
+    modules = [ pkgs.xorg.xf86videofbdev ];
+    videoDrivers = [ "hyperv_fb" ];
+
+    # Configure keymap in X11
+    layout = "us";
+    xkbVariant = "";
   };
-
-  # Hint Electon apps to use wayland
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
-  };
-
-  # # Enable the X11 windowing system.
-  # services.xserver.enable = true;
-
-  # # Enable the MATE Desktop Environment.
-  # services.xserver.displayManager.lightdm.enable = true;
-  # services.xserver.desktopManager.mate.enable = true;
-
-  # # # Enable the GNOME Desktop Environment.
-  # # services.xserver.displayManager.gdm.enable = true;
-  # # services.xserver.desktopManager.gnome.enable = true;
 
   # make sure we turn off suspending power
   powerManagement.enable = false;
@@ -197,22 +191,6 @@
   systemd.targets.suspend.enable = false;
   systemd.targets.hibernate.enable = false;
   systemd.targets.hybrid-sleep.enable = false;
-
-  # enable screen sharing for wayland and hyperland
-  services.dbus.enable = true;
-  xdg.portal = {
-    enable = true;
-    wlr.enable = true;
-    extraPortals = [
-      pkgs.xdg-desktop-portal-gtk
-    ];
-  };
-
-  # Configure keymap in X11
-  services.xserver = {
-    layout = "us";
-    xkbVariant = "";
-  };
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
@@ -242,14 +220,11 @@
     shell = pkgs.zsh;
     isNormalUser = true;
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "storage" "libvirtd" ];
+    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
   };
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget. We generally want to keep these system-specific
@@ -260,22 +235,10 @@
     chromium
     cifs-utils
     docker-compose
-    k3s  
     kitty
     nfs-utils
     samba
     virt-manager
-
-    hyprland
-    meson
-    swww # for wallpapers
-    wayland-protocols
-    wayland-utils
-    wl-clipboard
-    wlroots
-    xdg-desktop-portal-gtk
-    xdg-desktop-portal-hyprland
-    xwayland
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -330,5 +293,5 @@
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "23.05"; # Did you read the comment?
+  system.stateVersion = "23.11"; # Did you read the comment?
 }
