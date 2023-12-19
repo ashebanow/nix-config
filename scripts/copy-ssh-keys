@@ -10,8 +10,8 @@ case "$dest_machine" in
     dest_ip="10.50.0.43";;
   virt2 )
     dest_ip="10.50.0.73";;
-  liquid-ubuntu )
-    dest_ip="172.26.103.196";;
+  ubuntu-desktop )
+    dest_ip="10.50.0.50";;
   miraclemax )
     dest_ip="10.4.0.25";;
   gateway )
@@ -23,7 +23,7 @@ case "$dest_machine" in
     echo "    storage"
     echo "    virt"
     echo "    virt2"
-    echo "    liquid-ubuntu"
+    echo "    ubuntu-desktop"
     echo "    miraclemax"
     exit 1
     ;;
@@ -34,8 +34,8 @@ if [ ! -f ~/.ssh/id_ed25519 ]; then
   exit 1
 fi
 
-if [ ! -f ~/.ssh/id_ed25519.pub ]; then
-  echo "No ~/.ssh/id_ed25519.pub file found"
+if [ ! -f ~/.ssh/github_ed25519 ]; then
+  echo "No ~/.ssh/github_ed25519 file found"
   exit 1
 fi
 
@@ -45,6 +45,6 @@ if [ ! -f ~/.ssh/config ]; then
 fi
 
 echo "Copying ssh files to $dest_ip($dest_machine)..."
-scp -A -p -r ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.pub ~/.ssh/config \
+scp -A -p -r ~/.ssh/id_ed25519 ~/.ssh/github_ed25519 ~/.ssh/config \
   "ashebanow@$dest_ip:/home/ashebanow/.ssh/"
 echo Done
