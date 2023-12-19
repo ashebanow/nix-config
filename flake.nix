@@ -117,6 +117,12 @@
             ./hosts/linux-default/home.nix
           ];
         };
+        ubuntu-desktop = home-manager.lib.homeManagerConfiguration {
+          pkgs = linuxPkgs;
+          modules = [
+            ./hosts/ubuntu-desktop/home.nix
+          ];
+        };
       };
     };
 }
