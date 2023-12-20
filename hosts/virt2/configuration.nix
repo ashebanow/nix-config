@@ -46,6 +46,15 @@
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
     hostName = "virt2"; # Define your hostname.
+
+    extraHosts = ''
+      10.50.0.1   gateway gateway.local gateway.cattivi.local
+      10.50.0.13  storage storage.local storage.cattivi.local
+      10.50.0.43  virt1 virt1.local virt1.cattivi.local
+      10.50.0.47  virt2 virt2.local virt2.cattivi.local
+      10.50.0.50  ubuntu-desktop ubuntu-desktop.local ubuntu-desktop.cattivi.local
+    '';
+
     firewall = {
       enable = true;
       allowedTCPPorts = [ 
