@@ -32,13 +32,37 @@
     ];
 
   # Bootloader
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot = {
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
+
+    # Warp terminal app comes as an appimage, so we need to register
+    # the binary format to run using the appimage-run wrapper
+    binfmt.registrations.appimage = {
+      wrapInterpreterInShell = false;
+      interpreter = "${pkgs.appimage-run}/bin/appimage-run";
+      recognitionType = "magic";
+      offset = 0;
+      mask = ''\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff'';
+      magicOrExtension = ''\x7fELF....AI\x02'';
+    };
+  };
 
   networking = {
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
     hostName = "shebanix"; # Define your hostname.
+
+    extraHosts = ''
+      10.50.0.1   gateway gateway.local gateway.cattivi.local
+      10.50.0.13  storage storage.local storage.cattivi.local
+      10.50.0.43  virt1 virt1.local virt1.cattivi.local
+      10.50.0.47  virt2 virt2.local virt2.cattivi.local
+      10.50.0.50  ubuntu-desktop ubuntu-desktop.local ubuntu-desktop.cattivi.local
+    '';
+
     firewall = {
       enable = true;
       allowedTCPPorts = [ 

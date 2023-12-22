@@ -21,7 +21,7 @@
       start1p = "daemonize -e ~/.1password/stderr.log -o ~/.1password/stdout.log ${pkgs._1password-gui}/bin/1password --silent";
 
       ack = "rg";
-      cat = "bat --paging=never";
+      cat = "bat --paging=never --style=plain";
       cls = "clear";
       # there is no insiders package
       # code = mkIf (pkgs.installed "vscode-insiders") "code";
@@ -40,12 +40,11 @@
       gac = "git add -A && git commit -m";
       grep = "rg";
       less = "bat";
-      # l = "eza -FG";
-      la = "eza -aFG --color=auto --icons";
-      ll = "eza -alF --color=auto --icons";
-      llt = "eza -alF --sort modified -r --color=auto --icons";
-      ls = "eza -FG --color=auto --icons";
-      ltree = "eza -lFDT --sort modified --color=auto --icons";
+      la = "eza -a --icons";
+      ll = "eza -al --icons";
+      llt = "eza -al --sort modified -r --icons";
+      ls = "eza --icons";
+      ltree = "eza -lDT --sort modified --icons";
       more = "bat";
       nps = "nix search nixpkgs";
       nsh = "nix-shell -p";

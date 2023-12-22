@@ -14,13 +14,16 @@ Host storage storage.local storage.lan
   HostName 10.50.0.13
 
 Host virt1 virt1.local virt1.lan
-  HostName 10.50.0.11
+  HostName 10.50.0.43
 
 Host virt2 virt2.local virt2.lan
-  HostName 10.50.0.33
+  HostName 10.50.0.47
 
 Host shebanix shebanix.local shebanix.lan
   HostName 10.211.55.3
+
+Host ubuntu-desktop ubuntu-desktop.local ubuntu-desktop.lan
+  HostName 10.50.0.50
 
 # Example ILO4 config - needed for storage, virt1, virt2, virt3
 # Host 192.168.86.68
