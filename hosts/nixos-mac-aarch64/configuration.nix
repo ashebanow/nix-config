@@ -38,7 +38,7 @@
   networking = {
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-    hostName = "shebanix"; # Define your hostname.
+    hostName = "nixos-mac-aarch64"; # Define your hostname.
     firewall = {
       enable = true;
       allowedTCPPorts = [ 
