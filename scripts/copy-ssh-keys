@@ -15,7 +15,7 @@ case "$dest_machine" in
   ubuntu-desktop )
     dest_ip="10.50.0.50";;
   miraclemax )
-    dest_ip="10.4.0.25";;
+    dest_ip="10.4.0.44";;
   gateway )
     dest_ip="10.4.0.1";;
   * )
