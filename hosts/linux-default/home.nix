@@ -9,10 +9,9 @@
     ../../modules/hashi.nix
     ../../modules/iputils.nix
     # ../../modules/lorri.nix
+    ../../modules/neovim.nix
     ../../modules/shell.nix
-    # ../../modules/neovim.nix
     ../../modules/warp.nix
-
 
     # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
     # ../../modules/vscode.nix
