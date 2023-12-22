@@ -47,7 +47,7 @@ if [ ! -f ~/.ssh/config ]; then
   exit 1
 fi
 
-echo "Copying ssh files to $dest_ip($dest_machine)..."
-scp -A -p -r ~/.ssh/id_ed25519 ~/.ssh/github_ed25519 ~/.ssh/config \
+echo "Copying private keys to $dest_ip($dest_machine)..."
+scp -A -p -r ~/.ssh/id_ed25519 ~/.ssh/github_ed25519 \
   "ashebanow@$dest_ip:/home/ashebanow/.ssh/"
 echo Done
