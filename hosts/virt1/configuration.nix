@@ -48,11 +48,11 @@
     hostName = "virt1"; # Define your hostname.
 
     extraHosts = ''
-      10.50.0.1   gateway gateway.local gateway.cattivi.local
-      10.50.0.13  storage storage.local storage.cattivi.local
-      10.50.0.43  virt1 virt1.local virt1.cattivi.local
-      10.50.0.47  virt2 virt2.local virt2.cattivi.local
-      10.50.0.50  ubuntu-desktop ubuntu-desktop.local ubuntu-desktop.cattivi.local
+      10.40.0.1   gateway gateway.lan
+      10.40.0.13  storage storage.lan
+      10.40.0.11  virt1 virt1.lan
+      10.40.0.14  virt2 virt2.lan
+      10.40.0.50  ubuntu-desktop ubuntu-desktop.lan
     '';
 
     firewall = {

@@ -81,7 +81,7 @@ endpoints:
 hints:
   - #
     # Glob to be used to match the discovered names.
-    match: "*.local"
+    match: "*.lan"
 
     # SSH port to use.
     port: 23234
