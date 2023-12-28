@@ -84,6 +84,12 @@
     # settings.PermitRootLogin = "yes";
   };
 
+  services.cockpit = {
+    enable = true;
+    port = 9090;
+    openFirewall = false;
+  };
+
   virtualisation.docker = {
     enable = true;
     enableOnBoot = true;
@@ -257,6 +263,7 @@
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
     cifs-utils
+    cockpit
     docker
     docker-compose
     firefox
