@@ -5,19 +5,21 @@ dest_ip=""
 
 case "$dest_machine" in
   storage )
-    dest_ip="10.50.0.70";;
+    dest_ip="10.40.0.70";;
   nixos-mac-aarch64 )
     dest_ip="10.211.55.10";;
   virt1 )
-    dest_ip="10.50.0.43";;
+    dest_ip="10.40.0.43";;
   virt2 )
-    dest_ip="10.50.0.73";;
+    dest_ip="10.40.0.73";;
+  loquat )
+    dest_ip="10.40.0.118";;
   ubuntu-desktop )
-    dest_ip="10.50.0.50";;
+    dest_ip="10.40.0.50";;
   miraclemax )
     dest_ip="10.4.0.44";;
   gateway )
-    dest_ip="10.50.0.1";;
+    dest_ip="10.40.0.1";;
   * )
     echo "Usage: copy-ssh-keys.sh dest_machine"
     echo "  dest_machine must be one of:"
@@ -27,6 +29,7 @@ case "$dest_machine" in
     echo "    virt1"
     echo "    virt2"
     echo "    ubuntu-desktop"
+    echo "    loquat"
     echo "    miraclemax"
     exit 1
     ;;
