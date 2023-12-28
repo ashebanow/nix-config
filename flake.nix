@@ -44,19 +44,6 @@
       nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
       nixosConfigurations = {
-        shebanix = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./hosts/shebanix/configuration.nix
-            home-manager.nixosModules.home-manager {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/linux-default/home.nix;
-            }
-          ];
-        };
         loquat = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
           specialArgs = { inherit inputs; }; # forward inputs to modules
@@ -141,12 +128,6 @@
           pkgs = linuxPkgs;
           modules = [
             ./hosts/linux-default/home.nix
-          ];
-        };
-        ubuntu-desktop = home-manager.lib.homeManagerConfiguration {
-          pkgs = linuxPkgs;
-          modules = [
-            ./hosts/ubuntu-desktop/home.nix
           ];
         };
       };

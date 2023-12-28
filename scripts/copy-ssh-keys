@@ -14,8 +14,6 @@ case "$dest_machine" in
     dest_ip="10.40.0.73";;
   loquat )
     dest_ip="10.40.0.118";;
-  ubuntu-desktop )
-    dest_ip="10.40.0.50";;
   miraclemax )
     dest_ip="10.4.0.44";;
   gateway )
@@ -28,7 +26,6 @@ case "$dest_machine" in
     echo "    storage"
     echo "    virt1"
     echo "    virt2"
-    echo "    ubuntu-desktop"
     echo "    loquat"
     echo "    miraclemax"
     exit 1

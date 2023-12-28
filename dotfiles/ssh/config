@@ -19,12 +19,6 @@ Host virt1 virt1.lan
 Host virt2 virt2.lan
   HostName 10.50.0.14
 
-Host shebanix shebanix.lan
-  HostName 10.211.55.3
-
-Host ubuntu-desktop ubuntu-desktop.lan
-  HostName 10.50.0.50
-
 # Example ILO4 config - needed for storage, virt1, virt2, virt3
 # Host 192.168.86.68
 #   Ciphers 3des-cbc
