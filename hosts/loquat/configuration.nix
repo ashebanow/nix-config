@@ -57,7 +57,7 @@
 
     extraHosts = ''
       10.40.0.1   gateway gateway.lan
-      10.40.0.13  storage storage.lan
+      10.40.0.226  storage storage.lan
       10.40.0.11  virt1 virt1.lan
       10.40.0.14  virt2 virt2.lan
       10.40.0.118 loquat loquat.lan

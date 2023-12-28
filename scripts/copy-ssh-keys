@@ -5,7 +5,7 @@ dest_ip=""
 
 case "$dest_machine" in
   storage )
-    dest_ip="10.40.0.70";;
+    dest_ip="10.40.0.226";;
   nixos-mac-aarch64 )
     dest_ip="10.211.55.10";;
   virt1 )
