@@ -57,6 +57,19 @@
             }
           ];
         };
+        loquat = nixpkgs.lib.nixosSystem {
+          system = linuxSystem;
+          specialArgs = { inherit inputs; }; # forward inputs to modules
+          modules = [
+            ./hosts/loquat/configuration.nix
+            home-manager.nixosModules.home-manager {
+              home-manager.verbose = true;
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.ashebanow = import ./hosts/linux-default/home.nix;
+            }
+          ];
+        };
         nixos-mac-aarch64 = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
           specialArgs = { inherit inputs; }; # forward inputs to modules
