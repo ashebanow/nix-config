@@ -29,6 +29,19 @@
     #   url = "github:Mic92/sops-nix";
     #   inputs.nixpkgs.follows = "nixpkgs";
     # };
+
+    hyprland = {
+      url = "github:hyprwm/hyprland";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprwm-contrib = {
+      url = "github:hyprwm/contrib";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    hyprland-plugins = {
+      url = "github:hyprwm/hyprland-plugins";
+      inputs.hyprland.follows = "hyprland";
+    };
   };
 
   outputs = inputs@{ nixpkgs, home-manager, darwin, ... }:
@@ -37,10 +50,13 @@
       darwinSystem = "aarch64-darwin";
       linuxSystem = "x86_64-linux";
 
+      lib = nixpkgs.lib // home-manager.lib;
+
       darwinPkgs = nixpkgs.legacyPackages.${darwinSystem};
       linuxPkgs = nixpkgs.legacyPackages.${linuxSystem};
     in
     {
+      inherit lib;
       nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
       nixosConfigurations = {

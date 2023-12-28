@@ -106,12 +106,12 @@ truncation_symbol = "…/"
 # Here is how you can shorten some long paths by text replacement
 # similar to mapped_locations in Oh My Posh:
 [directory.substitutions]
-"~" = "\uf7dd "
-"~/Development" = "\ue5fb "
-"~/Downloads" = "  "
-"Documents" = "\U000f19f6 "
-"Music" = "  "
-"Pictures" = "  "
+"~/Development" = "\U0000e5fb "
+"~/Downloads" = "\U000f024d  "
+"~/Documents" = "\U000f19f6 "
+"~/Music" = "\U000f1359 "
+"~/Pictures" = "\U000f024f  "
+"~" = "\U000f10b5 "
 # Keep in mind that the order matters. For example:
 # "Important Documents " = "\U000f19f6 "
 # will not be replaced, because "Documents" was already substituted before.
