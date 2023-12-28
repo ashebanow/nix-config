@@ -23,9 +23,6 @@
       ack = "rg";
       cat = "bat --paging=never --style=plain";
       cls = "clear";
-      # there is no insiders package
-      # code = mkIf (pkgs.installed "vscode-insiders") "code";
-      code = "code-insiders";
       diff = "delta";
       diskspace = "df -hl";
       flake-checker = "nix run github:DeterminateSystems/flake-checker";
