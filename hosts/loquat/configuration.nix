@@ -53,7 +53,7 @@
   networking = {
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-    hostName = "shebanix"; # Define your hostname.
+    hostName = "loquat"; # Define your hostname.
 
     extraHosts = ''
       10.40.0.1   gateway gateway.lan
@@ -181,12 +181,12 @@
     enable = true;
 
     # Enable the MATE Desktop Environment.
-    displayManager.lightdm.enable = true;
-    desktopManager.mate.enable = true;
+    # displayManager.lightdm.enable = true;
+    # desktopManager.mate.enable = true;
 
     # Enable the GNOME Desktop Environment.
-    # displayManager.gdm.enable = true;
-    # desktopManager.gnome.enable = true;
+    displayManager.gdm.enable = true;
+    desktopManager.gnome.enable = true;
 
     modules = [ pkgs.xorg.xf86videofbdev ];
     videoDrivers = [ "hyperv_fb" ];
@@ -257,13 +257,15 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
-    chromium
     cifs-utils
+    docker
     docker-compose
+    firefox
     kitty
     nfs-utils
     samba
     virt-manager
+    vscode
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
