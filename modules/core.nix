@@ -44,7 +44,6 @@
     git
     glances
     glow
-    google-chrome
     gnupg
     gum
     hyperfine

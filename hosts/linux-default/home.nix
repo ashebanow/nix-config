@@ -5,6 +5,7 @@
 
   imports = [
     ../../modules/core.nix
+    ../../modules/chrome.nix
     ../../modules/git.nix
     ../../modules/hashi.nix
     ../../modules/iputils.nix
