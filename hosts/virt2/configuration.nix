@@ -117,7 +117,7 @@
       fsType = "cifs";
       options = [
         # Prevent hanging on network loss
-        "x-systemd.automount"+
+        "x-systemd.automount"
         "noauto"
         "x-systemd.idle-timeout=60"
         "x-systemd.device-timeout=5s"
@@ -161,7 +161,7 @@
       fsType = "cifs";
       options = [
         # Prevent hanging on network loss
-        "x-systemd.automount"+
+        "x-systemd.automount"
         "noauto"
         "x-systemd.idle-timeout=60"
         "x-systemd.device-timeout=5s"
@@ -185,7 +185,7 @@
       fsType = "cifs";
       options = [
         # Prevent hanging on network loss
-        "x-systemd.automount"+
+        "x-systemd.automount"
         "noauto"
         "x-systemd.idle-timeout=60"
         "x-systemd.device-timeout=5s"
