@@ -268,6 +268,8 @@
     docker-compose
     firefox
     kitty
+    linuxKernel.packages.linux_6_1.turbostat
+    msrtool
     nfs-utils
     samba
     virt-manager
