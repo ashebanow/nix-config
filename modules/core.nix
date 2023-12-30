@@ -11,6 +11,7 @@
     ".config/neofetch/config".source = ../dotfiles/neofetch-config;
     ".config/starship.toml".source = ../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../dotfiles/tmux.conf;
+    ".config/wezterm/wezterm.lua".source = ../dotfiles/wezterm.lua;
     ".vimrc".source = ../dotfiles/vimrc;
     ".ssh/config".source = ../dotfiles/ssh/config;
     ".ssh/github_ed25519.pub".source = ../dotfiles/ssh/github_ed25519.pub;
