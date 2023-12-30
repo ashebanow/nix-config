@@ -23,6 +23,7 @@
       ack = "rg";
       cat = "bat --paging=never --style=plain";
       cls = "clear";
+      cpuwatts = "sudo turbostat --Summary --quiet --show PkgWatt --interval 1";
       diff = "delta";
       diskspace = "df -hl";
       flake-checker = "nix run github:DeterminateSystems/flake-checker";
@@ -37,11 +38,11 @@
       gac = "git add -A && git commit -m";
       grep = "rg";
       less = "bat";
-      la = "eza -a --icons";
-      ll = "eza -al --icons";
-      llt = "eza -al --sort modified -r --icons";
-      ls = "eza --icons";
-      ltree = "eza -lDT --sort modified --icons";
+      la = "eza -a";
+      ll = "eza -al";
+      llt = "eza -al --sort modified -r";
+      ls = "eza";
+      ltree = "eza -lDT --sort modified";
       more = "bat";
       nps = "nix search nixpkgs";
       nsh = "nix-shell -p";

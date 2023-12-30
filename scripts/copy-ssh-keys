@@ -42,11 +42,6 @@ if [ ! -f ~/.ssh/github_ed25519 ]; then
   exit 1
 fi
 
-if [ ! -f ~/.ssh/config ]; then
-  echo "No ~/.ssh/config file found"
-  exit 1
-fi
-
 echo "Copying private keys to $dest_ip($dest_machine)..."
 scp -A -p -r ~/.ssh/id_ed25519 ~/.ssh/github_ed25519 \
   "ashebanow@$dest_ip:/home/ashebanow/.ssh/"

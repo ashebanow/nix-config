@@ -1,4 +1,6 @@
 { config, pkgs, ... }: {
+  # we use the local path here because the installed path fails on
+  # first run.
   home.file.".ssh/allowed_signers".text =
     "* ${builtins.readFile ../dotfiles/ssh/github_ed25519.pub}";
     # "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
@@ -12,16 +14,46 @@
       # Sign all commits using ssh key via 1password
       signing = {
         key = "~/.ssh/github_ed25519.pub";
-        signByDefault = false;
+        signByDefault = true;
       };
+
       # this is the way to point to 1password correctly, not by setting git's
       # signing.gpgPath setting. See:
       # https://discourse.nixos.org/t/cant-commit-with-git-after-installing-1password/34021
-      # extraConfig = {
-      #   # gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
-      #   gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
-      #   gpg.format = "ssh";
-      # };
+      extraConfig = {
+        gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
+        gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
+        gpg.format = "ssh";
+
+        # core.editor = "${vscode}/bin/code --wait";
+
+        # on WSL ONLY, we want to use native ssh for git
+        # core.sshCommand = "ssh.exe";
+
+        color = {
+          ui = "auto";
+        };
+        diff = {
+          tool = "delta";
+          mnemonicprefix = true;
+        };
+        merge = {
+          tool = "delta";
+          # conflictstyle = "diff3";
+        };
+        push = {
+          default = "simple";
+        };
+        pull = {
+          rebase = true;
+        };
+        branch = {
+          autosetupmerge = true;
+        };
+        rerere = {
+          enabled = true;
+        };
+      };
 
       aliases = {
         a = "add";
@@ -100,37 +132,6 @@
         "*.xhtml diff=html"
         "*.xhtml diff=html"
       ];
-
-      extraConfig = {
-        # core.editor = "${vscode}/bin/code --wait";
-
-        # on WSL ONLY, we want to use native ssh for git
-        # core.sshCommand = "ssh.exe";
-
-        color = {
-          ui = "auto";
-        };
-        diff = {
-          tool = "delta";
-          mnemonicprefix = true;
-        };
-        merge = {
-          tool = "delta";
-          # conflictstyle = "diff3";
-        };
-        push = {
-          default = "simple";
-        };
-        pull = {
-          rebase = true;
-        };
-        branch = {
-          autosetupmerge = true;
-        };
-        rerere = {
-          enabled = true;
-        };
-      };
 
       ignores = [
         # General
