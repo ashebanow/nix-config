@@ -65,6 +65,7 @@
     tmux
     unzip
     vim
+    wezterm
     wget
     wishlist
     yarn

@@ -29,6 +29,8 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ../../modules/desktops/gnome.nix
+      # ../../modules/desktops/hyprland.nix
     ];
 
   # Bootloader
@@ -234,29 +236,12 @@
     LC_TIME = "en_US.UTF-8";
   };
 
-  # Configure the X11 windowing system.
-  services.xserver = {
-    enable = true;
+  # console ttys use the same keymap as X11
+  console.useXkbConfig = true;
 
-    # Enable the MATE Desktop Environment.
-    # displayManager.lightdm.enable = true;
-    # desktopManager.mate.enable = true;
-
-    # Enable the GNOME Desktop Environment.
-    displayManager.gdm.enable = true;
-    desktopManager.gnome.enable = true;
-
-    modules = [ pkgs.xorg.xf86videofbdev ];
-    videoDrivers = [ "hyperv_fb" ];
-
-    # Configure keymap in X11
-    layout = "us";
-    xkbVariant = "";
-  };
-
-  # make sure we turn off suspending power
+  # make sure we turn off suspending power. There may be additional settings
+  # that are specific to each desktop environment, see modules/desktops.
   powerManagement.enable = false;
-  services.xserver.displayManager.gdm.autoSuspend = false;
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       if (action.id == "org.freedesktop.login1.suspend" ||
@@ -268,7 +253,7 @@
       }
     });
   '';
-    # Disable the GNOME3/GDM auto-suspend feature that cannot be disabled in GUI!
+  # Disable the GNOME3/GDM auto-suspend feature that cannot be disabled in GUI!
   # If no user is logged in, the machine will power down after 20 minutes.
   systemd.targets.sleep.enable = false;
   systemd.targets.suspend.enable = false;
@@ -287,8 +272,7 @@
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
+    jack.enable = true;
 
     # use the example session manager (no others are packaged yet so this is enabled by default,
     # no need to redefine it in your config for now)
