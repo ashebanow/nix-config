@@ -1,11 +1,10 @@
 Host *
   User ashebanow
-  IdentityFile ~/.ssh/id_ed25519
-  # IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
   IdentityAgent ~/.1password/agent.sock
 
 Host github.com github
   User git
+  IdentityAgent ~/.1password/agent.sock
   IdentityFile ~/.ssh/github_ed25519
 
 Host gateway gateway.lan
