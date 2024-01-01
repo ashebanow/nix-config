@@ -10,8 +10,6 @@
     # ../../modules/lorri.nix
     ../../modules/neovim.nix
     ../../modules/shell.nix
-
-    # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/vscode-server/home.nix"
     # ../../modules/vscode.nix
 
     # <sops-nix/modules/home-manager/sops.nix>

@@ -40,6 +40,7 @@
   environment.systemPackages = with pkgs; [
     git
     vim
+    vscode
     wget
     zsh
     # sops
@@ -86,7 +87,6 @@
       "steam"
       "temurin"
       # "tg-pro"
-      # "visual-studio-code"
       # "warp"
     ];
   };
