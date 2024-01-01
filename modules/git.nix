@@ -21,7 +21,8 @@
       # signing.gpgPath setting. See:
       # https://discourse.nixos.org/t/cant-commit-with-git-after-installing-1password/34021
       extraConfig = {
-        gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
+        gpg.ssh.program = "${pkgs._1password-gui}/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
+        # gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
         gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
         gpg.format = "ssh";
 
