@@ -69,7 +69,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/linux-default/home.nix;
+              home-manager.users.ashebanow = import ./os/linux/home.nix;
             }
           ];
         };
@@ -82,7 +82,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/linux-default/home.nix;
+              home-manager.users.ashebanow = import ./os/linux/home.nix;
             }
           ];
         };
@@ -96,7 +96,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/linux-default/home.nix;
+              home-manager.users.ashebanow = import ./os/linux/home.nix;
 
               # Optionally, use home-manager.extraSpecialArgs to pass
               # arguments to home.nix
@@ -112,7 +112,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/linux-default/home.nix;
+              home-manager.users.ashebanow = import ./os/linux/home.nix;
             }
           ];
         };
@@ -123,12 +123,12 @@
           system = darwinSystem;
           specialArgs = { inherit inputs; }; # forward inputs to modules
           modules = [
-            ./hosts/darwin-default/configuration.nix
+            ./os/darwin/configuration.nix
             home-manager.darwinModules.home-manager {
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/darwin-default/home.nix;
+              home-manager.users.ashebanow = import ./os/darwin/home.nix;
             }
             # sops-nix.nixosModules.sops
           ];
@@ -143,7 +143,7 @@
         ashebanow = home-manager.lib.homeManagerConfiguration {
           pkgs = linuxPkgs;
           modules = [
-            ./hosts/linux-default/home.nix
+            ./os/linux/home.nix
           ];
         };
       };
