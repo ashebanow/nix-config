@@ -40,7 +40,6 @@
   environment.systemPackages = with pkgs; [
     git
     vim
-    vscode
     wget
     zsh
     # sops

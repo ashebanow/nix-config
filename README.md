@@ -62,7 +62,6 @@ Similar to Linux systems above, but you need to use Darwin. More details coming 
 1. ssh config
 2. git commit signing
 3. secrets in general
-4. vscode config
 
 # GENERAL NOTES:
 

@@ -10,7 +10,7 @@
     # ../../modules/lorri.nix
     ../../modules/neovim.nix
     ../../modules/shell.nix
-    # ../../modules/vscode.nix
+    ../../modules/vscode.nix
 
     # <sops-nix/modules/home-manager/sops.nix>
   ];
