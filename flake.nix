@@ -74,7 +74,7 @@
               home-manager.verbose = true;
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./os/linux/home.nix;
+              home-manager.users.ashebanow = import ./hosts/loquat/home.nix;
             }
           ];
         };
