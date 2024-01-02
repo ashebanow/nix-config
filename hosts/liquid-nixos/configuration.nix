@@ -40,6 +40,38 @@
 
   networking.hostName = "liquid-nixos";
 
+  # Auto Upgrade
+  system.autoUpgrade = {
+    enable = true;
+    allowReboot = true;
+    flake = inputs.self.outPath;
+
+    dates = "03:00";
+    randomizedDelaySec = "45min";
+
+    flags = [
+      "--commit-lock-file"
+      "--update-input"
+      "nixpkgs"
+      "-L" # print build logs
+    ];
+  };
+
+  # make sure we update our nix config at least once a day, and
+  # before we run autoupgrade
+  systemd.services."update-nix-config" = {
+    script = ''
+      set -eu
+      cd ~/nix-config
+      git pull
+    '';
+    serviceConfig = {
+      OnCalendar="*-*-* 2:55:00"
+      Persistent = true; 
+    };
+    wantedBy = [ "timers.target" ];
+  };
+
   environment.systemPackages = with pkgs; [
     firefox
     git

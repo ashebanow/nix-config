@@ -44,7 +44,9 @@
       ls = "eza";
       ltree = "eza -lDT --sort modified";
       more = "bat";
-      nps = "nix search nixpkgs";
+      nix-autoupdate-log = "systemctl status nixos-upgrade.service";
+      nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
+      nix-search = "nix search nixpkgs";
       nsh = "nix-shell -p";
     };
   };
