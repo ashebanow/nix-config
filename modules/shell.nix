@@ -7,6 +7,7 @@
       NIXPKGS_ALLOW_UNFREE = 1;
       # here so 1password doesn't ping:
       OP_PLUGIN_ALIASES_SOURCED = 1;
+      DONT_PROMPT_WSL_INSTALL = 1;
     };
 
     sessionPath = [ 
