@@ -36,6 +36,7 @@
 
   wsl.enable = true;
   wsl.defaultUser = "ashebanow";
+  wsl.defaultUserShell = pkgs.zsh;
   wsl.wslConf.network.generateHosts = false;
 
   networking.hostName = "liquid-nixos";
@@ -78,7 +79,16 @@
     just
     kitty
     vim
+    zsh
   ];
+
+  services.openssh = {
+    enable = true;
+    # require public key authentication for better security
+    settings.PasswordAuthentication = false;
+    settings.KbdInteractiveAuthentication = false;
+    settings.PermitRootLogin = "no";
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
