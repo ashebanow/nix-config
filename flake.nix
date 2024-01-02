@@ -140,6 +140,9 @@
         };
       };
 
+      # this is currently used only for the WSL2 install on Liquidity,
+      # but we could end up using it on other non-nixOS linux systems
+      # later. (e.g. harvester nodes)
       homeConfigurations = {
         home-manager.verbose = true;
         home-manager.useGlobalPkgs = true;
