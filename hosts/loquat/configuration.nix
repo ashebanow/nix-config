@@ -63,6 +63,7 @@
       10.40.0.11  virt1 virt1.lan
       10.40.0.14  virt2 virt2.lan
       10.40.0.118 loquat loquat.lan
+      172.21.75.8 liquid-nixos liquid-nixos.lan
     '';
 
     firewall = {

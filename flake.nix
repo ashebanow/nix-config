@@ -78,6 +78,19 @@
             }
           ];
         };
+        liquid-nixos = nixpkgs.lib.nixosSystem {
+          system = linuxSystem;
+          specialArgs = { inherit inputs; }; # forward inputs to modules
+          modules = [
+            ./hosts/liquid-nixos/configuration.nix
+            home-manager.nixosModules.home-manager {
+              home-manager.verbose = true;
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.ashebanow = import ./os/linux/home.nix;
+            }
+          ];
+        };
         nixos-mac-aarch64 = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
           specialArgs = { inherit inputs; }; # forward inputs to modules
@@ -140,6 +153,9 @@
         };
       };
 
+      # this is currently used only for the WSL2 install on Liquidity,
+      # but we could end up using it on other non-nixOS linux systems
+      # later. (e.g. harvester nodes)
       homeConfigurations = {
         home-manager.verbose = true;
         home-manager.useGlobalPkgs = true;
