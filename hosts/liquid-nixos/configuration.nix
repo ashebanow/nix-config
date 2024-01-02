@@ -36,8 +36,10 @@
 
   wsl.enable = true;
   wsl.defaultUser = "ashebanow";
-  wsl.defaultUserShell = pkgs.zsh;
   wsl.wslConf.network.generateHosts = false;
+
+  programs.zsh.enable = true;
+  users.defaultUserShell = pkgs.zsh;
 
   networking.hostName = "liquid-nixos";
 
@@ -45,7 +47,7 @@
   system.autoUpgrade = {
     enable = true;
     allowReboot = true;
-    flake = inputs.self.outPath;
+    flake = "github:ashebanow/nix-config#default";
 
     dates = "03:00";
     randomizedDelaySec = "45min";
@@ -63,11 +65,11 @@
   systemd.services."update-nix-config" = {
     script = ''
       set -eu
-      cd ~/nix-config
-      git pull
+      cd /home/ashebanow/nix-config
+      "${pkgs.git}/bin/git" pull
     '';
     serviceConfig = {
-      OnCalendar="*-*-* 2:55:00"
+      OnCalendar="*-*-* 2:55:00";
       Persistent = true; 
     };
     wantedBy = [ "timers.target" ];
