@@ -1,25 +1,61 @@
-Host *
-  User ashebanow
-  IdentityAgent ~/.1password/agent.sock
+########################################################
+# Github config, used for signing and auth, not login
 
 Host github.com github
   User git
-  IdentityAgent ~/.1password/agent.sock
-  IdentityFile ~/.ssh/github_ed25519
+  IdentityFile /home/ashebanow/.ssh/github_ed25519
 
-Host gateway gateway.lan
-  HostName 10.40.0.1
+########################################################
+# Unifi equipment
 
-Host storage storage.lan
-  HostName 10.40.0.226
+# this is the Cloud Key 2 controller
+Host unifi unifi.lan
+  # IdentityFile /home/ashebanow/.ssh/cattivi_unifi
+  User ubnt
 
-Host virt1 virt1.lan
-  HostName 10.50.0.11
+# this is the UXG Pro gateway
+Host setup.unifi.com
+  # IdentityFile /home/ashebanow/.ssh/cattivi_unifi
+  User 9dAnLDcZ
 
-Host virt2 virt2.lan
-  HostName 10.50.0.14
+# Note: all these networking device IPs could change, since
+# they are on DHCP leases. I should really make them fixed IPs.
+
+Host usw-pro-24-poe.lan
+  HostName 10.40.0.198
+  User 9dAnLDcZ
+
+Host usw-enterprise-xg-24.lan
+  HostName 10.40.0.113
+  User 9dAnLDcZ
+
+Host usw-flex-xg.lan
+  HostName 10.40.0.71
+  User 9dAnLDcZ
+
+Host u6e-front.lan
+  HostName 10.40.0.162
+  User 9dAnLDcZ
+
+Host u6e-back.lan
+  HostName 10.40.0.80
+  User 9dAnLDcZ
+
+Host u6e-garage.lan
+  HostName 10.40.0.144
+  User 9dAnLDcZ
+
+########################################################
+# Server IPMI
 
 # Example ILO4 config - needed for storage, virt1, virt2, virt3
 # Host 192.168.86.68
 #   Ciphers 3des-cbc
 #   KexAlgorithms +diffie-hellman-group1-sha1
+
+########################################################
+# Defaults
+
+Host *
+  IdentityAgent /home/ashebanow/.1password/agent.sock
+  Compression yes

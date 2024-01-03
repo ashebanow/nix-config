@@ -16,6 +16,7 @@
     ".ssh/config".source = ../dotfiles/ssh/config;
     ".ssh/github_ed25519.pub".source = ../dotfiles/ssh/github_ed25519.pub;
     ".ssh/id_ed25519.pub".source = ../dotfiles/ssh/id_ed25519.pub;
+    ".ssh/cattivi_unifi.pub".source = ../dotfiles/ssh/cattivi_unifi.pub;
   };
 
   home.sessionVariables = {
