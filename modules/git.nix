@@ -35,6 +35,10 @@
         # on WSL ONLY, we want to use native ssh for git
         # core.sshCommand = "ssh.exe";
 
+        # this is here because on WSL we get intermiitent warnings about
+        # safety during systemd updates. Ugh.
+        safe.directory = "~/nix-config";
+
         color = {
           ui = "auto";
         };
