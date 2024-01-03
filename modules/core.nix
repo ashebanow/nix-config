@@ -55,8 +55,8 @@
     less
     # lorri
     neofetch
-    (nerdfonts.override { fonts = [ "SourceCodePro" ]; })
-    nil # nix LSP
+    (nerdfonts.override { fonts = [ "SourceCodePro" "Hack" ]; })
+    nil         # nix LSP
     nix-direnv
     nixpkgs-fmt
     overmind
