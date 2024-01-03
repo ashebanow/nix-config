@@ -14,7 +14,7 @@
       # Sign all commits using ssh key via 1password
       signing = {
         key = "~/.ssh/github_ed25519.pub";
-        signByDefault = false;
+        signByDefault = true;
       };
 
       # this is the way to point to 1password correctly, not by setting git's
