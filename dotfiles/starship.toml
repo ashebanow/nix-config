@@ -12,17 +12,8 @@ $git_branch\
 $git_status\
 [](fg:#FCA17D bg:#86BBD8)\
 $container\
-$golang\
 $helm\
-$java\
-$kotlin\
 $kubernetes\
-${custom.nixlang}\
-$nodejs\
-$ruby\
-$rust\
-$swift\
-$vagrant\
 [ ](fg:#86BBD8 bg:transparent)\
 """
 
@@ -54,29 +45,29 @@ disabled = false
 # An alternative to the username module which displays a symbol that
 # represents the current operating system
 [os]
-format = '[ $symbol ]($style)'
+format = '[$symbol ]($style)'
 style = "fg:#EEEEEE bg:#9A348E"
 disabled = false
 
 # redefine OS emojis without trailing spaces, ugh
 [os.symbols]
-Arch = "🎗️ Arch"
-CentOS = "💠 CentOS"
-Debian = "🌀 Debian"
-Fedora = "🎩 Fedora"
-FreeBSD = "😈 FreeBSD"
-Linux = "🐧 Linux"
-Macos = " macOS"
-Mint = "🌿 Mint"
-NixOS = "❄️ NixOS"
-OpenBSD = "🐡 OpenBSD"
-openSUSE = "🦎 openSUSE"
-Redhat = "🎩 Redhat"
-RedHatEnterprise = "🎩 RedHatEnterprise"
-SUSE = "🦎 SUSE"
-Unknown = "❓ Unknown"
-Ubuntu = "🎯 Ubuntu"
-Windows = " Windows"
+Arch = ""
+CentOS = ""
+Debian = ""
+Fedora = ""
+FreeBSD = ""
+Linux = ""
+Macos = "󰀵"
+Mint = ""
+NixOS = ""
+OpenBSD = ""
+openSUSE = ""
+SUSE = ""
+Redhat = ""
+RedHatEnterprise = ""
+Unknown = "Unknown OS"
+Ubuntu = ""
+Windows = ""
 
 [shlvl]
 disabled = false
@@ -99,24 +90,16 @@ disabled = true
 
 [directory]
 style = "bg:#33658A"
-format = "[ $path ]($style)"
+format = "[ $path]($style)[$lock_symbol]($lock_style)[ ]($style)"
+fish_style_pwd_dir_length = 1
 truncation_length = 3
-truncation_symbol = "…/"
+# truncation_symbol = "…/"
 
-# Here is how you can shorten some long paths by text replacement
-# similar to mapped_locations in Oh My Posh:
-[directory.substitutions]
-"~/Development" = "\U0000e5fb "
-"~/Downloads" = "\U000f024d  "
-"~/Documents" = "\U000f19f6 "
-"~/Music" = "\U000f1359 "
-"~/Pictures" = "\U000f024f  "
-"~" = "\U000f10b5 "
-# Keep in mind that the order matters. For example:
-# "Important Documents " = "\U000f19f6 "
-# will not be replaced, because "Documents" was already substituted before.
-# So either put "Important Documents" before "Documents" or use the substituted version:
-# "Important \U000f19f6 " = "\U000f19f6 "
+# FIXME: need to wait for 1.17 release for this, currently in nixos-unstable
+# [direnv]
+# disabled = false
+# format = '[ $symbol ]($style)'
+# style = "bg:#33658A"
 
 [git_branch]
 style = "fg:#202020 bg:#FCA17D"
@@ -142,52 +125,17 @@ style = "fg:#000000 bg:#86BBD8"
 format = '[ $symbol($context) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
-[golang]
-format = '[ $symbol ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
-[helm]
-format = '[ $symbol ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
-[java]
-format = '[ $symbol ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-symbol = " "
-
-[kotlin]
-format = '[ $symbol ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
 [kubernetes]
 format = '[ $symbol$context(\($namespace\)) ]($style)'
 #disabled = false
 style = "fg:#000000 bg:#86BBD8"
 
-[nodejs]
-format = '[ $symbol ]($style)'
-style = "fg:#FFE53D bg:#86BBD8"
-symbol = ""
-
-[ruby]
-format = '[ $symbol ]($style)'
-style = "fg:#E0115F bg:#86BBD8"
-symbol = ""
-
-[rust]
-format = '[ $symbol ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
-[swift]
-format = '[ $symbol ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-
-[custom.nixlang]
-# command = "nix --version | sed -e 's/nix (Nix) //g'"
-detect_extensions = ['nix']
-format = '[ $symbol ]($style)'
-style = "fg:#000000 bg:#86BBD8"
-symbol='❄️'
+# [custom.nixlang]
+# command = "nix --version | awk '{ print $3 }'"
+# detect_extensions = ['nix']
+# format = '[ $symbol ]($style)'
+# style = "fg:#000000 bg:#86BBD8"
+# symbol='❄️'
 
 #######################################################################
 
