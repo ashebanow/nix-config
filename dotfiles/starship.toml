@@ -11,9 +11,9 @@ $directory\
 ${custom.git_server}\
 $git_branch\
 $git_commit\
-$git_state\
 $git_metrics\
 $git_status\
+$git_last_commit\
 [](fg:#FCA17D bg:#86BBD8)\
 $container\
 $docker_context\
@@ -38,15 +38,6 @@ disabled = false
 
 [line_break]
 disabled = true
-
-# You can also replace your username with a neat symbol like   or disable this
-# and use the os module below
-[username]
-show_always = true
-style_user = "fg:#EEEEEE bg:#9A348E"
-style_root = "fg:#EE0000 bg:#9A348E"
-format = '[$user]($style)'
-disabled = false
 
 # An alternative to the username module which displays a symbol that
 # represents the current operating system
@@ -98,7 +89,7 @@ disabled = true
 
 [directory]
 style = "bg:#33658A"
-format = "[$path]($style)[$lock_symbol]($lock_style)[ ]($style)"
+format = "[ $path]($style)[$lock_symbol]($lock_style)[ ]($style)"
 fish_style_pwd_dir_length = 1
 truncation_length = 3
 # truncation_symbol = "…/"
@@ -132,21 +123,7 @@ echo "$GIT_REMOTE_SYMBOL "
 """
 when = 'git rev-parse --is-inside-work-tree 2> /dev/null'
 style = "fg:#202020 bg:#FCA17D"
-# style = "white"
-format = '[$output ]($style)'
-
-[custom.git_scope]
-disabled = true
-command = '''
-printf "%s (%s)" \
-  "$(if [ -n "$GIT_AUTHOR_EMAIL" ]; then echo "$GIT_AUTHOR_EMAIL"; else git config user.email; fi)" \
-  "$(if [ -n "$GIT_AUTHOR_NAME" ]; then echo "$GIT_AUTHOR_NAME"; else git config user.name; fi)"
-'''
-description = 'The currently configured Git user.{email,name}'
-format = '[$output ]($style)'
-style = "fg:#202020 bg:#FCA17D"
-# style = 'blue bold'
-when = 'git rev-parse --is-inside-work-tree'
+format = '[ $output ]($style)'
 
 [custom.git_last_commit]
 # disabled = true
@@ -158,7 +135,7 @@ style = "fg:#202020 bg:#FCA17D"
 format = '[$output ]($style)'
 
 [git_branch]
-format = '[\[$symbol$branch\]]($style)'
+format = '[$symbol $branch ]($style)'
 style = "fg:#202020 bg:#FCA17D"
 symbol = ''
 truncation_length = 16
@@ -167,12 +144,8 @@ truncation_symbol = '…'
 [git_commit]
 commit_hash_length = 8
 style = "fg:#202020 bg:#FCA17D"
-tag_symbol = '🔖 '
+tag_symbol = '🔖'
 disabled = false
-
-[git_state]
-format = '[\[\($state( $progress_current of $progress_total)\)\]]($style)'
-style = "fg:#202020 bg:#FCA17D"
 
 [git_status]
 conflicted = "⚔️"
@@ -186,7 +159,7 @@ staged = "🗃️${count}"
 renamed = "📛${count}"
 deleted = "🗑️${count}"
 style = "fg:#202020 bg:#FCA17D"
-format = '[\[$all_status$ahead_behind\] ]($style)'
+format = '[$all_status$ahead_behind ]($style)'
 
 #######################################################################
 # Virtualization
