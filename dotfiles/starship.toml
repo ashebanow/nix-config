@@ -1,19 +1,25 @@
 format = """
 [](fg:#9A348E bg:transparent)\
 $os\
+$hostname\
 [](fg:#9A348E bg:#DA627D)\
 $shlvl\
-$hostname\
 $nix_shell\
 [](fg:#DA627D bg:#33658A)\
 $directory\
 [](fg:#33658A bg:#FCA17D)\
+${custom.git_server}\
 $git_branch\
+$git_commit\
+$git_state\
+$git_metrics\
 $git_status\
 [](fg:#FCA17D bg:#86BBD8)\
 $container\
+$docker_context\
 $helm\
 $kubernetes\
+$terraform\
 [ ](fg:#86BBD8 bg:transparent)\
 """
 
@@ -76,9 +82,11 @@ style = "fg:#EEEEEE bg:#DA627D"
 
 [hostname]
 format='[$ssh_symbol$hostname ]($style)'
+# trim_at='-'
 trim_at='.'
-ssh_symbol='🌏'
-style = "bg:#DA627D"
+ssh_only = false
+ssh_symbol='🌏 '
+style = "fg:#EEEEEE bg:#9A348E"
 disabled = false
 
 [nix_shell]
@@ -90,7 +98,7 @@ disabled = true
 
 [directory]
 style = "bg:#33658A"
-format = "[ $path]($style)[$lock_symbol]($lock_style)[ ]($style)"
+format = "[$path]($style)[$lock_symbol]($lock_style)[ ]($style)"
 fish_style_pwd_dir_length = 1
 truncation_length = 3
 # truncation_symbol = "…/"
@@ -101,21 +109,87 @@ truncation_length = 3
 # format = '[ $symbol ]($style)'
 # style = "bg:#33658A"
 
-[git_branch]
+#######################################################################
+# Git
+
+[custom.git_server]
+#disabled = true
+description = "Display symbol for remote Git server"
+command = """
+GIT_REMOTE=$(command git ls-remote --get-url 2> /dev/null)
+if [[ "$GIT_REMOTE" =~ "github" ]]; then
+    GIT_REMOTE_SYMBOL=" "
+elif [[ "$GIT_REMOTE" =~ "gitlab" ]]; then
+    GIT_REMOTE_SYMBOL=" "
+elif [[ "$GIT_REMOTE" =~ "bitbucket" ]]; then
+    GIT_REMOTE_SYMBOL=" "
+elif [[ "$GIT_REMOTE" =~ "git" ]]; then
+    GIT_REMOTE_SYMBOL=" "
+else
+    GIT_REMOTE_SYMBOL=" "
+fi
+echo "$GIT_REMOTE_SYMBOL "
+"""
+when = 'git rev-parse --is-inside-work-tree 2> /dev/null'
 style = "fg:#202020 bg:#FCA17D"
-format = '[ $symbol($branch) ]($style)'
+# style = "white"
+format = '[$output ]($style)'
+
+[custom.git_scope]
+disabled = true
+command = '''
+printf "%s (%s)" \
+  "$(if [ -n "$GIT_AUTHOR_EMAIL" ]; then echo "$GIT_AUTHOR_EMAIL"; else git config user.email; fi)" \
+  "$(if [ -n "$GIT_AUTHOR_NAME" ]; then echo "$GIT_AUTHOR_NAME"; else git config user.name; fi)"
+'''
+description = 'The currently configured Git user.{email,name}'
+format = '[$output ]($style)'
+style = "fg:#202020 bg:#FCA17D"
+# style = 'blue bold'
+when = 'git rev-parse --is-inside-work-tree'
+
+[custom.git_last_commit]
+# disabled = true
+description = "Display last commit hash and message"
+command = "git show -s --format='%h \"%s\"'"
+when = 'git rev-parse --is-inside-work-tree 2> /dev/null'
+style = "fg:#202020 bg:#FCA17D"
+#style = "bright-yellow bold"
+format = '[$output ]($style)'
+
+[git_branch]
+format = '[\[$symbol$branch\]]($style)'
+style = "fg:#202020 bg:#FCA17D"
+symbol = ''
+truncation_length = 16
+truncation_symbol = '…'
+
+[git_commit]
+commit_hash_length = 8
+style = "fg:#202020 bg:#FCA17D"
+tag_symbol = '🔖 '
+disabled = false
+
+[git_state]
+format = '[\[\($state( $progress_current of $progress_total)\)\]]($style)'
+style = "fg:#202020 bg:#FCA17D"
 
 [git_status]
+conflicted = "⚔️"
+ahead = "💨${count}"
+behind = "🐢${count}"
+diverged = "🔱 💨${ahead_count} 🐢${behind_count}"
+untracked = "🛤️${count}"
+stashed = "📦"
+modified = "📝${count}"
+staged = "🗃️${count}"
+renamed = "📛${count}"
+deleted = "🗑️${count}"
 style = "fg:#202020 bg:#FCA17D"
-format = '[$all_status$ahead_behind ]($style)'
+format = '[\[$all_status$ahead_behind\] ]($style)'
 
-[time]
-disabled = true
-time_format = "%R" # Hour:Minute Format
-style = "bg:#33658A"
-format = '[ $time ]($style)'
-
-################################################################
+#######################################################################
+# Virtualization
 
 [container]
 format = '[ $symbol($name) ]($style)'
@@ -125,10 +199,22 @@ style = "fg:#000000 bg:#86BBD8"
 format = '[ $symbol($context) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
 
-[kubernetes]
-format = '[ $symbol$context(\($namespace\)) ]($style)'
+[helm]
 #disabled = false
+format = '[$symbol($version) ]($style)'
 style = "fg:#000000 bg:#86BBD8"
+
+[kubernetes]
+#disabled = false
+format = '[ $symbol$context(\($namespace\)) ]($style)'
+style = "fg:#000000 bg:#86BBD8"
+
+[terraform]
+#disabled = false
+format = '[$symbol$version ]($style)'
+style = "fg:#000000 bg:#86BBD8"
+symbol = "💠"
+version_format = "${major}.${minor}"
 
 # [custom.nixlang]
 # command = "nix --version | awk '{ print $3 }'"
@@ -138,6 +224,7 @@ style = "fg:#000000 bg:#86BBD8"
 # symbol='❄️'
 
 #######################################################################
+# Color Palettes
 
 [palettes.solarized_dark]
 # Ordered from darker to lighter
