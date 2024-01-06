@@ -67,7 +67,7 @@ Ubuntu = ""
 Windows = ""
 
 [shlvl]
-disabled = false
+disabled = true
 format='[ SHLVL: $shlvl ]($style)'
 style = "fg:#EEEEEE bg:#DA627D"
 
