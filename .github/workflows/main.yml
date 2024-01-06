@@ -9,7 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
     steps:
       - uses: actions/checkout@v3
         with:
@@ -25,8 +28,8 @@ jobs:
           branch: main
           commit_options: '--no-verify --signoff'
           file_pattern: flake.lock
-          commit_user_name: Flake Bot # defaults to "GitHub Actions"
-          #commit_user_email: my-github-actions-bot@example.org # defaults to "actions@github.com"
+          commit_user_name: Nix Config Flake Update Action # defaults to "GitHub Actions"
+          commit_user_email: github-actions-bot@cattivi.com # defaults to "actions@github.com"
           commit_author: Flake Bot <actions@github.com> # defaults to author of the commit that triggered the run
           skip_dirty_check: false    
           skip_fetch: true
