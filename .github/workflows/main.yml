@@ -20,7 +20,7 @@ jobs:
 
       - uses: cachix/install-nix-action@v20
 
-      - run: nix flake update
+      - run: nix flake update --accept-flake-config
 
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
