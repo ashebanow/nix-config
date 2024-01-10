@@ -7,7 +7,6 @@
       NIXPKGS_ALLOW_UNFREE = 1;
       # here so 1password doesn't ping:
       OP_PLUGIN_ALIASES_SOURCED = 1;
-      DONT_PROMPT_WSL_INSTALL = 1;
     };
 
     sessionPath = [ 
@@ -45,11 +44,9 @@
       ls = "eza";
       ltree = "eza -lDT --sort modified";
       more = "bat";
-      nix-autoupdate-log = "systemctl status nixos-upgrade.service";
-      nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
-      nix-search = "nix search nixpkgs";
+      nps = "nix search nixpkgs";
       nsh = "nix-shell -p";
-      wezssh = "wezterm ssh"
+      wezssh = "wezterm ssh";
     };
   };
 
