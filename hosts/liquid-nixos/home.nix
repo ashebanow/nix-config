@@ -10,7 +10,8 @@
     ../../modules/hashi.nix
     ../../modules/iputils.nix
     # ../../modules/lorri.nix
-    ../../modules/neovim.nix
+    ../../modules/neovim
+    # ../../modules/neovim.nix
     ../../modules/shell.nix
     ../../modules/warp.nix
     ../../modules/vscode.nix

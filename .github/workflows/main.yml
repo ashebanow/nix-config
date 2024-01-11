@@ -22,9 +22,20 @@ jobs:
 
       - run: nix flake update --accept-flake-config
 
+      - name: Run Statix Lint
+        run: statix fix
+
+      - name: Run Nix Formatter
+        run: nix fmt
+
+      - name: Nix Flake Checker
+        # You may pin to the exact commit or the version.
+        # uses: DeterminateSystems/flake-checker-action@4b90f9fc724969ff153fe1803460917c84fe00a3
+        uses: DeterminateSystems/flake-checker-action@v5
+
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: Bump flake.lock
+          commit_message: Bump flake.lock and run linter/formatter
           branch: main
           commit_options: '--no-verify --signoff'
           file_pattern: flake.lock

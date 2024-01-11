@@ -305,12 +305,16 @@
     docker
     docker-compose
     firefox
+    git
+    just
     kitty
     linuxKernel.packages.linux_6_1.turbostat
     msrtool
+    neovim
     nfs-utils
     samba
     virt-manager
+    zsh
   ];
 
   # Some programs need SUID wrappers, can be configured further or are

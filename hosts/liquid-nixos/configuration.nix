@@ -76,11 +76,20 @@
   };
 
   environment.systemPackages = with pkgs; [
+    cifs-utils
+    cockpit
+    docker
+    docker-compose
     firefox
     git
     just
     kitty
-    vim
+    linuxKernel.packages.linux_6_1.turbostat
+    msrtool
+    neovim
+    nfs-utils
+    samba
+    virt-manager
     zsh
   ];
 
