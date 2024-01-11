@@ -59,10 +59,10 @@
 
     extraHosts = ''
       10.40.0.1   gateway gateway.lan
-      10.40.0.226  storage storage.lan
+      10.40.0.227  storage storage.lan
       10.40.0.11  virt1 virt1.lan
       10.40.0.14  virt2 virt2.lan
-      10.40.0.118 loquat loquat.lan
+      10.40.60.220 loquat loquat.lan
       172.21.75.8 liquid-nixos liquid-nixos.lan
     '';
 
@@ -125,98 +125,98 @@
   #   kernelModules = [ "nfs" ];
   # };
   fileSystems = {
-    "/mnt/storage/appdata" = {
-      device = "//storage.lan/appdata";
-      fsType = "cifs";
-      options = [
-        # Prevent hanging on network loss
-        "x-systemd.automount"
-        "noauto"
-        "x-systemd.idle-timeout=60"
-        "x-systemd.device-timeout=5s"
-        "x-systemd.mount-timeout=5s"
+    # "/mnt/storage/appdata" = {
+    #   device = "//storage.lan/appdata";
+    #   fsType = "cifs";
+    #   options = [
+    #     # Prevent hanging on network loss
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
 
-        # Specify location of credentials file
-        "credentials=/etc/nixos/smb-secrets"
+    #     # Specify location of credentials file
+    #     "credentials=/etc/nixos/smb-secrets"
 
-        # Default permissions and file encoding
-        "file_mode=0777"
-        "dir_mode=0777"
-        "iocharset=utf8"
-      ];
-    };
-    "/mnt/storage/backups" = {
-      device = "//storage.lan/backups";
-      fsType = "cifs";
-      options = [
-        # Prevent hanging on network loss
-        "x-systemd.automount"
-        "noauto"
-        "x-systemd.idle-timeout=60"
-        "x-systemd.device-timeout=5s"
-        "x-systemd.mount-timeout=5s"
+    #     # Default permissions and file encoding
+    #     "file_mode=0777"
+    #     "dir_mode=0777"
+    #     "iocharset=utf8"
+    #   ];
+    # };
+    # "/mnt/storage/backups" = {
+    #   device = "//storage.lan/backups";
+    #   fsType = "cifs";
+    #   options = [
+    #     # Prevent hanging on network loss
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
 
-        # Specify location of credentials file
-        "credentials=/etc/nixos/smb-secrets-ashebanow"
+    #     # Specify location of credentials file
+    #     "credentials=/etc/nixos/smb-secrets-ashebanow"
 
-        # Default permissions and file encoding
-        "file_mode=0777"
-        "dir_mode=0777"
-        "iocharset=utf8"
+    #     # Default permissions and file encoding
+    #     "file_mode=0777"
+    #     "dir_mode=0777"
+    #     "iocharset=utf8"
 
-        # mount as user, not root
-        "uid=1000"
-        "gid=1000"
-      ];
-    };
-    "/mnt/storage/isos" = {
-      device = "//storage.lan/isos";
-      fsType = "cifs";
-      options = [
-        # Prevent hanging on network loss
-        "x-systemd.automount"
-        "noauto"
-        "x-systemd.idle-timeout=60"
-        "x-systemd.device-timeout=5s"
-        "x-systemd.mount-timeout=5s"
+    #     # mount as user, not root
+    #     "uid=1000"
+    #     "gid=1000"
+    #   ];
+    # };
+    # "/mnt/storage/isos" = {
+    #   device = "//storage.lan/isos";
+    #   fsType = "cifs";
+    #   options = [
+    #     # Prevent hanging on network loss
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
 
-        # Specify location of credentials file
-        "credentials=/etc/nixos/smb-secrets-ashebanow"
+    #     # Specify location of credentials file
+    #     "credentials=/etc/nixos/smb-secrets-ashebanow"
 
-        # Default permissions and file encoding
-        "file_mode=0777"
-        "dir_mode=0777"
-        "iocharset=utf8"
+    #     # Default permissions and file encoding
+    #     "file_mode=0777"
+    #     "dir_mode=0777"
+    #     "iocharset=utf8"
 
-        # mount as user, not root
-        "uid=1000"
-        "gid=1000"
-      ];
-    };
-    "/mnt/storage/media" = {
-      device = "//storage.lan/media";
-      fsType = "cifs";
-      options = [
-        # Prevent hanging on network loss
-        "x-systemd.automount"
-        "noauto"
-        "x-systemd.idle-timeout=60"
-        "x-systemd.device-timeout=5s"
-        "x-systemd.mount-timeout=5s"
+    #     # mount as user, not root
+    #     "uid=1000"
+    #     "gid=1000"
+    #   ];
+    # };
+    # "/mnt/storage/media" = {
+    #   device = "//storage.lan/media";
+    #   fsType = "cifs";
+    #   options = [
+    #     # Prevent hanging on network loss
+    #     "x-systemd.automount"
+    #     "noauto"
+    #     "x-systemd.idle-timeout=60"
+    #     "x-systemd.device-timeout=5s"
+    #     "x-systemd.mount-timeout=5s"
 
-        # Specify location of credentials file
-        "credentials=/etc/nixos/smb-secrets-ashebanow"
+    #     # Specify location of credentials file
+    #     "credentials=/etc/nixos/smb-secrets-ashebanow"
 
-        # Default permissions and file encoding
-        "file_mode=0777"
-        "dir_mode=0777"
-        "iocharset=utf8"
+    #     # Default permissions and file encoding
+    #     "file_mode=0777"
+    #     "dir_mode=0777"
+    #     "iocharset=utf8"
 
-        # mount as user, not root
-        "uid=1000"
-        "gid=1000"
-      ];
-    };
+    #     # mount as user, not root
+    #     "uid=1000"
+    #     "gid=1000"
+    #   ];
+    # };
   };    
 
   # Set your time zone.

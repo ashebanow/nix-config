@@ -49,6 +49,7 @@
       nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
       nix-search = "nix search nixpkgs";
       nsh = "nix-shell -p";
+      wezssh = "wezterm ssh";
     };
   };
 
