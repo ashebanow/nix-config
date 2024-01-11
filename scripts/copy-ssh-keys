@@ -13,7 +13,9 @@ case "$dest_machine" in
   virt2 )
     dest_ip="10.40.0.73";;
   loquat )
-    dest_ip="10.40.0.118";;
+    dest_ip="10.40.60.7";;
+  yuzu )
+    dest_ip="10.40.60.6";;
   miraclemax )
     dest_ip="10.4.0.44";;
   gateway )
