@@ -1,4 +1,3 @@
-
 { pkgs, ... }:
 
 {
@@ -10,15 +9,15 @@
       DONT_PROMPT_WSL_INSTALL = 1;
     };
 
-    sessionPath = [ 
-        "$HOME/bin"
-        "$HOME/.local/bin"
+    sessionPath = [
+      "$HOME/bin"
+      "$HOME/.local/bin"
     ];
 
     shellAliases = {
-      gh="op plugin run -- gh";
-      brew="op plugin run -- brew";
-      cachix="op plugin run -- cachix";
+      gh = "op plugin run -- gh";
+      brew = "op plugin run -- brew";
+      cachix = "op plugin run -- cachix";
       start1p = "daemonize -e ~/.1password/stderr.log -o ~/.1password/stdout.log ${pkgs._1password-gui}/bin/1password --silent";
 
       ack = "rg";
@@ -49,6 +48,9 @@
       nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
       nix-search = "nix search nixpkgs";
       nsh = "nix-shell -p";
+      vi = "nvim";
+      vim = "nvim";
+      nano = "nvim";
       wezssh = "wezterm ssh";
     };
   };
@@ -72,15 +74,22 @@
       # };
     };
 
+    nushell = {
+      enable = true;
+      # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
+      configFile.source = ../dotfiles/config.nu;
+      shellAliases = {
+        vi = "nvim";
+        vim = "nvim";
+        nano = "nvim";
+      };
+    };
+    carapace.enable = true;
+    carapace.enableNushellIntegration = true;
+
     starship = {
       enable = true;
       enableZshIntegration = true;
-      # settings = {
-      #   add_newline = true;
-      #   container = {
-      #     disabled = true;
-      #   };
-      # };
     };
   };
 }

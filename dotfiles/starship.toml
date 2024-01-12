@@ -5,6 +5,7 @@ $hostname\
 [](fg:#9A348E bg:#DA627D)\
 $shlvl\
 $nix_shell\
+$shell\
 [](fg:#DA627D bg:#33658A)\
 $directory\
 [](fg:#33658A bg:#FCA17D)\
@@ -37,7 +38,7 @@ $terraform\
 disabled = false
 
 [line_break]
-disabled = true
+disabled = false
 
 # An alternative to the username module which displays a symbol that
 # represents the current operating system
@@ -86,6 +87,15 @@ style = "bg:#DA627D"
 heuristic = true
 format = '[$symbol $name ]($style)'
 disabled = true
+
+[shell]
+style = "bg:#DA627D"
+format = '[ $indicator ]($style)'	
+zsh_indicator = '󱆃'
+nu_indicator = '[󰥭](bold green bg:#DA627D)'
+powershell_indicator = '󰨊'
+unknown_indicator = '[?](bold red bg:#DA627D)'
+disabled = false
 
 [directory]
 style = "bg:#33658A"
@@ -229,5 +239,3 @@ git_section_fg       = "#d33682" # magenta
 git_section_bg       = "#eee8d5" # base2
 language_section_fg  = "#2aa198" # cyan
 language_section_bg  = "#586e75" # base01
-
-
