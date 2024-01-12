@@ -7,7 +7,6 @@
     ../../modules/core.nix
     ../../modules/git.nix
     ../../modules/hashi.nix
-    # ../../modules/lorri.nix
     ../../modules/neovim.nix
     ../../modules/shell.nix
     ../../modules/vscode.nix

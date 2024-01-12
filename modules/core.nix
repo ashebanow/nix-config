@@ -56,7 +56,6 @@
     kitty
     lego
     less
-    # lorri
     neofetch
     (nerdfonts.override { fonts = [ "SourceCodePro" "Hack" ]; })
     nil         # nix LSP
