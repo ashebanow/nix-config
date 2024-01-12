@@ -1,13 +1,19 @@
 { pkgs, ... }: {
-  programs.hyprland = {
+  boot.kernelPackages = pkgs.linuxPackages.nvidia_x11;
+
+  services.xserver = {
     enable = true;
-    enableNvidiaPatches = true;
-    xwayland.enable = true;
+    videoDrivers = [ "nvidia"];
+    displayManager.gdm = {
+      enable = true;
+      nvidiaWayland = true;
+    };
+    desktopManager.gnome.enable = true;
   };
 
   environment.sessionVariables = {
     # If your cursor becomes invisible
-    WLR_NO_HARDWARE_CURSORS = "1";
+    # WLR_NO_HARDWARE_CURSORS = "1";
     # Hint electron apps to use wayland
     NIXOS_OZONE_WL = "1";
   };
@@ -18,6 +24,8 @@
 
     # Most wayland compositors need this
     nvidia.modesetting.enable = true;
+
+    nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
   };
 
   # XDG portal
@@ -27,21 +35,30 @@
   # rofi keybind
   # bind = $mainMod, S, exec, rofi -show drun -show-icons
 
-  environment.systemPackages = with pkgs; [
-    # system bar
-    (waybar.overrideAttrs (oldAttrs: {
-      mesonFlags = oldAttrs.mesonFlags ++ [ "-Dexperimental=true" ];
-    }))
-    # eww   # alternative to waybar
+  # programs.sway.enable = true;
+  # programs.thunar.enable = true;
 
-    # app luncher
-    rofi-wayland
+  # programs.hyprland = {
+  #   enable = true;
+  #   enableNvidiaPatches = true;
+  #   xwayland.enable = true;
+  # };
 
-    # notifications
-    dunst       # or mako
-    libnotify
+  # environment.systemPackages = with pkgs; [
+  #   # system bar
+  #   (waybar.overrideAttrs (oldAttrs: {
+  #     mesonFlags = oldAttrs.mesonFlags ++ [ "-Dexperimental=true" ];
+  #   }))
+  #   # eww   # alternative to waybar
 
-    # wallpapers
-    swww
-  ];
+  #   # app luncher
+  #   rofi-wayland
+
+  #   # notifications
+  #   dunst       # or mako
+  #   libnotify
+
+  #   # wallpapers
+  #   swww
+  # ];
 }

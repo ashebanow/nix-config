@@ -15,7 +15,7 @@
     desktopManager.gnome.enable = true;
 
     modules = [ pkgs.xorg.xf86videofbdev ];
-    videoDrivers = [ "hyperv_fb" ];
+    videoDrivers = [ "nvidia" ];
 
     # Configure keymap in X11
     layout = "us";

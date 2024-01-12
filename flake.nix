@@ -78,6 +78,19 @@
             }
           ];
         };
+        yuzu = nixpkgs.lib.nixosSystem {
+          system = linuxSystem;
+          specialArgs = { inherit inputs; }; # forward inputs to modules
+          modules = [
+            ./hosts/yuzu/configuration.nix
+            home-manager.nixosModules.home-manager {
+              home-manager.verbose = true;
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.ashebanow = import ./hosts/yuzu/home.nix;
+            }
+          ];
+        };
         liquid-nixos = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
           specialArgs = { inherit inputs; }; # forward inputs to modules

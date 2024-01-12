@@ -53,7 +53,7 @@
   };
 
   networking = {
-    hostName = "loquat"; # Define your hostname.
+    hostName = "yuzu";
 
     networkmanager.enable = true;
 
@@ -70,7 +70,7 @@
     nameservers = [ "10.40.60.1" ];
 
     interfaces."enp5s0".ipv4.addresses = [ {
-      address = "10.40.60.7";
+      address = "10.40.60.6";
       prefixLength = 24;
     } ];
 
