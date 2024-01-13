@@ -29,7 +29,8 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ../../modules/desktops/gnome.nix
+      ../../modules/desktops/plasma.nix
+      # ../../modules/desktops/gnome.nix
       # ../../modules/desktops/hyprland.nix
     ];
 
@@ -52,6 +53,17 @@
     };
   };
 
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true; # powers up the default Bluetooth controller on boot
+    settings = {
+      General = {
+        Experimental = true;
+      };
+    };
+  };
+  services.blueman.enable = true;
+
   networking = {
     hostName = "yuzu";
 
@@ -66,13 +78,13 @@
     #   };
     # }; 
 
-    defaultGateway = "10.40.60.1";
-    nameservers = [ "10.40.60.1" ];
+    # defaultGateway = "10.40.60.1";
+    # nameservers = [ "10.40.60.1" ];
 
-    interfaces."enp5s0".ipv4.addresses = [ {
-      address = "10.40.60.6";
-      prefixLength = 24;
-    } ];
+    # interfaces."enp4s0".ipv4.addresses = [ {
+    #   address = "10.40.60.6";
+    #   prefixLength = 24;
+    # } ];
 
     extraHosts = ''
       10.40.0.1   gateway gateway.lan
@@ -106,17 +118,6 @@
     settings.PermitRootLogin = "no";
   };
 
-  services.cockpit = {
-    enable = true;
-    port = 9090;
-    openFirewall = false;
-    settings = {
-      WebService = {
-        AllowUnencrypted = true;
-      };
-    };
-  };
-
   # Enable docker
   virtualisation.docker = {
     enable = true;
@@ -130,7 +131,7 @@
   # Mount SMB shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
   #
-  # see exmaple from https://fictionbecomesfact.com/nixos-server-configuration
+  # see example from https://fictionbecomesfact.com/nixos-server-configuration
   #
   # NOTE THAT YOU MUST CREATE/COPY the '/etc/nixos/smb-secrets' file to the
   # machine, with USERNAME, DOMAIN and PASSWORD defined on separate lines.
