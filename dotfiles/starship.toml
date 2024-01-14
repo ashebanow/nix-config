@@ -73,11 +73,10 @@ format='[ SHLVL: $shlvl ]($style)'
 style = "fg:#EEEEEE bg:#DA627D"
 
 [hostname]
-format='[$ssh_symbol$hostname ]($style)'
+format='[$hostname ]($style)'
 # trim_at='-'
 trim_at='.'
 ssh_only = false
-ssh_symbol='🌏 '
 style = "fg:#EEEEEE bg:#9A348E"
 disabled = false
 
