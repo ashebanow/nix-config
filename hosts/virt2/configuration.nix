@@ -42,6 +42,9 @@
     };
   };
 
+  # since this is a VM, enable clipboard agent
+  services.spice-vdagentd.enable = true;
+
   networking = {
     networkmanager.enable = true;
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.

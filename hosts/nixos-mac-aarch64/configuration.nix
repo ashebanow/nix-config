@@ -21,6 +21,9 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
+  # since this is a VM, enable clipboard agent
+  services.spice-vdagentd.enable = true;
+
   nixpkgs.config.permittedInsecurePackages = [
     "openssl-1.1.1u"
     "python-2.7.18.6"
