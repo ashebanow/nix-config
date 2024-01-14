@@ -6,7 +6,7 @@ switch:
 switch:
   #!/usr/bin/env bash
   if [ -f /etc/NIXOS ]; then
-    sudo nixos-rebuild switch --impure --flake "$HOME/nix-config"
+    sudo nixos-rebuild switch --impure
   else
     home-manager switch --impure --flake "$HOME/nix-config"
   fi
@@ -19,7 +19,7 @@ test:
 test:
   #!/usr/bin/env bash
   if [ -f /etc/NIXOS ]; then
-    sudo nixos-rebuild --show-trace test --flake "$HOME/nix-config"
+    sudo nixos-rebuild --show-trace test
   else
     home-manager --show-trace -n switch --flake "$HOME/nix-config"
   fi
