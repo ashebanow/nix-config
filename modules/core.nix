@@ -56,6 +56,7 @@
     kitty
     lego
     less
+    magic-wormhole-rs
     neofetch
     (nerdfonts.override { fonts = [ "SourceCodePro" "Hack" ]; })
     nil         # nix LSP
