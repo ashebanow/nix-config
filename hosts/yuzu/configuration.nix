@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, pkgs, nixos-hardware, ... }:
 
 {
   nix = {
@@ -108,7 +108,7 @@
   };
 
   # Enable network manager applet
-  programs.nm-applet.enable = true;
+  # programs.nm-applet.enable = true;
 
   services.openssh = {
     enable = true;

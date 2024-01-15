@@ -1,4 +1,4 @@
-{ nixpkgs, config, ... }:
+{ nixpkgs, config, nixos-hardware, ... }:
 
 {
   nixpkgs.config.allowUnfree = true;
