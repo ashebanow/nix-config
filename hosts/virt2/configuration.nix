@@ -50,15 +50,15 @@
     # wireless.enable = true;  # Enables wireless support via wpa_supplicant.
     hostName = "virt2"; # Define your hostname.
 
-    extraHosts = ''
-      10.40.0.1   gateway gateway.lan
-      10.40.0.227  storage storage.lan
-      10.40.0.11  virt1 virt1.lan
-      10.40.0.14  virt2 virt2.lan
-      10.40.60.6 yuzu yuzu.lan
-      10.40.60.7 loquat loquat.lan
-      172.21.75.8 liquid-nixos liquid-nixos.lan
-    '';
+    # extraHosts = ''
+    #   10.40.0.1   gateway gateway.lan
+    #   10.40.0.227  storage storage.lan
+    #   10.40.0.11  virt1 virt1.lan
+    #   10.40.0.14  virt2 virt2.lan
+    #   10.40.60.6 yuzu yuzu.lan
+    #   10.40.60.7 loquat loquat.lan
+    #   172.21.75.8 liquid-nixos liquid-nixos.lan
+    # '';
 
     firewall = {
       enable = true;
