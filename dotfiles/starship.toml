@@ -88,12 +88,12 @@ format = '[$symbol $name ]($style)'
 disabled = true
 
 [shell]
-style = "bg:#DA627D"
-format = '[ $indicator ]($style)'	
-zsh_indicator = '󱆃'
-nu_indicator = '[󰥭](bold green bg:#DA627D)'
-powershell_indicator = '󰨊'
-unknown_indicator = '[?](bold red bg:#DA627D)'
+style = "fg:black bg:#DA627D"
+format = '[  $indicator ]($style)'
+zsh_indicator = 'zsh'
+nu_indicator = 'nu'
+powershell_indicator = 'ps'
+unknown_indicator = '?'
 disabled = false
 
 [directory]
@@ -132,7 +132,7 @@ echo "$GIT_REMOTE_SYMBOL "
 """
 when = 'git rev-parse --is-inside-work-tree 2> /dev/null'
 style = "fg:#202020 bg:#FCA17D"
-format = '[ $output ]($style)'
+format = '[ $output]($style)'
 
 [custom.git_last_commit]
 # disabled = true
@@ -143,10 +143,10 @@ style = "fg:#202020 bg:#FCA17D"
 #style = "bright-yellow bold"
 format = '[$output ]($style)'
 
-[git_branch]
-format = '[$symbol $branch ]($style)'
+[ git_branch]
+format = '[ $branch ]($style)'
 style = "fg:#202020 bg:#FCA17D"
-symbol = ''
+# symbol = ''
 truncation_length = 16
 truncation_symbol = '…'
 
