@@ -31,6 +31,7 @@
       ./hardware-configuration.nix
       ../../modules/desktops/gnome.nix
       # ../../modules/desktops/hyprland.nix
+      ../../modules/virtualisation.nix
     ];
 
   # Bootloader
@@ -116,16 +117,6 @@
       };
     };
   };
-
-  # Enable docker
-  virtualisation.docker = {
-    enable = true;
-    enableOnBoot = true;
-    # storageDriver can be null or one of "aufs", "btrfs", "devicemapper",
-    # "overlay", "overlay2", "zfs". Default is null, which is "autodetect"
-    # storageDriver = "zfs";
-  };
-  users.extraGroups.docker.members = [ "ashebanow" ];
 
   # Mount SMB shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
@@ -306,7 +297,7 @@
     shell = pkgs.zsh;
     isNormalUser = true;
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" ];
+    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" "docker" ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
@@ -371,11 +362,6 @@
     enable = true;
     polkitPolicyOwners = [ "ashebanow" ];
   };
-
-  # Enable QMEU emulation
-  services.qemuGuest.enable = true;
-  virtualisation.libvirtd.enable = true;
-  programs.dconf.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
