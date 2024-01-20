@@ -29,6 +29,7 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ../../modules/rancher-k3s.nix
       ../../modules/desktops/plasma.nix
       # ../../modules/desktops/gnome.nix
       # ../../modules/desktops/hyprland.nix
