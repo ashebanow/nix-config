@@ -59,19 +59,16 @@
     zsh = {
       enable = true;
       autocd = true;
+      dotDir = ".config/zsh";
       enableCompletion = true;
       enableAutosuggestions = true;
+      initExtra = ''
+        bindkey '^ ' autosuggest-accept
+        eval "$(atuin init zsh)"
+        '';
       syntaxHighlighting = {
         enable = true;
       };
-      # oh-my-zsh = {
-      #   enable = true;
-      #   plugins = [
-      #     "docker"
-      #     "git"
-      #     "sudo"
-      #   ];
-      # };
     };
 
     nushell = {

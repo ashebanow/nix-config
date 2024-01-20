@@ -33,6 +33,7 @@
     # sops
     # sops-nix
     age
+    atuin
     bat
     btop
     cachix
@@ -68,6 +69,7 @@
     tldr
     tmux
     unzip
+    vale
     vim
     wezterm
     wget
