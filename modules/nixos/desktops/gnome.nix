@@ -24,7 +24,7 @@
   };
 
   # make sure we turn off suspending power. There may be additional settings
-  # that are specific to each desktop environment, see modules/desktops.
+  # that are specific to each desktop environment, see modules/nixos/desktops.
   powerManagement.enable = false;
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {

@@ -29,9 +29,9 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ../../modules/desktops/gnome.nix
-      # ../../modules/desktops/hyprland.nix
-      ../../modules/virtualisation.nix
+      ../../modules/nixos/desktops/gnome.nix
+      # ../../modules/nixos/desktops/hyprland.nix
+      ../../modules/nixos/virtualisation.nix
     ];
 
   # Bootloader
@@ -250,7 +250,7 @@
   console.useXkbConfig = true;
 
   # make sure we turn off suspending power. There may be additional settings
-  # that are specific to each desktop environment, see modules/desktops.
+  # that are specific to each desktop environment, see modules/nixos/desktops.
   powerManagement.enable = false;
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
