@@ -74,7 +74,7 @@
     nushell = {
       enable = true;
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
-      configFile.source = ../dotfiles/config.nu;
+      configFile.source = ../../dotfiles/config.nu;
       shellAliases = {
         vi = "nvim";
         vim = "nvim";
