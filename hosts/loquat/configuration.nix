@@ -29,8 +29,9 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ../../modules/desktops/gnome.nix
-      # ../../modules/desktops/hyprland.nix
+      ../../modules/nixos/desktops/gnome.nix
+      # ../../modules/nixos/desktops/hyprland.nix
+      ../../modules/nixos/virtualisation.nix
     ];
 
   # Bootloader
@@ -66,13 +67,13 @@
     #   };
     # }; 
 
-    defaultGateway = "10.40.60.1";
-    nameservers = [ "10.40.60.1" ];
+    # defaultGateway = "10.40.60.1";
+    # nameservers = [ "10.40.60.1" ];
 
-    interfaces."enp5s0".ipv4.addresses = [ {
-      address = "10.40.60.7";
-      prefixLength = 24;
-    } ];
+    # interfaces."enp5s0".ipv4.addresses = [ {
+    #   address = "10.40.60.7";
+    #   prefixLength = 24;
+    # } ];
 
     # extraHosts = ''
     #   10.40.0.1   gateway gateway.lan
@@ -116,16 +117,6 @@
       };
     };
   };
-
-  # Enable docker
-  virtualisation.docker = {
-    enable = true;
-    enableOnBoot = true;
-    # storageDriver can be null or one of "aufs", "btrfs", "devicemapper",
-    # "overlay", "overlay2", "zfs". Default is null, which is "autodetect"
-    # storageDriver = "zfs";
-  };
-  users.extraGroups.docker.members = [ "ashebanow" ];
 
   # Mount SMB shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
@@ -259,7 +250,7 @@
   console.useXkbConfig = true;
 
   # make sure we turn off suspending power. There may be additional settings
-  # that are specific to each desktop environment, see modules/desktops.
+  # that are specific to each desktop environment, see modules/nixos/desktops.
   powerManagement.enable = false;
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
@@ -306,7 +297,7 @@
     shell = pkgs.zsh;
     isNormalUser = true;
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" ];
+    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" "docker" ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
@@ -371,11 +362,6 @@
     enable = true;
     polkitPolicyOwners = [ "ashebanow" ];
   };
-
-  # Enable QMEU emulation
-  services.qemuGuest.enable = true;
-  virtualisation.libvirtd.enable = true;
-  programs.dconf.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

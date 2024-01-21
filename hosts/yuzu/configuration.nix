@@ -1,8 +1,4 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
-{ config, pkgs, ... }:
+{ config, pkgs, nixos-hardware, ... }:
 
 {
   nix = {
@@ -29,9 +25,11 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ../../modules/desktops/plasma.nix
-      # ../../modules/desktops/gnome.nix
-      # ../../modules/desktops/hyprland.nix
+      ../../modules/nixos/nixos/rancher-k3s.nix
+      ../../modules/nixos/desktops/plasma.nix
+      # ../../modules/nixos/desktops/gnome.nix
+      # ../../modules/nixos/desktops/hyprland.nix
+      ../../modules/nixos/virtualisation.nix
     ];
 
   # Bootloader
@@ -108,7 +106,7 @@
   };
 
   # Enable network manager applet
-  programs.nm-applet.enable = true;
+  # programs.nm-applet.enable = true;
 
   services.openssh = {
     enable = true;
@@ -258,27 +256,6 @@
 
   # console ttys use the same keymap as X11
   console.useXkbConfig = true;
-
-  # make sure we turn off suspending power. There may be additional settings
-  # that are specific to each desktop environment, see modules/desktops.
-  powerManagement.enable = false;
-  security.polkit.extraConfig = ''
-    polkit.addRule(function(action, subject) {
-      if (action.id == "org.freedesktop.login1.suspend" ||
-          action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
-          action.id == "org.freedesktop.login1.hibernate" ||
-          action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
-      {
-        return polkit.Result.NO;
-      }
-    });
-  '';
-  # Disable the GNOME3/GDM auto-suspend feature that cannot be disabled in GUI!
-  # If no user is logged in, the machine will power down after 20 minutes.
-  systemd.targets.sleep.enable = false;
-  systemd.targets.suspend.enable = false;
-  systemd.targets.hibernate.enable = false;
-  systemd.targets.hybrid-sleep.enable = false;
 
   # Enable CUPS to print documents.
   services.printing.enable = true;

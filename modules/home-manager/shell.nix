@@ -59,25 +59,22 @@
     zsh = {
       enable = true;
       autocd = true;
+      dotDir = ".config/zsh";
       enableCompletion = true;
       enableAutosuggestions = true;
+      initExtra = ''
+        bindkey '^ ' autosuggest-accept
+        eval "$(atuin init zsh)"
+        '';
       syntaxHighlighting = {
         enable = true;
       };
-      # oh-my-zsh = {
-      #   enable = true;
-      #   plugins = [
-      #     "docker"
-      #     "git"
-      #     "sudo"
-      #   ];
-      # };
     };
 
     nushell = {
       enable = true;
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
-      configFile.source = ../dotfiles/config.nu;
+      configFile.source = ../../dotfiles/config.nu;
       shellAliases = {
         vi = "nvim";
         vim = "nvim";

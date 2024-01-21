@@ -2,7 +2,7 @@
   # we use the local path here because the installed path fails on
   # first run.
   home.file.".ssh/allowed_signers".text =
-    "* ${builtins.readFile ../dotfiles/ssh/github_ed25519.pub}";
+    "* ${builtins.readFile ../../dotfiles/ssh/github_ed25519.pub}";
     # "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
 
   programs = {

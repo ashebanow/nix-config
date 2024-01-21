@@ -1,15 +1,15 @@
 { pkgs, ... }: {
   boot.kernelPackages = pkgs.linuxPackages.nvidia_x11;
 
-  services.xserver = {
-    enable = true;
-    videoDrivers = [ "nvidia"];
-    displayManager.gdm = {
-      enable = true;
-      nvidiaWayland = true;
-    };
-    desktopManager.gnome.enable = true;
-  };
+  # services.xserver = {
+  #   enable = true;
+  #   videoDrivers = [ "nvidia"];
+  #   displayManager.gdm = {
+  #     enable = true;
+  #     nvidiaWayland = true;
+  #   };
+  #   desktopManager.gnome.enable = true;
+  # };
 
   environment.sessionVariables = {
     # If your cursor becomes invisible
@@ -18,14 +18,17 @@
     NIXOS_OZONE_WL = "1";
   };
 
+  # wayland-related
+  # programs.sway.enable = true; # commented out due to usage of home-manager's sway
+  security.polkit.enable = true;
   hardware = {
     # Opengl
     opengl.enable = true;
 
-    # Most wayland compositors need this
-    nvidia.modesetting.enable = true;
+    # # Most wayland compositors need this
+    # nvidia.modesetting.enable = true;
 
-    nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
+    # nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
   };
 
   # XDG portal
@@ -35,7 +38,6 @@
   # rofi keybind
   # bind = $mainMod, S, exec, rofi -show drun -show-icons
 
-  # programs.sway.enable = true;
   # programs.thunar.enable = true;
 
   # programs.hyprland = {
@@ -43,6 +45,18 @@
   #   enableNvidiaPatches = true;
   #   xwayland.enable = true;
   # };
+
+  wayland.windowManager.sway = {
+    enable = true;
+    config = rec {
+      modifier = "Mod4"; # Super key
+      output = {
+        "Virtual-1" = {
+          mode = "1920x1080@60Hz";
+        };
+      };
+    };
+  };
 
   # environment.systemPackages = with pkgs; [
   #   # system bar

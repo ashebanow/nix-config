@@ -1,9 +1,11 @@
 # BOOTSTRAPPING
 
 ## nixOS Systems
+
 1. Install nixos on device as normal. Choose your hostname and remember it. We'll refer to it as $HOST from now on in this doc.
 
 2. Install our nix-config in your home directory.
+
     ```bash
     $ git clone git@github.com:ashebanow/nix-config.git
     $ cd nix-config
@@ -22,6 +24,7 @@
 5. Edit the script ```~/nix-config/scripts/copy-ssh-keys.sh``` to understand your machine's hostnames and IP addresses if needed. Then run the script on a machine which has the necessary .ssh setup already, so that your private keys etc are transferred to the remote machine.
 
 6. Set up the system to use our nix-config repo:
+
     ```bash
     # if you already have just installed, just run it within the nix-config
     # directory
@@ -77,8 +80,6 @@ sudo chsh -s $(which zsh) $USER
 sudo vim /etc/hostname
 # edit the hostname to whatever you want. Make it different from the
 # underlying windows hostname, though. I usually just append the distro name.
-
-
 ```
 
 Add these lines to the /etc/wsl.conf (note you will need to run your editor
@@ -98,4 +99,3 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 git clone https://github.com/ashebanow/nix-config.git
 cd nix-config
 ```
-
