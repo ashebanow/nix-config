@@ -15,9 +15,9 @@
     ];
 
     shellAliases = {
-      gh = "op plugin run -- gh";
-      brew = "op plugin run -- brew";
-      cachix = "op plugin run -- cachix";
+      # gh = "op plugin run -- gh";
+      # brew = "op plugin run -- brew";
+      # cachix = "op plugin run -- cachix";
       start1p = "daemonize -e ~/.1password/stderr.log -o ~/.1password/stdout.log ${pkgs._1password-gui}/bin/1password --silent";
 
       ack = "rg";
@@ -65,6 +65,7 @@
       initExtra = ''
         bindkey '^ ' autosuggest-accept
         eval "$(atuin init zsh)"
+        eval "$(/opt/homebrew/bin/brew shellenv)"
         '';
       syntaxHighlighting = {
         enable = true;
@@ -89,4 +90,5 @@
       enableZshIntegration = true;
     };
   };
+  
 }
