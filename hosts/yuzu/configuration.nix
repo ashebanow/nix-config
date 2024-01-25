@@ -26,8 +26,8 @@
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ../../modules/nixos/nixos/rancher-k3s.nix
-      # ../../modules/nixos/desktops/plasma.nix
-      ../../modules/nixos/desktops/gnome.nix
+      ../../modules/nixos/desktops/plasma.nix
+      # ../../modules/nixos/desktops/gnome.nix
       # ../../modules/nixos/desktops/hyprland.nix
       ../../modules/nixos/virtualisation.nix
     ];
