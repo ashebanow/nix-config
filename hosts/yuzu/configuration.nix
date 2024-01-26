@@ -260,6 +260,9 @@
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
+  # don't require password for sudo
+  security.sudo.wheelNeedsPassword = false;
+
   # Enable sound with pipewire.
   sound.enable = true;
   hardware.pulseaudio.enable = false;
