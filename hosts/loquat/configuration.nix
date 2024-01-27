@@ -98,7 +98,7 @@
   };
 
   # Enable network manager applet
-  programs.nm-applet.enable = true;
+  # programs.nm-applet.enable = true;
 
   services.openssh = {
     enable = true;
@@ -108,16 +108,16 @@
     settings.PermitRootLogin = "no";
   };
 
-  services.cockpit = {
-    enable = true;
-    port = 9090;
-    openFirewall = false;
-    settings = {
-      WebService = {
-        AllowUnencrypted = true;
-      };
-    };
-  };
+  # services.cockpit = {
+  #   enable = true;
+  #   port = 9090;
+  #   openFirewall = false;
+  #   settings = {
+  #     WebService = {
+  #       AllowUnencrypted = true;
+  #     };
+  #   };
+  # };
 
   # Mount SMB shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
@@ -271,9 +271,6 @@
     # no need to redefine it in your config for now)
     #media-session.enable = true;
   };
-
-  # Enable touchpad support (enabled default in most desktopManager).
-  # services.xserver.libinput.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.ashebanow = {
