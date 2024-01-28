@@ -75,6 +75,7 @@
     nixpkgs-fmt
     overmind
     ripgrep
+    speedtest-cli
     starship
     tldr
     tmux
