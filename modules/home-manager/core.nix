@@ -18,12 +18,12 @@
     ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
     ".local/bin/test-starship".source = ../../scripts/test-starship;
 
-    ".local/share/backgrounds/nixos-wp-1.webp".source = ../../dotfiles/backgrounds/nixos-wp-1.webp;
-    ".local/share/backgrounds/nixos-wp-2.webp".source = ../../dotfiles/backgrounds/nixos-wp-2.webp;
-    ".local/share/backgrounds/nixos-wp-3.webp".source = ../../dotfiles/backgrounds/nixos-wp-3.webp;
-    ".local/share/backgrounds/nixos-wp-4.webp".source = ../../dotfiles/backgrounds/nixos-wp-4.webp;
-    ".local/share/backgrounds/nixos-wp-5.webp".source = ../../dotfiles/backgrounds/nixos-wp-5.webp;
-    ".local/share/backgrounds/nixos-wp-6.webp".source = ../../dotfiles/backgrounds/nixos-wp-6.webp;
+    ".local/share/backgrounds/nixos-wp-1.png".source = ../../dotfiles/backgrounds/nixos-wp-1.png;
+    ".local/share/backgrounds/nixos-wp-2.png".source = ../../dotfiles/backgrounds/nixos-wp-2.png;
+    ".local/share/backgrounds/nixos-wp-3.png".source = ../../dotfiles/backgrounds/nixos-wp-3.png;
+    ".local/share/backgrounds/nixos-wp-4.png".source = ../../dotfiles/backgrounds/nixos-wp-4.png;
+    ".local/share/backgrounds/nixos-wp-5.png".source = ../../dotfiles/backgrounds/nixos-wp-5.png;
+    ".local/share/backgrounds/nixos-wp-6.png".source = ../../dotfiles/backgrounds/nixos-wp-6.png;
 
     ".ssh/config".source = ../../dotfiles/ssh/config;
     ".ssh/github_ed25519.pub".source = ../../dotfiles/ssh/github_ed25519.pub;
