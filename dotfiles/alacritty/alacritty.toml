@@ -1,0 +1,13 @@
+# themes from https://github.com/alacritty/alacritty-theme
+import = ["~/.config/alacritty/themes/catppuccin_mocha.toml"]
+
+[font]
+size = 20
+
+[font.normal]
+family = "Source Code Pro Nerd Font"
+
+[window]
+decorations = "full"
+padding = { x = 5, y = 5 }
+dynamic_padding = true

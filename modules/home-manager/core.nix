@@ -5,6 +5,8 @@
   home.file = {
     ".vimrc".source = ../../dotfiles/vimrc;
 
+    ".config/alacritty".source = ../../dotfiles/alacritty;
+    ".config/alacritty".recursive = true;
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
