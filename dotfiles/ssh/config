@@ -51,7 +51,7 @@ Host u6e-garage.lan
 Host storage storage.lan
   User root
 
-# Example ILO4 config - needed for storage, virt1, virt2, virt3
+# Example ILO4 config - needed for storage, etc
 # Host 192.168.86.68
 #   Ciphers 3des-cbc
 #   KexAlgorithms +diffie-hellman-group1-sha1

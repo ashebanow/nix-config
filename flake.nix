@@ -79,19 +79,6 @@
       nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
       nixosConfigurations = {
-        loquat = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./hosts/loquat/configuration.nix
-            home-manager.nixosModules.home-manager {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/loquat/home.nix;
-            }
-          ];
-        };
         yuzu = nixpkgs.lib.nixosSystem {
           system = linuxSystem;
           specialArgs = { inherit inputs; }; # forward inputs to modules
@@ -131,36 +118,6 @@
             }
           ];
         };
-        virt1 = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./hosts/virt1/configuration.nix
-            home-manager.nixosModules.home-manager
-            {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./os/linux/home.nix;
-
-              # Optionally, use home-manager.extraSpecialArgs to pass
-              # arguments to home.nix
-            }
-          ];
-        };
-        virt2 = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./hosts/virt2/configuration.nix
-            home-manager.nixosModules.home-manager {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./os/linux/home.nix;
-            }
-          ];
-        };
       };
 
       darwinConfigurations = {
@@ -180,9 +137,8 @@
         };
       };
 
-      # this is currently used only for the WSL2 install on Liquidity,
-      # but we could end up using it on other non-nixOS linux systems
-      # later. (e.g. harvester nodes)
+      # this is currently used for the WSL2 install on Liquidity,
+      # and for instaling on non-nixOS systems like loquat.
       homeConfigurations = {
         home-manager.verbose = true;
         home-manager.useGlobalPkgs = true;

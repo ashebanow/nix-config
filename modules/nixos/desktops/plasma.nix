@@ -16,8 +16,8 @@
     # videoDrivers = [ "nvidia" ];
 
     # Configure keymap in X11
-    layout = "us";
-    xkbVariant = "";
-    xkbOptions = "ctrl:nocaps";
+    xkb.layout = "us";
+    xkb.variant = "";
+    xkb.options = "ctrl:nocaps";
   };
 }

@@ -8,10 +8,6 @@ case "$dest_machine" in
     dest_ip="10.40.0.226";;
   nixos-mac-aarch64 )
     dest_ip="10.211.55.10";;
-  virt1 )
-    dest_ip="10.40.0.43";;
-  virt2 )
-    dest_ip="10.40.0.73";;
   loquat )
     dest_ip="10.40.60.7";;
   yuzu )
@@ -26,8 +22,6 @@ case "$dest_machine" in
     echo "    gateway"
     echo "    nixos-mac-aarch64"
     echo "    storage"
-    echo "    virt1"
-    echo "    virt2"
     echo "    loquat"
     echo "    miraclemax"
     exit 1
