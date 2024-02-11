@@ -28,14 +28,6 @@
       diskspace = "df -hl";
       flake-checker = "nix run github:DeterminateSystems/flake-checker";
       gst = "git status -sb";
-      gl = "git pull --prune";
-      gp = "git push origin HEAD";
-      gc = "git commit";
-      gca = "git commit -a";
-      gco = "git checkout";
-      gcb = "git copy-branch-name";
-      gb = "git branch";
-      gac = "git add -A && git commit -m";
       grep = "rg";
       less = "bat";
       la = "eza -a";
