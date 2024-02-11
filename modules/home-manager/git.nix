@@ -39,6 +39,9 @@
         # safety during systemd updates. Ugh.
         safe.directory = "~/nix-config";
 
+        init = {
+          defaultBranch = "main";
+        };
         color = {
           ui = "auto";
         };
