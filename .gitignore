@@ -1,5 +1,3 @@
-configuration.nix
-hardware-configuration.nix
 smb-secrets
 smb-secrets-ashebanow
 result/
