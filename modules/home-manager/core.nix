@@ -30,7 +30,7 @@
   };
 
   home.sessionVariables = {
-    EDITOR = "nvim";
+    EDITOR = "vim";
   };
 
   fonts.fontconfig.enable = true;
@@ -41,7 +41,6 @@
     # sops
     # sops-nix
     age
-    alacritty
     atuin
     bat
     btop

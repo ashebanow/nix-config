@@ -18,8 +18,6 @@
       # gh = "op plugin run -- gh";
       # brew = "op plugin run -- brew";
       # cachix = "op plugin run -- cachix";
-
-      # start1p = "1password --ozone-platform=wayland";
       start1p = "daemonize -e ~/.1password/stderr.log -o ~/.1password/stdout.log ${pkgs._1password-gui}/bin/1password --silent";
 
       ack = "rg";
@@ -37,7 +35,6 @@
       llt = "eza -al --sort modified -r";
       ls = "eza";
       ltree = "eza -lDT --sort modified";
-      mkdir = "mkdir -pv";
       more = "bat";
       nix-autoupdate-log = "systemctl status nixos-upgrade.service";
       nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
@@ -47,17 +44,6 @@
       vim = "nvim";
       nano = "nvim";
       wezssh = "wezterm ssh";
-
-      # vc = "code --disable-gpu --ozone-platform=wayland"; # gui code editor    };
-      vc = "code";
-
-      # these work on Arch Linux only:
-      un = "yay -Rns"; # uninstall package
-      up = "yay -Syu"; # update system/package/aur
-      pl = "yay -Qs"; # list installed package
-      pa = "yay -Ss"; # list availabe package
-      pc = "yay -Sc"; # remove unused cache
-      po = "yay -Qtdq | yay -Rns -"; # remove unused packages, also try > yay -Qqd | yay -Rsu --print -
     };
   };
 
