@@ -37,7 +37,7 @@
       llt = "eza -al --sort modified -r";
       ls = "eza";
       ltree = "eza -lDT --sort modified";
-      # mkdir = "mkdir -pv";
+      mkdir = "mkdir -pv";
       more = "bat";
       nix-autoupdate-log = "systemctl status nixos-upgrade.service";
       nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
@@ -49,7 +49,7 @@
       wezssh = "wezterm ssh";
 
       # vc = "code --disable-gpu --ozone-platform=wayland"; # gui code editor    };
-      # vc = "code";
+      vc = "code";
 
       # # these work on Arch Linux only:
       # un = "yay -Rns"; # uninstall package
