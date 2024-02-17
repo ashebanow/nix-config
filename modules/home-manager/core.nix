@@ -42,6 +42,7 @@
     # sops-nix
     age
     atuin
+    bandwhich
     bat
     btop
     cachix
