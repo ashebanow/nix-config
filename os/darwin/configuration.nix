@@ -88,6 +88,7 @@
       "temurin"
       # "tg-pro"
       # "warp"
+      "zed"
     ];
   };
 
