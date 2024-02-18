@@ -24,9 +24,8 @@
         gpg.ssh.program = if pkgs.stdenv.isDarwin
           then "${pkgs._1password-gui}/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
           else "op-ssh-sign";
-        # need to handle wsl2 as well: /mnt/c/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign-wsl
-        # gpg.ssh.program = "${pkgs._1password-gui}/Applications/1Password.app/Contents/MacOS/op-ssh-sign";
-        # gpg.ssh.program = "${pkgs._1password-gui}/bin/op-ssh-sign";
+          # else "${pkgs._1password-gui}/bin/op-ssh-sign";
+        # FIXME: need to handle wsl2 as well: /mnt/c/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign-wsl
         gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
         gpg.format = "ssh";
 
@@ -69,47 +68,16 @@
 
       aliases = {
         a = "add";
-        amend = "commit -a --amend";
-        ap = "add * --patch";
-        br = "!git co $(git branch --list --sort=-authordate |fzf --height 15)";
-        c = "commit -m";
         co = "checkout";
-
-        cp = "cherry-pick";
-        cpa = "cherry-pick --abort";
-        cpc = "cherry-pick --continue";
-
         d = "diff";
-        dfm = "diff origin/main";
-        dfmast = "diff origin/master";
-        de = "!git diff --name-only | uniq | xargs vim";
-        da = "!git diff --name-only | uniq | xargs git add";
-        dap = "!git diff --name-only | uniq | xargs git add --patch";
-
-        ps = "push";
+        ds = "diff --staged";
         psf = "push --force-with-lease";
-
         rb = "rebase --interactive origin/main";
         rbm = "rebase --interactive origin/master";
         rba = "rebase --abort";
         rbc = "rebase --continue";
-        rbh = "rebase --interactive HEAD~9";
-
-        rl = "reflog";
         s = "status";
-        some = "!git fetch -a && git pull";
-
-        st = "stash";
-        stc = "stash clear";
-        stp = "stash pop";
-
         undo = "reset HEAD~1 --mixed";
-
-        w = "worktree";
-        wa = "worktree add";
-        wl = "worktree list";
-        wp = "worktree prune";
-        wr = "worktree remove";
       };
 
       attributes = [
