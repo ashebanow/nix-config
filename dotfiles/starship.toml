@@ -6,15 +6,13 @@ $hostname\
 $shlvl\
 $nix_shell\
 $shell\
+$sudo\
 [](fg:#DA627D bg:#33658A)\
 $directory\
+$direnv\
 [](fg:#33658A bg:#FCA17D)\
-${custom.git_server}\
 $git_branch\
-$git_commit\
-$git_metrics\
 $git_status\
-$git_last_commit\
 [](fg:#FCA17D bg:#86BBD8)\
 $container\
 $docker_context\
@@ -69,22 +67,22 @@ Windows = ""
 
 [shlvl]
 disabled = true
-format='[ SHLVL: $shlvl ]($style)'
+format = '[ SHLVL: $shlvl ]($style)'
 style = "fg:#EEEEEE bg:#DA627D"
 
 [hostname]
-format='[$hostname ]($style)'
+format = '[$hostname ]($style)'
 # trim_at='-'
-trim_at='.'
+trim_at = '.'
 ssh_only = false
 style = "fg:#EEEEEE bg:#9A348E"
 disabled = false
 
 [nix_shell]
-symbol='❄️'
+symbol = '❄️'
 style = "bg:#DA627D"
 heuristic = true
-format = '[$symbol $name ]($style)'
+format = '[$symbol $state $name ]($style)'
 disabled = true
 
 [shell]
@@ -93,80 +91,36 @@ format = '[  $indicator ]($style)'
 zsh_indicator = 'zsh'
 nu_indicator = 'nu'
 powershell_indicator = 'ps'
+fish_indicator = 'fsh'
 unknown_indicator = '?'
+disabled = false
+
+[sudo]
+format = '[$symbol ]($style)'
+style = "fg:black bg:#DA627D"
+symbol = '󰓥'
 disabled = false
 
 [directory]
 style = "bg:#33658A"
-format = "[ $path]($style)[$lock_symbol]($lock_style)[ ]($style)"
-fish_style_pwd_dir_length = 1
+format = "[ 󰉋 $path]($style)[$lock_symbol]($lock_style)[ ]($style)"
+fish_style_pwd_dir_length = 3
 truncation_length = 3
 # truncation_symbol = "…/"
 
-# FIXME: need to wait for 1.17 release for this, currently in nixos-unstable
-# [direnv]
-# disabled = false
-# format = '[ $symbol ]($style)'
-# style = "bg:#33658A"
+[direnv]
+disabled = false
+format = '[ ($loaded/$allowed) ]($style)'
+style = "bg:#33658A"
 
 #######################################################################
 # Git
 
-[custom.git_server]
-#disabled = true
-description = "Display symbol for remote Git server"
-command = """
-GIT_REMOTE=$(command git ls-remote --get-url 2> /dev/null)
-if [[ "$GIT_REMOTE" =~ "github" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-elif [[ "$GIT_REMOTE" =~ "gitlab" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-elif [[ "$GIT_REMOTE" =~ "bitbucket" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-elif [[ "$GIT_REMOTE" =~ "git" ]]; then
-    GIT_REMOTE_SYMBOL=" "
-else
-    GIT_REMOTE_SYMBOL=" "
-fi
-echo "$GIT_REMOTE_SYMBOL "
-"""
-when = 'git rev-parse --is-inside-work-tree 2> /dev/null'
+[git_branch]
+format = '[ $symbol($branch) ]($style)'
 style = "fg:#202020 bg:#FCA17D"
-format = '[ $output]($style)'
-
-[custom.git_last_commit]
-# disabled = true
-description = "Display last commit hash and message"
-command = "git show -s --format='%h \"%s\"'"
-when = 'git rev-parse --is-inside-work-tree 2> /dev/null'
-style = "fg:#202020 bg:#FCA17D"
-#style = "bright-yellow bold"
-format = '[$output ]($style)'
-
-[ git_branch]
-format = '[ $branch ]($style)'
-style = "fg:#202020 bg:#FCA17D"
-# symbol = ''
-truncation_length = 16
-truncation_symbol = '…'
-
-[git_commit]
-commit_hash_length = 8
-style = "fg:#202020 bg:#FCA17D"
-tag_symbol = '🔖'
-disabled = false
 
 [git_status]
-conflicted = "⚔️"
-ahead = "💨${count}"
-behind = "🐢${count}"
-diverged = "🔱 💨${ahead_count} 🐢${behind_count}"
-untracked = "🛤️${count}"
-stashed = "📦"
-modified = "📝${count}"
-staged = "🗃️${count}"
-renamed = "📛${count}"
-deleted = "🗑️${count}"
 style = "fg:#202020 bg:#FCA17D"
 format = '[$all_status$ahead_behind ]($style)'
 
@@ -210,31 +164,31 @@ version_format = "${major}.${minor}"
 
 [palettes.solarized_dark]
 # Ordered from darker to lighter
-base03    = "#002b36"   # background tones
-base02    = "#073642"
-base01    = "#586e75"   # content tones
-base00    = "#657b83"
-base0     = "#839496"
-base1     = "#93a1a1"
-base2     = "#eee8d5"   # background tones
-base3     = "#fdf6e3"
+base03 = "#002b36" # background tones
+base02 = "#073642"
+base01 = "#586e75" # content tones
+base00 = "#657b83"
+base0 = "#839496"
+base1 = "#93a1a1"
+base2 = "#eee8d5"  # background tones
+base3 = "#fdf6e3"
 # Accent colors
-blue      = "#268bd2"   
-cyan      = "#2aa198"
-green     = "#859900"
-magenta   = "#d33682"
-orange    = "#cb4b16"
-red       = "#dc322f"
-violet    = "#6c71c4"
-yellow    = "#b58900"
+blue = "#268bd2"
+cyan = "#2aa198"
+green = "#859900"
+magenta = "#d33682"
+orange = "#cb4b16"
+red = "#dc322f"
+violet = "#6c71c4"
+yellow = "#b58900"
 # Semantic Colors
-user_section_fg      = "#6c71c4" # yellow
-user_section_bg      = "#002b36" # base03
-shell_section_fg     = "#6c71c4" # violet
-shell_section_bg     = "#fdf6e3" # base3
+user_section_fg = "#6c71c4"      # yellow
+user_section_bg = "#002b36"      # base03
+shell_section_fg = "#6c71c4"     # violet
+shell_section_bg = "#fdf6e3"     # base3
 directory_section_fg = "#cb4b16" # orange
 directory_section_bg = "#073642" # base02
-git_section_fg       = "#d33682" # magenta
-git_section_bg       = "#eee8d5" # base2
-language_section_fg  = "#2aa198" # cyan
-language_section_bg  = "#586e75" # base01
+git_section_fg = "#d33682"       # magenta
+git_section_bg = "#eee8d5"       # base2
+language_section_fg = "#2aa198"  # cyan
+language_section_bg = "#586e75"  # base01
