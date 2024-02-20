@@ -1,6 +1,8 @@
-{ nixpkgs, config, ... }:
-
 {
+  nixpkgs,
+  config,
+  ...
+}: {
   nixpkgs.config.allowUnfree = true;
 
   imports = [

@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   # programs.zsh.sessionVariables = {
   #   # If your cursor becomes invisible
   #   # WLR_NO_HARDWARE_CURSORS = "1";
@@ -22,7 +21,7 @@
 
   # XDG portal
   xdg.portal.enable = true;
-  xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+  xdg.portal.extraPortals = [pkgs.xdg-desktop-portal-gtk];
 
   wayland.windowManager.sway = {
     enable = true;
@@ -39,7 +38,7 @@
       bindsym Print               exec shotman -c output
       bindsym Print+Shift         exec shotman -c region
       bindsym Print+Shift+Control exec shotman -c window
-      '';
+    '';
   };
 
   home.packages = with pkgs; [

@@ -1,14 +1,15 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
-
-{ config, pkgs, ... }:
-
 {
+  config,
+  pkgs,
+  ...
+}: {
   nix = {
     settings = {
       auto-optimise-store = true;
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = ["nix-command" "flakes"];
       warn-dirty = false;
     };
     gc = {
@@ -29,10 +30,10 @@
     "python-2.7.18.6"
   ];
 
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+  ];
 
   # Bootloader
   boot.loader.systemd-boot.enable = true;
@@ -44,10 +45,11 @@
     hostName = "nixos-mac-aarch64"; # Define your hostname.
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 
-        22              # ssh
-        80 443          # HTTP/HTTPS
-        2049            # nfs
+      allowedTCPPorts = [
+        22 # ssh
+        80
+        443 # HTTP/HTTPS
+        2049 # nfs
       ];
     };
   };
@@ -102,8 +104,8 @@
     # displayManager.gdm.enable = true;
     # desktopManager.gnome.enable = true;
 
-    modules = [ pkgs.xorg.xf86videofbdev ];
-    videoDrivers = [ "hyperv_fb" ];
+    modules = [pkgs.xorg.xf86videofbdev];
+    videoDrivers = ["hyperv_fb"];
 
     # Configure keymap in X11
     layout = "us";
@@ -124,7 +126,7 @@
       }
     });
   '';
-    # Disable the GNOME3/GDM auto-suspend feature that cannot be disabled in GUI!
+  # Disable the GNOME3/GDM auto-suspend feature that cannot be disabled in GUI!
   # If no user is logged in, the machine will power down after 20 minutes.
   systemd.targets.sleep.enable = false;
   systemd.targets.suspend.enable = false;
@@ -159,7 +161,7 @@
     shell = pkgs.zsh;
     isNormalUser = true;
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" ];
+    extraGroups = ["networkmanager" "wheel" "video" "storage" "libvirtd"];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
@@ -191,7 +193,7 @@
   # set up zsh as default shell
   programs.zsh.enable = true;
   users.defaultUserShell = pkgs.zsh;
-  environment.shells = with pkgs; [ zsh ];
+  environment.shells = with pkgs; [zsh];
 
   fonts.fontDir.enable = true;
 
@@ -206,7 +208,7 @@
       "SyncDisabled" = false;
       "PasswordManagerEnabled" = false;
       "SpellcheckEnabled" = true;
-      "SpellcheckLanguage" = [ "en-US" ];
+      "SpellcheckLanguage" = ["en-US"];
     };
   };
 
@@ -218,7 +220,7 @@
   # Enable the 1Passsword GUI with myself as an authorized user for polkit
   programs._1password-gui = {
     enable = true;
-    polkitPolicyOwners = [ "ashebanow" ];
+    polkitPolicyOwners = ["ashebanow"];
   };
 
   # List services that you want to enable:

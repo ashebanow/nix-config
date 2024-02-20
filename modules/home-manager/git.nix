@@ -1,9 +1,8 @@
-{ pkgs, ... }: {
+{pkgs, ...}: {
   # we use the local path here because the installed path fails on
   # first run.
-  home.file.".ssh/allowed_signers".text =
-    "* ${builtins.readFile ../../dotfiles/ssh/github_ed25519.pub}";
-    # "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
+  home.file.".ssh/allowed_signers".text = "* ${builtins.readFile ../../dotfiles/ssh/github_ed25519.pub}";
+  # "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
 
   programs = {
     git = {
@@ -21,10 +20,11 @@
       # signing.gpgPath setting. See:
       # https://discourse.nixos.org/t/cant-commit-with-git-after-installing-1password/34021
       extraConfig = {
-        gpg.ssh.program = if pkgs.stdenv.isDarwin
+        gpg.ssh.program =
+          if pkgs.stdenv.isDarwin
           then "${pkgs._1password-gui}/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
           else "op-ssh-sign";
-          # else "${pkgs._1password-gui}/bin/op-ssh-sign";
+        # else "${pkgs._1password-gui}/bin/op-ssh-sign";
         # FIXME: need to handle wsl2 as well: /mnt/c/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign-wsl
         gpg.ssh.allowedSignersFile = "~/.ssh/allowed_signers";
         gpg.format = "ssh";

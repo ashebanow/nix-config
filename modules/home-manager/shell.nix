@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   home = {
     sessionVariables = {
       NIXPKGS_ALLOW_UNFREE = 1;
@@ -74,7 +72,7 @@
         if [[ -f /opt/homebrew/bin/brew ]]; then
           eval "$(/opt/homebrew/bin/brew shellenv)"
         fi
-        '';
+      '';
       syntaxHighlighting = {
         enable = true;
       };
@@ -108,5 +106,4 @@
       enableFishIntegration = true;
     };
   };
-  
 }

@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{pkgs, ...}: {
   boot.kernelPackages = pkgs.linuxPackages.nvidia_x11;
 
   # services.xserver = {
@@ -33,7 +33,7 @@
 
   # XDG portal
   xdg.portal.enable = true;
-  xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+  xdg.portal.extraPortals = [pkgs.xdg-desktop-portal-gtk];
 
   # rofi keybind
   # bind = $mainMod, S, exec, rofi -show drun -show-icons

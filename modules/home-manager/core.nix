@@ -1,5 +1,4 @@
-{ pkgs, ... }: {
-
+{pkgs, ...}: {
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
@@ -41,6 +40,7 @@
     # sops
     # sops-nix
     age
+    alejandra
     atuin
     bandwhich
     bat
@@ -68,8 +68,8 @@
     less
     magic-wormhole-rs
     neofetch
-    (nerdfonts.override { fonts = [ "SourceCodePro" "Hack" ]; })
-    nil         # nix LSP
+    (nerdfonts.override {fonts = ["SourceCodePro" "Hack"];})
+    nil # nix LSP
     nix-direnv
     nixpkgs-fmt
     overmind
@@ -93,7 +93,7 @@
   programs = {
     bat = {
       enable = true;
-      extraPackages = with pkgs.bat-extras; [ batdiff batman batgrep batwatch prettybat batpipe ];
+      extraPackages = with pkgs.bat-extras; [batdiff batman batgrep batwatch prettybat batpipe];
       config = {
         pager = "less -FR";
         theme = "Solarized (dark)";

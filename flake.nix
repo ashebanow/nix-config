@@ -2,7 +2,7 @@
   description = "ashebanow's way-too-complicated nix configuration";
 
   nixConfig = {
-    experimental-features = [ "nix-command" "flakes" ];
+    experimental-features = ["nix-command" "flakes"];
     substituters = [
       "https://cache.nixos.org/"
     ];
@@ -55,101 +55,110 @@
     };
   };
 
-  outputs = inputs@{
-      nixpkgs,
-      home-manager,
-      darwin,
-      hyprland, hyprland-plugins, hyprwm-contrib,
-      nixos-hardware,
-      sops-nix,
-      ...
-    }:
-    let
-      linuxArmSystem = "aarch64-linux";
-      darwinSystem = "aarch64-darwin";
-      linuxSystem = "x86_64-linux";
+  outputs = inputs @ {
+    nixpkgs,
+    home-manager,
+    darwin,
+    hyprland,
+    hyprland-plugins,
+    hyprwm-contrib,
+    nixos-hardware,
+    sops-nix,
+    ...
+  }: let
+    linuxArmSystem = "aarch64-linux";
+    darwinSystem = "aarch64-darwin";
+    linuxSystem = "x86_64-linux";
 
-      lib = nixpkgs.lib // home-manager.lib;
+    lib = nixpkgs.lib // home-manager.lib;
 
-      darwinPkgs = nixpkgs.legacyPackages.${darwinSystem};
-      linuxPkgs = nixpkgs.legacyPackages.${linuxSystem};
-    in
-    {
-      inherit lib;
-      nix.registry.nixpkgs.flake = inputs.nixpkgs;
+    darwinPkgs = nixpkgs.legacyPackages.${darwinSystem};
+    linuxPkgs = nixpkgs.legacyPackages.${linuxSystem};
+    linuxArmPkgs = nixpkgs.legacyPackages.${linuxArmSystem};
+  in {
+    inherit lib;
+    nix.registry.nixpkgs.flake = inputs.nixpkgs;
 
-      nixosConfigurations = {
-        yuzu = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./hosts/yuzu/configuration.nix
-            home-manager.nixosModules.home-manager {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/yuzu/home.nix;
-            }
-          ];
-        };
-        liquid-nixos = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./hosts/liquid-nixos/configuration.nix
-            home-manager.nixosModules.home-manager {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./hosts/liquid-nixos/home.nix;
-            }
-          ];
-        };
-        nixos-mac-aarch64 = nixpkgs.lib.nixosSystem {
-          system = linuxSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./hosts/nixos-mac-aarch64/configuration.nix
-            home-manager.nixosModules.home-manager {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./os/linux/home.nix;
-            }
-          ];
-        };
+    formatter.x86_64-linux = (import nixpkgs {system = "x86_64-linux";}).alejandra;
+    formatter.aarch64-linux = (import nixpkgs {system = "aarch64-linux";}).alejandra;
+    formatter.aarch64-darwin = (import nixpkgs {system = "aarch64-darwin";}).alejandra;
+
+    nixosConfigurations = {
+      yuzu = nixpkgs.lib.nixosSystem {
+        system = linuxSystem;
+        specialArgs = {inherit inputs;}; # forward inputs to modules
+        modules = [
+          ./hosts/yuzu/configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.verbose = true;
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.ashebanow = import ./hosts/yuzu/home.nix;
+          }
+        ];
       };
-
-      darwinConfigurations = {
-        miraclemax = darwin.lib.darwinSystem {
-          system = darwinSystem;
-          specialArgs = { inherit inputs; }; # forward inputs to modules
-          modules = [
-            ./os/darwin/configuration.nix
-            home-manager.darwinModules.home-manager {
-              home-manager.verbose = true;
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.ashebanow = import ./os/darwin/home.nix;
-            }
-            # sops-nix.nixosModules.sops
-          ];
-        };
+      liquid-nixos = nixpkgs.lib.nixosSystem {
+        system = linuxSystem;
+        specialArgs = {inherit inputs;}; # forward inputs to modules
+        modules = [
+          ./hosts/liquid-nixos/configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.verbose = true;
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.ashebanow = import ./hosts/liquid-nixos/home.nix;
+          }
+        ];
       };
-
-      # this is currently used for the WSL2 install on Liquidity,
-      # and for instaling on non-nixOS systems like loquat.
-      homeConfigurations = {
-        home-manager.verbose = true;
-        home-manager.useGlobalPkgs = true;
-        home-manager.useUserPackages = true;
-
-        ashebanow = home-manager.lib.homeManagerConfiguration {
-          pkgs = linuxPkgs;
-          modules = [
-            ./os/linux/home.nix
-          ];
-        };
+      nixos-mac-aarch64 = nixpkgs.lib.nixosSystem {
+        system = linuxSystem;
+        specialArgs = {inherit inputs;}; # forward inputs to modules
+        modules = [
+          ./hosts/nixos-mac-aarch64/configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.verbose = true;
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.ashebanow = import ./os/linux/home.nix;
+          }
+        ];
       };
     };
+
+    darwinConfigurations = {
+      miraclemax = darwin.lib.darwinSystem {
+        system = darwinSystem;
+        specialArgs = {inherit inputs;}; # forward inputs to modules
+        modules = [
+          ./os/darwin/configuration.nix
+          home-manager.darwinModules.home-manager
+          {
+            home-manager.verbose = true;
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.ashebanow = import ./os/darwin/home.nix;
+          }
+          # sops-nix.nixosModules.sops
+        ];
+      };
+    };
+
+    # this is currently used for the WSL2 install on Liquidity,
+    # and for instaling on non-nixOS systems like loquat.
+    homeConfigurations = {
+      home-manager.verbose = true;
+      home-manager.useGlobalPkgs = true;
+      home-manager.useUserPackages = true;
+
+      ashebanow = home-manager.lib.homeManagerConfiguration {
+        pkgs = linuxPkgs;
+        modules = [
+          ./os/linux/home.nix
+        ];
+      };
+    };
+  };
 }

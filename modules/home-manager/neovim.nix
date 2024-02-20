@@ -1,6 +1,9 @@
 # NeoVim for daily work and daily notes
-{ config, pkgs, ... }:
 {
+  config,
+  pkgs,
+  ...
+}: {
   programs = {
     neovim = {
       enable = true;
@@ -8,277 +11,275 @@
       withNodeJs = true;
 
       # Install Vim Plugins, keep configuration local to install block if possible
-      plugins =
-        with pkgs.vimPlugins; [
+      plugins = with pkgs.vimPlugins; [
+        {
+          plugin = mini-nvim;
+          type = "lua";
+          config = ''
+            require('mini.animate').setup()
+            require('mini.basics').setup({ options = { extra_ui = true }})
+            require('mini.comment').setup()
+            require('mini.surround').setup()
+            require('mini.trailspace').setup()
+          '';
+        }
 
-          {
-            plugin = mini-nvim;
-            type = "lua";
-            config = ''
-              require('mini.animate').setup()
-              require('mini.basics').setup({ options = { extra_ui = true }})
-              require('mini.comment').setup()
-              require('mini.surround').setup()
-              require('mini.trailspace').setup()
-            '';
-          }
+        {
+          plugin = rose-pine;
+          type = "viml";
+          config = ''
+            " read Gnome light/dark setting
+            let theme =  system('dconf read /org/gnome/desktop/interface/color-scheme')
 
-          {
-            plugin = rose-pine;
-            type = "viml";
-            config = ''
-              " read Gnome light/dark setting
-              let theme =  system('dconf read /org/gnome/desktop/interface/color-scheme')
+            " set vim color scheme
+            if theme =~ ".*default.*"
+              " light vim color
+              set background=light
+              colorscheme rose-pine-dawn
+            else
+              " if dark color scheme
+              set background=dark
+              colorscheme rose-pine-moon
+            end
+            lua require('rose-pine').setup({dim_nc_background = true})
+          '';
+        }
 
-              " set vim color scheme
-              if theme =~ ".*default.*"
-                " light vim color
-                set background=light
-                colorscheme rose-pine-dawn
-              else
-                " if dark color scheme
-                set background=dark
-                colorscheme rose-pine-moon
-              end
-              lua require('rose-pine').setup({dim_nc_background = true})
-            '';
-          }
+        # Install tree-sitter with all the plugins/grammars
+        #   https://tree-sitter.github.io/tree-sitter
+        {
+          plugin = nvim-treesitter.withAllGrammars;
+          type = "lua";
+          config = ''
+            require'nvim-treesitter.configs'.setup {
+              highlight = {enable = true, additional_vim_regex_highlighting = false}
+             }
+          '';
+        }
 
-          # Install tree-sitter with all the plugins/grammars
-          #   https://tree-sitter.github.io/tree-sitter
-          {
-            plugin = nvim-treesitter.withAllGrammars;
-            type = "lua";
-            config = ''
-              require'nvim-treesitter.configs'.setup {
-                highlight = {enable = true, additional_vim_regex_highlighting = false}
-               }
-            '';
-          }
+        # https://github.com/iamcco/markdown-preview.nvim/
+        #   "markdown preview plugin for (neo)vim"
+        markdown-preview-nvim
 
-          # https://github.com/iamcco/markdown-preview.nvim/
-          #   "markdown preview plugin for (neo)vim"
-          markdown-preview-nvim
+        # https://github.com/sudormrfbin/cheatsheet.nvim
+        #  "A cheatsheet plugin for neovim with bundled cheatsheets for the
+        #   editor, multiple vim plugins, nerd-fonts, regex, etc. with a
+        #   Telescope fuzzy finder interface!"
+        cheatsheet-nvim # Provides <Leader>? help
 
-          # https://github.com/sudormrfbin/cheatsheet.nvim
-          #  "A cheatsheet plugin for neovim with bundled cheatsheets for the
-          #   editor, multiple vim plugins, nerd-fonts, regex, etc. with a
-          #   Telescope fuzzy finder interface!"
-          cheatsheet-nvim # Provides <Leader>? help
+        # https://github.com/akinsho/bufferline.nvim
+        #  "A snazzy bufferline for Neovim"
+        {
+          plugin = bufferline-nvim;
+          type = "viml";
+          config = ''
+            lua require("bufferline").setup{}
+            nnoremap <silent> <C-h> :BufferLineCyclePrev<CR>
+            nnoremap <silent> <C-l> :BufferLineCycleNext<CR>
+          '';
+        }
 
-          # https://github.com/akinsho/bufferline.nvim
-          #  "A snazzy bufferline for Neovim"
-          {
-            plugin = bufferline-nvim;
-            type = "viml";
-            config = ''
-              lua require("bufferline").setup{}
-              nnoremap <silent> <C-h> :BufferLineCyclePrev<CR>
-              nnoremap <silent> <C-l> :BufferLineCycleNext<CR>
-            '';
-          }
+        # https://github.com/kyazdani42/nvim-web-devicons
+        #   "lua `fork` of vim-web-devicons for neovim"
+        nvim-web-devicons # used by bufferline-nvim
 
-          # https://github.com/kyazdani42/nvim-web-devicons
-          #   "lua `fork` of vim-web-devicons for neovim"
-          nvim-web-devicons # used by bufferline-nvim
+        {
+          plugin = nvim-neoclip-lua;
+          type = "lua";
+          config = "require('neoclip').setup()";
+        }
 
-          {
-            plugin = nvim-neoclip-lua;
-            type = "lua";
-            config = "require('neoclip').setup()";
-          }
+        # https://github.com/nvim-telescope/telescope.nvim
+        #   "highly extendable fuzzy finder over lists"
+        {
+          plugin = telescope-nvim;
+          type = "viml";
+          config = ''
+            nnoremap  ,ff  :execute 'Telescope git_files cwd=' . expand('%:p:h')<cr>
+            nnoremap  ,fg  <cmd>lua require('telescope.builtin').find_files()<cr>
+            nnoremap  ,f/  <cmd>lua require('telescope.builtin').current_buffer_fuzzy_find()<cr>
+            nnoremap  ,fb  <cmd>lua require('telescope.builtin').buffers()<cr>
+            nnoremap  ,fo  <cmd>lua require('telescope.builtin').file_browser()<cr>
+            nnoremap  ,fh  <cmd>lua require('telescope.builtin').oldfiles()<cr>
+            nnoremap  ,fc  <cmd>lua require('telescope.builtin').colorscheme()<cr>
+            nnoremap  ,fr  <cmd>lua require('telescope.builtin').registers()<cr>
+            nnoremap  ,p   <cmd>Telescope neoclip<cr>
 
-          # https://github.com/nvim-telescope/telescope.nvim
-          #   "highly extendable fuzzy finder over lists"
-          {
-            plugin = telescope-nvim;
-            type = "viml";
-            config = ''
-              nnoremap  ,ff  :execute 'Telescope git_files cwd=' . expand('%:p:h')<cr>
-              nnoremap  ,fg  <cmd>lua require('telescope.builtin').find_files()<cr>
-              nnoremap  ,f/  <cmd>lua require('telescope.builtin').current_buffer_fuzzy_find()<cr>
-              nnoremap  ,fb  <cmd>lua require('telescope.builtin').buffers()<cr>
-              nnoremap  ,fo  <cmd>lua require('telescope.builtin').file_browser()<cr>
-              nnoremap  ,fh  <cmd>lua require('telescope.builtin').oldfiles()<cr>
-              nnoremap  ,fc  <cmd>lua require('telescope.builtin').colorscheme()<cr>
-              nnoremap  ,fr  <cmd>lua require('telescope.builtin').registers()<cr>
-              nnoremap  ,p   <cmd>Telescope neoclip<cr>
-
-              lua << EOF
-                _G.open_telescope = function()
-                  local first_arg = vim.v.argv[2]
-                  if first_arg and vim.fn.isdirectory(first_arg) == 1 then
-                    vim.g.loaded_netrw = true
-                    require("telescope.builtin").find_files({search_dirs = {first_arg}})
-                  end
+            lua << EOF
+              _G.open_telescope = function()
+                local first_arg = vim.v.argv[2]
+                if first_arg and vim.fn.isdirectory(first_arg) == 1 then
+                  vim.g.loaded_netrw = true
+                  require("telescope.builtin").find_files({search_dirs = {first_arg}})
                 end
+              end
 
-                vim.api.nvim_exec([[
-                  augroup TelescopeOnEnter
-                    autocmd!
-                    autocmd VimEnter * lua open_telescope()
-                  augroup END
-                ]], false)
+              vim.api.nvim_exec([[
+                augroup TelescopeOnEnter
+                  autocmd!
+                  autocmd VimEnter * lua open_telescope()
+                augroup END
+              ]], false)
 
-                require('telescope').load_extension('neoclip')
-              EOF
-            '';
-          }
+              require('telescope').load_extension('neoclip')
+            EOF
+          '';
+        }
 
-          # https://github.com/akinsho/toggleterm.nvim
-          #   "A neovim plugin to persist and toggle multiple terminals during an editing session"
-          {
-            plugin = toggleterm-nvim;
-            type = "viml";
-            config = ''
-              lua << EOF
-              require("toggleterm").setup{
-                direction = 'float',
-                winblend = 3,
-                float_opts = {border = 'curved'}
+        # https://github.com/akinsho/toggleterm.nvim
+        #   "A neovim plugin to persist and toggle multiple terminals during an editing session"
+        {
+          plugin = toggleterm-nvim;
+          type = "viml";
+          config = ''
+            lua << EOF
+            require("toggleterm").setup{
+              direction = 'float',
+              winblend = 3,
+              float_opts = {border = 'curved'}
+            }
+            EOF
+            nnoremap <silent> <c-\>     <cmd>execute 'ToggleTerm direction=float      dir=' . expand('%:p:h')<cr>
+            nnoremap <silent> <S-c-\>   <cmd>execute 'ToggleTerm direction=horizontal dir=' . expand('%:p:h')<cr>
+            inoremap <silent> <c-\>     <esc><cmd>execute 'ToggleTerm dir=' . expand('%:p:h')<cr>
+            tnoremap <silent> <c-\>     <esc><cmd>ToggleTerm<cr>
+            tnoremap <silent> <S-c-\>   <esc><cmd>ToggleTerm<cr>
+          '';
+        }
+
+        # https://github.com/mhartington/formatter.nvim
+        #   "A format runner for neovim, written in lua"
+        {
+          plugin = neoformat;
+          type = "lua";
+          config = "vim.api.nvim_set_keymap('n', ',a', ':Neoformat<cr>',{noremap = true})";
+        }
+
+        # https://github.com/f-person/git-blame.nvim
+        #   "A git blame plugin for Neovim written in Lua"
+        {
+          plugin = git-blame-nvim;
+          type = "lua";
+          config = ''
+            vim.g["gitblame_enabled"] = 0
+            vim.api.nvim_set_keymap('n', ',,b', ':GitBlameToggle<cr>',{noremap = true})
+          '';
+        }
+
+        # https://github.com/lewis6991/gitsigns.nvim
+        #   "Super fast git decorations implemented purely in lua/teal"
+        {
+          plugin = gitsigns-nvim;
+          type = "viml";
+          config = "lua require('gitsigns').setup()";
+        }
+
+        # https://github.com/hoob3rt/lualine.nvim
+        #   "A blazing fast and easy to configure neovim statusline written in pure lua"
+        {
+          plugin = lualine-nvim;
+          type = "lua";
+          config = ''
+            require('lualine').setup {
+              options = {
+                section_separators = " ",
+                component_separators = " "
               }
-              EOF
-              nnoremap <silent> <c-\>     <cmd>execute 'ToggleTerm direction=float      dir=' . expand('%:p:h')<cr>
-              nnoremap <silent> <S-c-\>   <cmd>execute 'ToggleTerm direction=horizontal dir=' . expand('%:p:h')<cr>
-              inoremap <silent> <c-\>     <esc><cmd>execute 'ToggleTerm dir=' . expand('%:p:h')<cr>
-              tnoremap <silent> <c-\>     <esc><cmd>ToggleTerm<cr>
-              tnoremap <silent> <S-c-\>   <esc><cmd>ToggleTerm<cr>
-            '';
-          }
+            }
+          '';
+        }
 
-          # https://github.com/mhartington/formatter.nvim
-          #   "A format runner for neovim, written in lua"
-          {
-            plugin = neoformat;
-            type = "lua";
-            config = "vim.api.nvim_set_keymap('n', ',a', ':Neoformat<cr>',{noremap = true})";
-          }
+        # https://github.com/hrsh7th/nvim-cmp
+        #   "A completion plugin for neovim coded in Lua"
+        cmp-buffer
+        nvim-lspconfig
+        cmp-nvim-lsp
+        cmp-path
+        cmp-treesitter
+        {
+          plugin = nvim-cmp;
+          type = "lua";
+          config = ''
+            local cmp = require'cmp'
 
-          # https://github.com/f-person/git-blame.nvim
-          #   "A git blame plugin for Neovim written in Lua"
-          {
-            plugin = git-blame-nvim;
-            type = "lua";
-            config = ''
-              vim.g["gitblame_enabled"] = 0
-              vim.api.nvim_set_keymap('n', ',,b', ':GitBlameToggle<cr>',{noremap = true})
-            '';
-          }
+            cmp.setup({
+              sources = cmp.config.sources({
+               {name = 'buffer'     },
+               {name = 'nvim_lsp'   },
+               {name = 'path'       },
+               {name = 'treesitter' },
+              }),
 
-          # https://github.com/lewis6991/gitsigns.nvim
-          #   "Super fast git decorations implemented purely in lua/teal"
-          {
-            plugin = gitsigns-nvim;
-            type = "viml";
-            config = "lua require('gitsigns').setup()";
-          }
+              view = {entries = "native"},
 
-          # https://github.com/hoob3rt/lualine.nvim
-          #   "A blazing fast and easy to configure neovim statusline written in pure lua"
-          {
-            plugin = lualine-nvim;
-            type = "lua";
-            config = ''
-              require('lualine').setup {
-                options = {
-                  section_separators = " ",
-                  component_separators = " "
-                }
-              }
-            '';
-          }
+              window = {
+                completion    = cmp.config.window.bordered(),
+                documentation = cmp.config.window.bordered(),
+              },
 
-          # https://github.com/hrsh7th/nvim-cmp
-          #   "A completion plugin for neovim coded in Lua"
-          cmp-buffer
-          nvim-lspconfig
-          cmp-nvim-lsp
-          cmp-path
-          cmp-treesitter
-          {
-            plugin = nvim-cmp;
-            type = "lua";
-            config = ''
-              local cmp = require'cmp'
+              mapping = {
+                ["<CR>"]    = cmp.mapping.confirm(          { behavior = cmp.ConfirmBehavior.Replace,select = false }),
+                ["<S-Tab>"] = cmp.mapping.select_prev_item( { behavior = cmp.SelectBehavior.Insert }),
+                ["<Tab>"]   = cmp.mapping.select_next_item( { behavior = cmp.SelectBehavior.Insert }),
+              },
+            })
 
-              cmp.setup({
-                sources = cmp.config.sources({
-                 {name = 'buffer'     },
-                 {name = 'nvim_lsp'   },
-                 {name = 'path'       },
-                 {name = 'treesitter' },
-                }),
+            -- The nvim-cmp almost supports LSP's capabilities so You should advertise it to LSP servers..
+            local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-                view = {entries = "native"},
+            -- advertise capabilities and enable plugins
+            require'lspconfig'
+            require'lspconfig'.terraformls.setup{
+              cmd = {'${pkgs.terraform-ls}/bin/terraform-ls', 'serve'},
+              capabilities = capabilities,
+            }
+          '';
+        }
 
-                window = {
-                  completion    = cmp.config.window.bordered(),
-                  documentation = cmp.config.window.bordered(),
-                },
+        # https://github.com/folke/which-key.nvim
+        #   "displays a popup with possible keybindings of the command you started typing"
+        {
+          plugin = which-key-nvim;
+          type = "lua";
+          config = "require('which-key').setup()";
+        }
 
-                mapping = {
-                  ["<CR>"]    = cmp.mapping.confirm(          { behavior = cmp.ConfirmBehavior.Replace,select = false }),
-                  ["<S-Tab>"] = cmp.mapping.select_prev_item( { behavior = cmp.SelectBehavior.Insert }),
-                  ["<Tab>"]   = cmp.mapping.select_next_item( { behavior = cmp.SelectBehavior.Insert }),
-                },
-              })
+        # https://github.com/nacro90/numb.nvim/
+        #   "Peek lines just when you intend"
+        {
+          plugin = numb-nvim;
+          type = "lua";
+          config = "require('numb').setup()";
+        }
 
-              -- The nvim-cmp almost supports LSP's capabilities so You should advertise it to LSP servers..
-              local capabilities = require('cmp_nvim_lsp').default_capabilities()
+        # ------------------------------------ Vimscript Plugins ---------------------------------------------
+        # https://github.com/lambdalisue/vim-manpager
+        #  "Use Vim as a MANPAGER program"
+        # see shell.nix
+        #vim-manpager
 
-              -- advertise capabilities and enable plugins
-              require'lspconfig'
-              require'lspconfig'.terraformls.setup{
-                cmd = {'${pkgs.terraform-ls}/bin/terraform-ls', 'serve'},
-                capabilities = capabilities,
-              }
-            '';
-          }
+        # https://github.com/farmergreg/vim-lastplace
+        #   "Intelligently reopen files at your last edit position in Vim"
+        vim-lastplace
 
-          # https://github.com/folke/which-key.nvim
-          #   "displays a popup with possible keybindings of the command you started typing"
-          {
-            plugin = which-key-nvim;
-            type = "lua";
-            config = "require('which-key').setup()";
-          }
+        {
+          plugin = undotree;
+          type = "lua";
+          config = "vim.keymap.set('n', '<leader>u', vim.cmd.UndotreeToggle)";
+        }
 
-          # https://github.com/nacro90/numb.nvim/
-          #   "Peek lines just when you intend"
-          {
-            plugin = numb-nvim;
-            type = "lua";
-            config = "require('numb').setup()";
-          }
-
-          # ------------------------------------ Vimscript Plugins ---------------------------------------------
-          # https://github.com/lambdalisue/vim-manpager
-          #  "Use Vim as a MANPAGER program"
-          # see shell.nix
-          #vim-manpager
-
-          # https://github.com/farmergreg/vim-lastplace
-          #   "Intelligently reopen files at your last edit position in Vim"
-          vim-lastplace
-
-          {
-            plugin = undotree;
-            type = "lua";
-            config = "vim.keymap.set('n', '<leader>u', vim.cmd.UndotreeToggle)";
-          }
-
-          # https://github.com/dhruvasagar/vim-table-mode
-          #   "VIM Table Mode for instant [ASCII] table creation"
-          {
-            plugin = vim-table-mode;
-            type = "viml";
-            config = ''
-              " Make tables github markdown compatable
-              let g:table_mode_corner='|'
-              nnoremap  <silent>  ,,a   :TableModeToggle<cr>
-            '';
-          }
-        ];
+        # https://github.com/dhruvasagar/vim-table-mode
+        #   "VIM Table Mode for instant [ASCII] table creation"
+        {
+          plugin = vim-table-mode;
+          type = "viml";
+          config = ''
+            " Make tables github markdown compatable
+            let g:table_mode_corner='|'
+            nnoremap  <silent>  ,,a   :TableModeToggle<cr>
+          '';
+        }
+      ];
 
       extraConfig = ''
         set clipboard=unnamedplus

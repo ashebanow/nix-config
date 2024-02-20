@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{pkgs, ...}: {
   # Configure the X11 windowing system.
   services.xserver = {
     enable = true;
@@ -13,8 +13,8 @@
 
     desktopManager.gnome.enable = true;
 
-    modules = [ pkgs.xorg.xf86videofbdev ];
-    videoDrivers = [ "nvidia" ];
+    modules = [pkgs.xorg.xf86videofbdev];
+    videoDrivers = ["nvidia"];
 
     # Configure keymap in X11
     layout = "us";

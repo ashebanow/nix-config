@@ -1,10 +1,13 @@
-{ config, pkgs, nixos-hardware, ... }:
-
 {
+  config,
+  pkgs,
+  nixos-hardware,
+  ...
+}: {
   nix = {
     settings = {
       auto-optimise-store = true;
-      experimental-features = [ "nix-command" "flakes" ];
+      experimental-features = ["nix-command" "flakes"];
       warn-dirty = false;
     };
     gc = {
@@ -22,16 +25,16 @@
     "python-2.7.18.6"
   ];
 
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ../../modules/nixos/printer.nix
-      ../../modules/nixos/rancher-k3s.nix
-      ../../modules/nixos/desktops/plasma.nix
-      # ../../modules/nixos/desktops/gnome.nix
-      # ../../modules/nixos/desktops/hyprland.nix
-      ../../modules/nixos/virtualisation.nix
-    ];
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    ../../modules/nixos/printer.nix
+    ../../modules/nixos/rancher-k3s.nix
+    ../../modules/nixos/desktops/plasma.nix
+    # ../../modules/nixos/desktops/gnome.nix
+    # ../../modules/nixos/desktops/hyprland.nix
+    ../../modules/nixos/virtualisation.nix
+  ];
 
   # Bootloader
   boot = {
@@ -75,7 +78,7 @@
     #       pskRaw="013d6f8e2633450c5051d7a53381da94be88a3a278eaa1e2fbc13d78a3270452";
     #     };
     #   };
-    # }; 
+    # };
 
     # defaultGateway = "10.40.60.1";
     # nameservers = [ "10.40.60.1" ];
@@ -98,10 +101,11 @@
     firewall = {
       enable = true;
       allowPing = true;
-      allowedTCPPorts = [ 
-        22              # ssh
-        80 443          # HTTP/HTTPS
-        2049            # nfs
+      allowedTCPPorts = [
+        22 # ssh
+        80
+        443 # HTTP/HTTPS
+        2049 # nfs
       ];
     };
   };
@@ -125,7 +129,7 @@
     # "overlay", "overlay2", "zfs". Default is null, which is "autodetect"
     # storageDriver = "zfs";
   };
-  users.extraGroups.docker.members = [ "ashebanow" ];
+  users.extraGroups.docker.members = ["ashebanow"];
 
   # Mount SMB shares from storage machine. All of these are set to automount
   # on first use, and unmount after 10 minutes
@@ -235,7 +239,7 @@
     #     "gid=1000"
     #   ];
     # };
-  };    
+  };
 
   # Set your time zone.
   time.timeZone = "America/Los_Angeles";
@@ -288,7 +292,7 @@
     shell = pkgs.zsh;
     isNormalUser = true;
     description = "Andrew Shebanow";
-    extraGroups = [ "networkmanager" "wheel" "video" "storage" "libvirtd" ];
+    extraGroups = ["networkmanager" "wheel" "video" "storage" "libvirtd"];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
@@ -324,7 +328,7 @@
   # set up zsh as default shell
   programs.zsh.enable = true;
   users.defaultUserShell = pkgs.zsh;
-  environment.shells = with pkgs; [ zsh ];
+  environment.shells = with pkgs; [zsh];
 
   fonts.fontDir.enable = true;
 
@@ -339,7 +343,7 @@
       "SyncDisabled" = false;
       "PasswordManagerEnabled" = false;
       "SpellcheckEnabled" = true;
-      "SpellcheckLanguage" = [ "en-US" ];
+      "SpellcheckLanguage" = ["en-US"];
     };
   };
 
@@ -351,7 +355,7 @@
   # Enable the 1Passsword GUI with myself as an authorized user for polkit
   programs._1password-gui = {
     enable = true;
-    polkitPolicyOwners = [ "ashebanow" ];
+    polkitPolicyOwners = ["ashebanow"];
   };
 
   # Enable QMEU emulation
