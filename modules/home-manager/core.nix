@@ -39,7 +39,7 @@
     _1password-gui
     # sops
     # sops-nix
-    age
+    agenix
     alejandra
     atuin
     bandwhich
