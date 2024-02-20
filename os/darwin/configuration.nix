@@ -42,6 +42,7 @@
   environment.systemPackages = with pkgs; [
     git
     vim
+    warp-terminal # mac only for now
     wget
     zsh
     # sops

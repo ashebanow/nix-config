@@ -25,16 +25,16 @@
     "python-2.7.18.6"
   ];
 
-  imports = [
-    # Include the results of the hardware scan.
-    ./hardware-configuration.nix
-    ../../modules/nixos/printer.nix
-    ../../modules/nixos/rancher-k3s.nix
-    ../../modules/nixos/desktops/plasma.nix
-    # ../../modules/nixos/desktops/gnome.nix
-    # ../../modules/nixos/desktops/hyprland.nix
-    ../../modules/nixos/virtualisation.nix
-  ];
+  imports =
+    [ # Include the results of the hardware scan.
+      ./hardware-configuration.nix
+      ../../modules/nixos/printer.nix
+      # ../../modules/nixos/rancher-k3s.nix
+      ../../modules/nixos/desktops/plasma.nix
+      # ../../modules/nixos/desktops/gnome.nix
+      # ../../modules/nixos/desktops/hyprland.nix
+      ../../modules/nixos/virtualisation.nix
+    ];
 
   # Bootloader
   boot = {
@@ -304,8 +304,8 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
+    appimagekit
     cifs-utils
-    cockpit
     docker
     docker-compose
     firefox
