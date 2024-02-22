@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  inputs,
+  pkgs,
+  ...
+}: {
   nix = {
     # package = pkgs.nixFlakes;
     settings = {
@@ -40,13 +44,13 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
+    # inputs.agenix.packages.aarch64-darwin.default
+    inputs.ragenix.packages.aarch64-darwin.default
     git
     vim
     warp-terminal # mac only for now
     wget
     zsh
-    # sops
-    # sops-nix
   ];
 
   fonts.fontDir.enable = true;

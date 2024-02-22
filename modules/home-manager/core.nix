@@ -37,9 +37,6 @@
   home.packages = with pkgs; [
     _1password
     _1password-gui
-    # sops
-    # sops-nix
-    agenix
     alejandra
     atuin
     bandwhich

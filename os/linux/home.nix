@@ -15,10 +15,6 @@
     ../../modules/home-manager/shell.nix
     # ../../modules/home-manager/warp.nix
     # ../../modules/home-manager/vscode.nix
-
-    # "${fetchTarball "https://github.com/msteen/nixos-vscode-server/tarball/master"}/modules/home-manager/vscode-server/home.nix"
-
-    # <sops-nix/modules/home-manager/home-manager/sops.nix>
   ];
 
   # Home Manager needs a bit of information about you and the paths it should

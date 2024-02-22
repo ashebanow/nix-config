@@ -12,8 +12,6 @@
     ../../modules/home-manager/neovim.nix
     ../../modules/home-manager/shell.nix
     ../../modules/home-manager/vscode.nix
-
-    # <sops-nix/modules/home-manager/home-manager/sops.nix>
   ];
 
   # Home Manager needs a bit of information about you and the paths it should

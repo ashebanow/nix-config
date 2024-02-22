@@ -25,11 +25,6 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  nixpkgs.config.permittedInsecurePackages = [
-    "openssl-1.1.1u"
-    "python-2.7.18.6"
-  ];
-
   imports = [
     # include NixOS-WSL modules
     <nixos-wsl/modules>
@@ -77,6 +72,8 @@
   };
 
   environment.systemPackages = with pkgs; [
+    # inputs.agenix.packages.x86_64-linux.default
+    inputs.ragenix.packages.x86_64-linux.default
     firefox
     git
     just

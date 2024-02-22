@@ -21,6 +21,16 @@
     # nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # agenix = {
+    #   url = "github:ryantm/agenix";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+
+    ragenix = {
+      url = "github:yaxitech/ragenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     darwin = {
       url = "github:lnl7/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -48,11 +58,6 @@
     };
 
     nixos-hardware.url = "github:NixOS/nixos-hardware";
-
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = inputs @ {
@@ -63,7 +68,6 @@
     hyprland-plugins,
     hyprwm-contrib,
     nixos-hardware,
-    sops-nix,
     ...
   }: let
     linuxArmSystem = "aarch64-linux";
@@ -141,7 +145,6 @@
             home-manager.useUserPackages = true;
             home-manager.users.ashebanow = import ./os/darwin/home.nix;
           }
-          # sops-nix.nixosModules.sops
         ];
       };
     };

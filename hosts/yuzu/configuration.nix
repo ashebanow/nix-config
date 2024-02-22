@@ -304,6 +304,8 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
+    # inputs.agenix.packages.x86_64-linux.default
+    inputs.ragenix.packages.x86_64-linux.default
     appimagekit
     cifs-utils
     docker
