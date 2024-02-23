@@ -48,7 +48,7 @@
     inputs.ragenix.packages.aarch64-darwin.default
     git
     vim
-    warp-terminal # mac only for now
+    warp-terminal
     wget
     zsh
   ];
@@ -59,7 +59,7 @@
     enable = true;
     onActivation = {
       autoUpdate = true;
-      upgrade = true;
+      upgrade = false;
     };
     # Note that the mac apps which auto-update themselves are commented out
     # here. You'll need to uncomment them to get them installed initially on
@@ -74,7 +74,6 @@
       "devtoys"
       "discord"
       "disk-diet"
-      # "docker"
       # "google-drive"
       # "intellij-idea"
       # "karabiner-elements"
