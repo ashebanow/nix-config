@@ -12,6 +12,7 @@
     ../../modules/home-manager/git.nix
     ../../modules/home-manager/iputils.nix
     ../../modules/home-manager/neovim.nix
+    ../../modules/home-manager/obsidian.nix
     ../../modules/home-manager/shell.nix
     ../../modules/home-manager/warp.nix
     ../../modules/home-manager/vscode.nix
