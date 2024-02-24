@@ -8,9 +8,11 @@
     ".config/alacritty".recursive = true;
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
+    ".config/skhd/skhdrc".source = ../../dotfiles/skhdrc;
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".config/wezterm/wezterm.lua".source = ../../dotfiles/wezterm.lua;
+    ".config/yabai/yabairc".source = ../../dotfiles/yabairc;
     ".config/zellij".source = ../../dotfiles/zellij-config.kdl;
 
     ".local/bin/copy-ssh-keys".source = ../../scripts/copy-ssh-keys;
