@@ -40,8 +40,9 @@
   # set up zsh as default shell
   programs.zsh.enable = true;
 
-  yabai.enable = true;
-  skhd.enable = true;
+  # Yabai tiling window manager
+  # yabai.enable = true;
+  # skhd.enable = true;
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget. We generally want to keep these system-specific
