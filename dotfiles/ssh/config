@@ -2,8 +2,10 @@
 # Github config, used for signing and auth, not login
 
 Host github.com github
-  User git
+  Compression yes
   IdentityFile /home/ashebanow/.ssh/github_ed25519
+  IdentitiesOnly yes
+  User git
 
 ########################################################
 # Unifi equipment
@@ -60,5 +62,8 @@ Host storage storage.lan
 # Defaults
 
 Host *
-  IdentityAgent /home/ashebanow/.1password/agent.sock
-  Compression yes
+  ForwardAgent yes
+  # Should only have one of IdentityAgent or IdentityFile uncommented
+#  IdentityAgent /home/ashebanow/.1password/agent.sock
+  IdentityFile /home/ashebanow/.ssh/id_ed25519
+  IdentitiesOnly yes
