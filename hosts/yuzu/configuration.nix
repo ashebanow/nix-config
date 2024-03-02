@@ -120,6 +120,7 @@
     settings.KbdInteractiveAuthentication = false;
     settings.PermitRootLogin = "no";
   };
+  security.sudo.wheelNeedsPassword = false;
 
   # Enable docker
   virtualisation.docker = {
