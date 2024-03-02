@@ -91,19 +91,13 @@
 
     carapace = {
       enable = true;
-      enableFishIntegration = true;
       enableNushellIntegration = true;
       enableZshIntegration = true;
-    };
-
-    fish = {
-      enable = true;
     };
 
     starship = {
       enable = true;
       enableZshIntegration = true;
-      enableFishIntegration = true;
     };
   };
 }
