@@ -6,6 +6,10 @@
 
     ".config/alacritty".source = ../../dotfiles/alacritty;
     ".config/alacritty".recursive = true;
+
+    ".config/nvim".source = ../../dotfiles/nvim;
+    ".config/nvim".recursive = true;
+
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/skhd/skhdrc".source = ../../dotfiles/skhdrc;
