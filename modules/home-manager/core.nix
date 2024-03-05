@@ -4,12 +4,25 @@
   home.file = {
     ".vimrc".source = ../../dotfiles/vimrc;
 
-    ".config/alacritty".source = ../../dotfiles/alacritty;
-    ".config/alacritty".recursive = true;
-
-    ".config/nvim".source = ../../dotfiles/nvim;
-    ".config/nvim".recursive = true;
-
+    ".config/alacritty" = {
+      source = ../../dotfiles/alacritty;
+      recursive = true;
+    };
+    # we copy the top level files/directors separately instead of just
+    # copying the whole nvim tree, because we don't want to overwrite
+    # lazyvim.lock, and it needs to stay writable.
+    #
+    # FIXME: nix is complaining about init.lua being used for multiple
+    # home.file targets, but this is the only reference to init.lua in
+    # my config.
+    # ".config/nvim/init.lua".source = ../../dotfiles/nvim/init.lua;
+    # ".config/nvim/lazyvim.json".source = ../../dotfiles/nvim/lazyvim.json;
+    # ".config/nvim/lua".source = ../../dotfiles/nvim/lua;
+    # ".config/nvim/lua".recursive = true;
+    ".config/nvim" = {
+      source = ../../dotfiles/nvim;
+      recursive = true;
+    };
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/skhd/skhdrc".source = ../../dotfiles/skhdrc;
@@ -25,8 +38,10 @@
     ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
     ".local/bin/test-starship".source = ../../scripts/test-starship;
 
-    ".local/share/backgrounds".source = ../../dotfiles/backgrounds;
-    ".local/share/backgrounds".recursive = true;
+    ".local/share/backgrounds" = {
+      source = ../../dotfiles/backgrounds;
+      recursive = true;
+    };
 
     ".ssh/config".source = ../../dotfiles/ssh/config;
     ".ssh/github_ed25519.pub".source = ../../dotfiles/ssh/github_ed25519.pub;
