@@ -30,9 +30,9 @@
     ./hardware-configuration.nix
     ../../modules/nixos/printer.nix
     # ../../modules/nixos/rancher-k3s.nix
-    ../../modules/nixos/desktops/plasma.nix
+    # ../../modules/nixos/desktops/plasma.nix
     # ../../modules/nixos/desktops/gnome.nix
-    # ../../modules/nixos/desktops/hyprland.nix
+    ../../modules/nixos/desktops/hyprland.nix
     ../../modules/nixos/virtualisation.nix
   ];
 
@@ -105,7 +105,7 @@
         22 # ssh
         80
         443 # HTTP/HTTPS
-        2049 # nfs
+        # 2049 # nfs
       ];
     };
   };

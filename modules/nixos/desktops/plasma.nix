@@ -3,13 +3,12 @@
   services.xserver = {
     enable = true;
 
-    # Enable the GNOME Desktop Environment.
+    # Enable the KDE Plasma Desktop Environment.
     displayManager = {
       sddm = {
         enable = true;
       };
     };
-
     desktopManager.plasma5.enable = true;
 
     # modules = [ pkgs.xorg.xf86videofbdev ];
