@@ -37,6 +37,7 @@
       ltree = "eza -lDT --sort modified";
       mkdir = "mkdir -pv";
       more = "bat";
+      neofetch = "fastfetch";
       nix-autoupdate-log = "systemctl status nixos-upgrade.service";
       nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
       nix-search = "nix search nixpkgs";

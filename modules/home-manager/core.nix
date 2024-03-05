@@ -56,6 +56,7 @@
     direnv
     diskus
     eza
+    fastfetch
     foreman
     gh
     git
@@ -70,7 +71,6 @@
     lego
     less
     magic-wormhole-rs
-    neofetch
     (nerdfonts.override {fonts = ["SourceCodePro" "Hack"];})
     nil # nix LSP
     nix-direnv
