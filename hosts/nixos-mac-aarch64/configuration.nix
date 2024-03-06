@@ -4,6 +4,7 @@
 {
   config,
   pkgs,
+  inputs,
   ...
 }: {
   nix = {
@@ -174,8 +175,8 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
-    # inputs.agenix.packages.aarch64-linux.default
-    inputs.ragenix.packages.aarch64-linux.default
+    inputs.agenix.packages.aarch64-linux.default
+    # inputs.ragenix.packages.aarch64-linux.default
     chromium
     cifs-utils
     docker-compose

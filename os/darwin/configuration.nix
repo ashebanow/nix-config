@@ -1,6 +1,7 @@
 {
-  inputs,
+  config,
   pkgs,
+  inputs,
   ...
 }: {
   nix = {
