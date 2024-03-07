@@ -21,19 +21,14 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  nixpkgs.config.permittedInsecurePackages = [
-    "openssl-1.1.1u"
-    "python-2.7.18.6"
-  ];
-
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
     ../../modules/nixos/printer.nix
     # ../../modules/nixos/rancher-k3s.nix
-    # ../../modules/nixos/desktops/plasma.nix
+    ../../modules/nixos/desktops/plasma.nix
     # ../../modules/nixos/desktops/gnome.nix
-    ../../modules/nixos/desktops/hyprland.nix
+    # ../../modules/nixos/desktops/hyprland.nix
     ../../modules/nixos/virtualisation.nix
   ];
 
@@ -68,7 +63,7 @@
   services.blueman.enable = true;
 
   networking = {
-    hostName = "yuzu";
+    hostName = "limon";
 
     networkmanager.enable = true;
 
