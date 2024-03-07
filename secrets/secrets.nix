@@ -4,8 +4,8 @@ let
 
   yuzu_pub = "";
   liquid-nixos_pub = "";
-  nixos-mac-aarch64_pub = "";
-  miraclemax_pub = "";
+  nixos-mac-aarch64_pub = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILhLSimZdGlUzn06raRVwH41l2GBdLmwrprBjDzCv6Ck root@nixos";
+  miraclemax_pub = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBgnAx3aD6mU7JLSqIEuaZUF5sn2ebr4sfWT3fKOHNvb";
   systems = [yuzu_pub liquid-nixos_pub nixos-mac-aarch64_pub miraclemax_pub];
 in {
   # "secret1.age".publicKeys = [ashebanow_pub yuzu_pub];
