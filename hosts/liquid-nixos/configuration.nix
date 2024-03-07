@@ -7,6 +7,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }: {
   nix = {
