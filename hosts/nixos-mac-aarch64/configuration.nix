@@ -175,9 +175,8 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
-    inputs.agenix.packages.aarch64-linux.default
-    # inputs.ragenix.packages.aarch64-linux.default
-    chromium
+    # inputs.agenix.packages.aarch64-linux.default
+    inputs.ragenix.packages.aarch64-linux.default
     cifs-utils
     docker-compose
     kitty
@@ -200,21 +199,6 @@
   environment.shells = with pkgs; [zsh];
 
   fonts.fontDir.enable = true;
-
-  programs.chromium = {
-    enable = true;
-    extensions = [
-      "cjpalhdlnbpafiamejdnhcphjbkeiagm" # ublock origin
-      "aeblfdkhhhdcdjpifhhbdiojplfjncoa" # 1password
-    ];
-    extraOpts = {
-      "BrowserSignin" = 1;
-      "SyncDisabled" = false;
-      "PasswordManagerEnabled" = false;
-      "SpellcheckEnabled" = true;
-      "SpellcheckLanguage" = ["en-US"];
-    };
-  };
 
   # Enable the 1Password CLI, this also enables a SGUID wrapper so the CLI can authorize against the GUI app
   programs._1password = {
