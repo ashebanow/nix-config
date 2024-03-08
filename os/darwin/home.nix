@@ -4,8 +4,6 @@
   pkgs,
   ...
 }: {
-  nixpkgs.config.allowUnfree = true;
-
   imports = [
     ../../modules/home-manager/core.nix
     ../../modules/home-manager/git.nix

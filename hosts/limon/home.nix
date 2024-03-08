@@ -1,7 +1,7 @@
 {
   nixpkgs,
   config,
-  nixos-hardware,
+  pkgs,
   ...
 }: {
   nixpkgs.config.allowUnfree = true;
