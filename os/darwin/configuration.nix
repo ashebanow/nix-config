@@ -57,7 +57,6 @@
     git
     just
     vim
-    warp-terminal
     wget
     zsh
   ];
