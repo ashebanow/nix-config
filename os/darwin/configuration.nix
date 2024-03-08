@@ -21,6 +21,8 @@
       options = "--delete-older-than 30d";
     };
   };
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
 
   imports = import ./modules;
 
@@ -35,9 +37,6 @@
     ];
   };
 
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
   # set up zsh as default shell
   programs.zsh.enable = true;
 
@@ -51,9 +50,10 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
+    git
     # inputs.agenix.packages.aarch64-darwin.default
     inputs.ragenix.packages.aarch64-darwin.default
-    git
+    just
     vim
     warp-terminal
     wget

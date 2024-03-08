@@ -10,6 +10,8 @@
 
   # Install necessary packages
   environment.systemPackages = with pkgs; [
+    docker
+    docker-compose
     virt-manager
     virt-viewer
     spice
@@ -41,4 +43,5 @@
     };
   };
   services.spice-vdagentd.enable = true;
+  users.extraGroups.docker.members = ["ashebanow"];
 }

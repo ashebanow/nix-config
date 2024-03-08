@@ -5,281 +5,39 @@
   nixos-hardware,
   ...
 }: {
-  nix = {
-    settings = {
-      auto-optimise-store = true;
-      experimental-features = ["nix-command" "flakes"];
-      warn-dirty = false;
-    };
-    gc = {
-      automatic = true;
-      dates = "weekly";
-      options = "--delete-older-than 30d";
-    };
-  };
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
   imports = [
-    # Include the results of the hardware scan.
+    ../../modules/nixos/nix-settings.nix
     ./hardware-configuration.nix
+    ../../modules/nixos/bluetooth.nix
+    ../../modules/nixos/boot.nix
+    ../../modules/nixos/i18n.nix
+    ../../modules/nixos/network.nix
+    ../../modules/nixos/openssh.nix
     ../../modules/nixos/printer.nix
+    ../../modules/nixos/raid-mounts.nix
     # ../../modules/nixos/rancher-k3s.nix
-    ../../modules/nixos/desktops/plasma.nix
+    ../../modules/nixos/sound.nix
+    ../../modules/nixos/virtualisation.nix
+
     # ../../modules/nixos/desktops/gnome.nix
     # ../../modules/nixos/desktops/hyprland.nix
-    ../../modules/nixos/virtualisation.nix
+    ../../modules/nixos/desktops/plasma.nix
   ];
 
-  # Bootloader
-  boot = {
-    loader = {
-      systemd-boot.enable = true;
-      efi.canTouchEfiVariables = true;
-    };
-
-    # Warp terminal app comes as an appimage, so we need to register
-    # the binary format to run using the appimage-run wrapper
-    binfmt.registrations.appimage = {
-      wrapInterpreterInShell = false;
-      interpreter = "${pkgs.appimage-run}/bin/appimage-run";
-      recognitionType = "magic";
-      offset = 0;
-      mask = ''\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff'';
-      magicOrExtension = ''\x7fELF....AI\x02'';
-    };
-  };
-
-  hardware.bluetooth = {
-    enable = true;
-    powerOnBoot = true; # powers up the default Bluetooth controller on boot
-    settings = {
-      General = {
-        Experimental = true;
-      };
-    };
-  };
-  services.blueman.enable = true;
-
-  networking = {
-    hostName = "limon";
-
-    networkmanager.enable = true;
-
-    # wireless = {
-    #   enable = true;
-    #   networks = {
-    #     "Kerpow!" = {
-    #       pskRaw="013d6f8e2633450c5051d7a53381da94be88a3a278eaa1e2fbc13d78a3270452";
-    #     };
-    #   };
-    # };
-
-    # defaultGateway = "10.40.60.1";
-    # nameservers = [ "10.40.60.1" ];
-
-    # interfaces."enp4s0".ipv4.addresses = [ {
-    #   address = "10.40.60.6";
-    #   prefixLength = 24;
-    # } ];
-
-    # extraHosts = ''
-    #   10.40.0.1   gateway gateway.lan
-    #   10.40.0.227  storage storage.lan
-    #   10.40.0.11  virt1 virt1.lan
-    #   10.40.0.14  virt2 virt2.lan
-    #   10.40.60.6 yuzu yuzu.lan
-    #   10.40.60.7 loquat loquat.lan
-    #   172.21.75.8 liquid-nixos liquid-nixos.lan
-    # '';
-
-    firewall = {
-      enable = true;
-      allowPing = true;
-      allowedTCPPorts = [
-        22 # ssh
-        80
-        443 # HTTP/HTTPS
-        # 2049 # nfs
-      ];
-    };
-  };
-
-  # Enable network manager applet
-  # programs.nm-applet.enable = true;
-
-  services.openssh = {
-    enable = true;
-    # require public key authentication for better security
-    settings.PasswordAuthentication = false;
-    settings.KbdInteractiveAuthentication = false;
-    settings.PermitRootLogin = "no";
-  };
-  security.sudo.wheelNeedsPassword = false;
-
-  # Enable docker
-  virtualisation.docker = {
-    enable = true;
-    enableOnBoot = true;
-    # storageDriver can be null or one of "aufs", "btrfs", "devicemapper",
-    # "overlay", "overlay2", "zfs". Default is null, which is "autodetect"
-    # storageDriver = "zfs";
-  };
-  users.extraGroups.docker.members = ["ashebanow"];
-
-  # Mount SMB shares from storage machine. All of these are set to automount
-  # on first use, and unmount after 10 minutes
-  #
-  # see example from https://fictionbecomesfact.com/nixos-server-configuration
-  #
-  # NOTE THAT YOU MUST CREATE/COPY the '/etc/nixos/smb-secrets' file to the
-  # machine, with USERNAME, DOMAIN and PASSWORD defined on separate lines.
-  # FIXME: replace with vault secrets
-  services.rpcbind.enable = true;
-  services.gvfs.enable = true;
-  # services.nfs.server.enable = true;
-  # boot.initrd = {
-  #   supportedFilesystems = [ "nfs" ];
-  #   kernelModules = [ "nfs" ];
-  # };
-  fileSystems = {
-    # "/mnt/storage/appdata" = {
-    #   device = "//storage.lan/appdata";
-    #   fsType = "cifs";
-    #   options = [
-    #     # Prevent hanging on network loss
-    #     "x-systemd.automount"
-    #     "noauto"
-    #     "x-systemd.idle-timeout=60"
-    #     "x-systemd.device-timeout=5s"
-    #     "x-systemd.mount-timeout=5s"
-
-    #     # Specify location of credentials file
-    #     "credentials=/etc/nixos/smb-secrets"
-
-    #     # Default permissions and file encoding
-    #     "file_mode=0777"
-    #     "dir_mode=0777"
-    #     "iocharset=utf8"
-    #   ];
-    # };
-    # "/mnt/storage/backups" = {
-    #   device = "//storage.lan/backups";
-    #   fsType = "cifs";
-    #   options = [
-    #     # Prevent hanging on network loss
-    #     "x-systemd.automount"
-    #     "noauto"
-    #     "x-systemd.idle-timeout=60"
-    #     "x-systemd.device-timeout=5s"
-    #     "x-systemd.mount-timeout=5s"
-
-    #     # Specify location of credentials file
-    #     "credentials=/etc/nixos/smb-secrets-ashebanow"
-
-    #     # Default permissions and file encoding
-    #     "file_mode=0777"
-    #     "dir_mode=0777"
-    #     "iocharset=utf8"
-
-    #     # mount as user, not root
-    #     "uid=1000"
-    #     "gid=1000"
-    #   ];
-    # };
-    # "/mnt/storage/isos" = {
-    #   device = "//storage.lan/isos";
-    #   fsType = "cifs";
-    #   options = [
-    #     # Prevent hanging on network loss
-    #     "x-systemd.automount"
-    #     "noauto"
-    #     "x-systemd.idle-timeout=60"
-    #     "x-systemd.device-timeout=5s"
-    #     "x-systemd.mount-timeout=5s"
-
-    #     # Specify location of credentials file
-    #     "credentials=/etc/nixos/smb-secrets-ashebanow"
-
-    #     # Default permissions and file encoding
-    #     "file_mode=0777"
-    #     "dir_mode=0777"
-    #     "iocharset=utf8"
-
-    #     # mount as user, not root
-    #     "uid=1000"
-    #     "gid=1000"
-    #   ];
-    # };
-    # "/mnt/storage/media" = {
-    #   device = "//storage.lan/media";
-    #   fsType = "cifs";
-    #   options = [
-    #     # Prevent hanging on network loss
-    #     "x-systemd.automount"
-    #     "noauto"
-    #     "x-systemd.idle-timeout=60"
-    #     "x-systemd.device-timeout=5s"
-    #     "x-systemd.mount-timeout=5s"
-
-    #     # Specify location of credentials file
-    #     "credentials=/etc/nixos/smb-secrets-ashebanow"
-
-    #     # Default permissions and file encoding
-    #     "file_mode=0777"
-    #     "dir_mode=0777"
-    #     "iocharset=utf8"
-
-    #     # mount as user, not root
-    #     "uid=1000"
-    #     "gid=1000"
-    #   ];
-    # };
-  };
-
-  # Set your time zone.
-  time.timeZone = "America/Los_Angeles";
-
-  # Select internationalisation properties.
-  i18n.defaultLocale = "en_US.UTF-8";
-
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_US.UTF-8";
-    LC_IDENTIFICATION = "en_US.UTF-8";
-    LC_MEASUREMENT = "en_US.UTF-8";
-    LC_MONETARY = "en_US.UTF-8";
-    LC_NAME = "en_US.UTF-8";
-    LC_NUMERIC = "en_US.UTF-8";
-    LC_PAPER = "en_US.UTF-8";
-    LC_TELEPHONE = "en_US.UTF-8";
-    LC_TIME = "en_US.UTF-8";
-  };
+  networking.hostName = "limon";
+  # interfaces."enp4s0".ipv4.addresses = [ {
+  #   address = "10.40.60.6";
+  #   prefixLength = 24;
+  # } ];
 
   # console ttys use the same keymap as X11
   console.useXkbConfig = true;
 
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
-  # Enable sound with pipewire.
-  sound.enable = true;
-  hardware.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
-  };
-
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
+
+  # Enable CUPS to print documents.
+  services.printing.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.ashebanow = {
@@ -292,25 +50,11 @@
     ];
   };
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget. We generally want to keep these system-specific
-  # configurations as small as possible and use home manager or shell.nix
-  # to install whats needed locally. Because nix uses symbolic links to point
-  # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
     # inputs.agenix.packages.x86_64-linux.default
     inputs.ragenix.packages.x86_64-linux.default
-    appimagekit
-    cifs-utils
-    docker
-    docker-compose
     firefox
     kitty
-    linuxKernel.packages.linux_6_1.turbostat
-    msrtool
-    nfs-utils
-    samba
-    virt-manager
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -338,11 +82,6 @@
     enable = true;
     polkitPolicyOwners = ["ashebanow"];
   };
-
-  # Enable QMEU emulation
-  services.qemuGuest.enable = true;
-  virtualisation.libvirtd.enable = true;
-  programs.dconf.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
