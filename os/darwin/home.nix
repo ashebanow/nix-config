@@ -16,6 +16,16 @@
     ../../modules/home-manager/vscode.nix
   ];
 
+  nixpkgs = {
+    overlays = [
+      (final: prev: {
+        _1password-gui = prev._1password-gui.override {
+          polkitPolicyOwners = ["ashebanow"];
+        };
+      })
+    ];
+  };
+
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "ashebanow";
