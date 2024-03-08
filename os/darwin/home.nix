@@ -21,6 +21,11 @@
 
   home.homeDirectory = "/Users/ashebanow";
 
+  home.packages = with pkgs; [
+    _1password
+    _1password-gui
+  ];
+
   manual = {
     html.enable = false;
     manpages.enable = false;
