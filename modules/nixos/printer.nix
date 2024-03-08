@@ -3,6 +3,9 @@
   pkgs,
   ...
 }: {
+  # Enable CUPS to print documents.
+  services.printing.enable = true;
+
   # This will enable the Avahi service and open the firewall for it.
   # The nssmdns option is necessary to make the Avahi service work with the nss-mdns package.
   # The openFirewall option is necessary to open the firewall for the Avahi service.

@@ -21,22 +21,15 @@
       options = "--delete-older-than 30d";
     };
   };
-
-  imports = import ./modules;
-
-  services.nix-daemon.enable = true;
-
-  users.users.ashebanow = {
-    description = "Andrew Shebanow";
-    home = "/Users/ashebanow";
-    shell = pkgs.zsh;
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
-    ];
-  };
-
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+
+  imports = [
+    ./modules
+    ../../users/ashebanow.nix
+  ];
+
+  services.nix-daemon.enable = true;
 
   # set up zsh as default shell
   programs.zsh.enable = true;
@@ -51,9 +44,10 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
-    # inputs.agenix.packages.aarch64-darwin.default
     inputs.ragenix.packages.aarch64-darwin.default
+    firefox
     git
+    just
     vim
     warp-terminal
     wget

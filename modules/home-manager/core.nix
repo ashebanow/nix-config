@@ -56,8 +56,6 @@
   fonts.fontconfig.enable = true;
 
   home.packages = with pkgs; [
-    _1password
-    _1password-gui
     alejandra
     atuin
     bandwhich
@@ -72,6 +70,7 @@
     diskus
     eza
     fastfetch
+    firefox
     foreman
     gh
     git
