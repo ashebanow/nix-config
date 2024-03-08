@@ -118,20 +118,6 @@
           }
         ];
       };
-      liquid-nixos = nixpkgs.lib.nixosSystem {
-        system = linuxSystem;
-        specialArgs = {inherit inputs;}; # forward inputs to modules
-        modules = [
-          ./hosts/liquid-nixos/configuration.nix
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.verbose = true;
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.ashebanow = import ./hosts/liquid-nixos/home.nix;
-          }
-        ];
-      };
     };
 
     darwinConfigurations = {
