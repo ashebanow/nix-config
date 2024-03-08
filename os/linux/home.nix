@@ -24,6 +24,10 @@
 
   home.homeDirectory = "/home/ashebanow";
 
+  home.packages = with pkgs; [
+    firefox
+  ];
+
   manual = {
     html.enable = false;
     manpages.enable = false;

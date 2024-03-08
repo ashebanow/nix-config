@@ -1,6 +1,7 @@
 {
   nixpkgs,
   config,
+  pkgs,
   ...
 }: {
   nixpkgs.config.allowUnfree = true;

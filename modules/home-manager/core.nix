@@ -70,7 +70,6 @@
     diskus
     eza
     fastfetch
-    firefox
     foreman
     gh
     git

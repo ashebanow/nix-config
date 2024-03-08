@@ -1,10 +1,10 @@
 {
   config,
+  lib,
   pkgs,
   inputs,
   ...
 }: {
-  # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.ashebanow = {
     shell = pkgs.zsh;
     isNormalUser = true;
