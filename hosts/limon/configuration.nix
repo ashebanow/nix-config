@@ -26,6 +26,8 @@
     # ../../modules/nixos/desktops/hyprland.nix
     ../../modules/nixos/desktops/plasma.nix
 
+    ../../modules/nixos/gaming/steam.nix
+
     ../../users/ashebanow.nix
   ];
 
