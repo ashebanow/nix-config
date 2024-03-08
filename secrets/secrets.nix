@@ -9,5 +9,5 @@ let
   systems = [calamansi_pub limon_pub miraclemax_pub yuzu_pub];
 in {
   # "secret1.age".publicKeys = [ashebanow_pub yuzu_pub];
-  # "secret2.age".publicKeys = users ++ systems;
+  "tailscale-authkey.age".publicKeys = users ++ systems;
 }
