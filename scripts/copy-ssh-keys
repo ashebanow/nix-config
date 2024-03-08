@@ -6,8 +6,6 @@ dest_ip=""
 case "$dest_machine" in
   storage )
     dest_ip="10.40.0.226";;
-  nixos-mac-aarch64 )
-    dest_ip="10.211.55.10";;
   loquat )
     dest_ip="10.40.60.7";;
   yuzu )
@@ -20,10 +18,11 @@ case "$dest_machine" in
     echo "Usage: copy-ssh-keys.sh dest_machine"
     echo "  dest_machine must be one of:"
     echo "    gateway"
-    echo "    nixos-mac-aarch64"
     echo "    storage"
+    echo "    limon"
     echo "    loquat"
     echo "    miraclemax"
+    echo "    yuzu"
     exit 1
     ;;
 esac

@@ -132,20 +132,6 @@
           }
         ];
       };
-      nixos-mac-aarch64 = nixpkgs.lib.nixosSystem {
-        system = linuxSystem;
-        specialArgs = {inherit inputs;}; # forward inputs to modules
-        modules = [
-          ./hosts/nixos-mac-aarch64/configuration.nix
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.verbose = true;
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.ashebanow = import ./os/linux/home.nix;
-          }
-        ];
-      };
     };
 
     darwinConfigurations = {
