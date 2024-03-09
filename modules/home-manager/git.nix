@@ -22,7 +22,7 @@
       extraConfig = {
         gpg.ssh.program =
           if pkgs.stdenv.isDarwin
-          then "${pkgs._1password-gui}/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+          then "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
           else "op-ssh-sign";
         # else "${pkgs._1password-gui}/bin/op-ssh-sign";
         # FIXME: need to handle wsl2 as well: /mnt/c/Users/A Shebanow/AppData/Local/1Password/app/8/op-ssh-sign-wsl
