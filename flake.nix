@@ -1,22 +1,6 @@
 {
   description = "ashebanow's way-too-complicated nix configuration";
 
-  nixConfig = {
-    experimental-features = ["nix-command" "flakes"];
-    substituters = [
-      "https://cache.nixos.org/"
-    ];
-
-    extra-substituters = [
-      "https://cattivi-public.cachix.org"
-      "https://hyprland.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "cattivi-public.cachix.org-1:qQQ8FHPoEibPtL1FTZTmVbUL78KW2zCRk+LZPsRiwQ4="
-      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
-    ];
-  };
-
   inputs = {
     # nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";

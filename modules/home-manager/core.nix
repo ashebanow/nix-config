@@ -8,6 +8,7 @@
       source = ../../dotfiles/alacritty;
       recursive = true;
     };
+    ".config/nix/nix.conf".source = ../../dotfiles/nix.conf;
     # we copy the top level files/directors separately instead of just
     # copying the whole nvim tree, because we don't want to overwrite
     # lazyvim.lock, and it needs to stay writable.
