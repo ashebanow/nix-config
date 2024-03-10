@@ -48,7 +48,6 @@
     nixpkgs,
     home-manager,
     darwin,
-    # agenix,
     ragenix,
     hyprland,
     hyprland-plugins,
