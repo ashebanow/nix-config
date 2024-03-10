@@ -26,6 +26,7 @@ test:
 
 gc:
   #!/usr/bin/env bash
+  sudo nix-collect-garbage --extra-experimental-features "nix-command flakes" --delete-old
   nix-collect-garbage --extra-experimental-features "nix-command flakes" --delete-old
 
 update:
