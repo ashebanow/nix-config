@@ -8,6 +8,7 @@
     ./hardware-configuration.nix
 
     ../../modules/nixos/_1password.nix
+    ../../modules/nixos/amdgpu.nix
     ../../modules/nixos/basics.nix
     ../../modules/nixos/bluetooth.nix
     ../../modules/nixos/boot.nix
@@ -33,6 +34,8 @@
   #   address = "10.40.60.6";
   #   prefixLength = 24;
   # } ];
+
+  powerManagement.cpuFreqGovernor = "performance";
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

@@ -13,9 +13,6 @@
 
     desktopManager.gnome.enable = true;
 
-    modules = [pkgs.xorg.xf86videofbdev];
-    videoDrivers = ["nvidia"];
-
     # Configure keymap in X11
     layout = "us";
     xkbVariant = "";
