@@ -10,8 +10,7 @@
   programs.hyprland = {
     enable = true;
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    xwayland.hidpi = true;
-    xwayland.enable = true;
+    # xwayland.enable = true;
   };
 
   services.dbus.enable = true;
@@ -24,7 +23,7 @@
   };
 
   # for xremap to work with wlroots
-  services.xremap.withWlroots = true;
+  # services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
     hyprland
