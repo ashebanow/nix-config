@@ -2,7 +2,6 @@
   config,
   pkgs,
   inputs,
-  nixos-hardware,
   ...
 }: {
   networking = {

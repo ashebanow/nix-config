@@ -40,8 +40,6 @@
       url = "github:hyprwm/hyprland-plugins";
       inputs.hyprland.follows = "hyprland";
     };
-
-    nixos-hardware.url = "github:NixOS/nixos-hardware";
   };
 
   outputs = inputs @ {
@@ -52,7 +50,6 @@
     hyprland,
     hyprland-plugins,
     hyprwm-contrib,
-    nixos-hardware,
     ...
   }: let
     linuxArmSystem = "aarch64-linux";
