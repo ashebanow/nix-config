@@ -52,6 +52,7 @@
 
   home.sessionVariables = {
     EDITOR = "vim";
+    GDK_SCALE = 1.5;
   };
 
   fonts.fontconfig.enable = true;
