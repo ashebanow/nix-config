@@ -80,6 +80,7 @@
             home-manager.verbose = true;
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users.ashebanow = import ./hosts/yuzu/home.nix;
           }
         ];
@@ -94,6 +95,7 @@
             home-manager.verbose = true;
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users.ashebanow = import ./hosts/limon/home.nix;
           }
         ];
@@ -111,6 +113,7 @@
             home-manager.verbose = true;
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users.ashebanow = import ./os/darwin/home.nix;
           }
         ];

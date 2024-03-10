@@ -19,7 +19,7 @@ test:
 test:
   #!/usr/bin/env bash
   if [ -f /etc/NIXOS ]; then
-    sudo nixos-rebuild --show-trace test --flake "$HOME/nix-config"
+    sudo nixos-rebuild --show-trace dry-activate --flake "$HOME/nix-config"
   else
     home-manager --show-trace -n switch --flake "$HOME/nix-config"
   fi
