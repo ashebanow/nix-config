@@ -37,7 +37,10 @@
   #   prefixLength = 24;
   # } ];
 
-  powerManagement.cpuFreqGovernor = "performance";
+  powerManagement = {
+    enable = true;
+    cpuFreqGovernor = "performance";
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
