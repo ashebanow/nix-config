@@ -25,6 +25,7 @@
       recursive = true;
     };
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
+    ".config/hypr/hyprland.conf".source = ../../dotfiles/hypr/hyprland.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/skhd/skhdrc".source = ../../dotfiles/skhdrc;
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
@@ -52,7 +53,8 @@
 
   home.sessionVariables = {
     EDITOR = "vim";
-    GDK_SCALE = 1.5;
+    GDK_SCALE = "1.5";
+    STEAM_FORCE_DESKTOPUI_SCALING = "1.5";
   };
 
   fonts.fontconfig.enable = true;

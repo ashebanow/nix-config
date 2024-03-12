@@ -1,8 +1,8 @@
 {pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     # appimagekit
-    linuxKernel.packages.linux_6_1.turbostat
-    msrtool
+    # linuxKernel.packages.linux_6_1.turbostat
+    # msrtool
   ];
 
   # Bootloader

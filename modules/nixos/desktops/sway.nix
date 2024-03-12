@@ -1,10 +1,6 @@
 {pkgs, ...}: {
-  # programs.zsh.sessionVariables = {
-  #   # If your cursor becomes invisible
-  #   # WLR_NO_HARDWARE_CURSORS = "1";
-  #   # Hint electron apps to use wayland
-  #   NIXOS_OZONE_WL = "1";
-  # };
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
+  environment.sessionVariables.WLR_NO_HARDWARE_CURSORS = "1";
 
   # wayland-related
   # programs.sway.enable = true; # commented out due to usage of home-manager's sway

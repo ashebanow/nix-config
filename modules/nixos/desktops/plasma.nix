@@ -11,9 +11,6 @@
     };
     desktopManager.plasma5.enable = true;
 
-    # modules = [ pkgs.xorg.xf86videofbdev ];
-    # videoDrivers = [ "nvidia" ];
-
     # Configure keymap in X11
     xkb.layout = "us";
     xkb.variant = "";

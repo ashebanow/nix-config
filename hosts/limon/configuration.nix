@@ -13,6 +13,7 @@
     ../../modules/nixos/boot.nix
     ../../modules/nixos/i18n.nix
     ../../modules/nixos/network.nix
+    ../../modules/nixos/nvidia.nix
     ../../modules/nixos/nix-settings.nix
     ../../modules/nixos/openssh.nix
     ../../modules/nixos/printer.nix
@@ -35,6 +36,11 @@
   #   address = "10.40.60.6";
   #   prefixLength = 24;
   # } ];
+
+  powerManagement = {
+    enable = true;
+    cpuFreqGovernor = "performance";
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

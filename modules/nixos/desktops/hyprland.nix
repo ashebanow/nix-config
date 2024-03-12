@@ -10,8 +10,7 @@
   programs.hyprland = {
     enable = true;
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    xwayland.hidpi = true;
-    xwayland.enable = true;
+    # xwayland.enable = true;
   };
 
   services.dbus.enable = true;
@@ -23,8 +22,10 @@
     ];
   };
 
+  # xdg.configFile.".config/hypr/hyprland.conf".source = ../../dotfiles/hyprland/hyprland.conf;
+
   # for xremap to work with wlroots
-  services.xremap.withWlroots = true;
+  # services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
     hyprland
@@ -33,6 +34,10 @@
     meson
     pavucontrol
     rofi-wayland
+    waybar
+    hypridle
+    hyprpaper
+    xfce.thunar
     swww # for wallpapers
     wayland-protocols
     wayland-utils
