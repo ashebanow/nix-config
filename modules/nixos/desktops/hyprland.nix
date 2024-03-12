@@ -22,6 +22,8 @@
     ];
   };
 
+  # xdg.configFile.".config/hypr/hyprland.conf".source = ../../dotfiles/hyprland/hyprland.conf;
+
   # for xremap to work with wlroots
   # services.xremap.withWlroots = true;
 
@@ -32,6 +34,10 @@
     meson
     pavucontrol
     rofi-wayland
+    waybar
+    hypridle
+    hyprpaper
+    # thunar
     swww # for wallpapers
     wayland-protocols
     wayland-utils

@@ -25,6 +25,7 @@
       recursive = true;
     };
     ".config/glances/glances.conf".source = ../../dotfiles/glances.conf;
+    ".config/hypr/hyprland.conf".source = ../../dotfiles/hypr/hyprland.conf;
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/skhd/skhdrc".source = ../../dotfiles/skhdrc;
     ".config/starship.toml".source = ../../dotfiles/starship.toml;
