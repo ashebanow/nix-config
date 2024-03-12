@@ -37,7 +37,7 @@
     waybar
     hypridle
     hyprpaper
-    # thunar
+    xfce.thunar
     swww # for wallpapers
     wayland-protocols
     wayland-utils
