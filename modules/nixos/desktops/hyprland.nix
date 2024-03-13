@@ -10,7 +10,9 @@
   programs.hyprland = {
     enable = true;
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
-    # xwayland.enable = true;
+    xwayland.enable = true;
+    systemd.enable = true;
+    enableNvidiaPatches = true;
   };
 
   services.dbus.enable = true;
@@ -22,34 +24,38 @@
     ];
   };
 
-  # xdg.configFile.".config/hypr/hyprland.conf".source = ../../dotfiles/hyprland/hyprland.conf;
+  # enable programs hyprland uses
+  programs.foot.enable = true;
+  programs.imv.enable = true;
+  programs.mpv.enable = true;
+  programs.thunar.enable = true;
+  programs.waybar.enable = true;
+  programs.zathura.enable = true;
+
+  # enable services hyprland uses
+  services.cliphist.enable = true;
+  services.dunst.enable = true;
+  services.udiskie.enable = true;
+  services.udiskie.tray = "always";
 
   # for xremap to work with wlroots
-  # services.xremap.withWlroots = true;
+  services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
     hyprland
-    dunst
+    hypridle
+    hyprlock
+    hyprpaper
+    hyprpicker
     libnotify
     meson
     pavucontrol
     rofi-wayland
-    waybar
-    hypridle
-    hyprpaper
-    xfce.thunar
-    swww # for wallpapers
     wayland-protocols
     wayland-utils
     wl-clipboard
     wlroots
     xdg-desktop-portal-gtk
     xdg-desktop-portal-hyprland
-    xwayland
-
-    foot # terminal
-    imv # image viewer
-    mpv # media player
-    zathura # pdf viewer
   ];
 }
