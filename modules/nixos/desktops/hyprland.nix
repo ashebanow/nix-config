@@ -11,8 +11,7 @@
     enable = true;
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
     xwayland.enable = true;
-    systemd.enable = true;
-    enableNvidiaPatches = true;
+    # systemd.enable = true;
   };
 
   services.dbus.enable = true;
@@ -25,37 +24,39 @@
   };
 
   # enable programs hyprland uses
-  programs.foot.enable = true;
-  programs.imv.enable = true;
-  programs.mpv.enable = true;
   programs.thunar.enable = true;
   programs.waybar.enable = true;
-  programs.zathura.enable = true;
 
   # enable services hyprland uses
-  services.cliphist.enable = true;
-  services.dunst.enable = true;
-  services.udiskie.enable = true;
-  services.udiskie.tray = "always";
+  # services.cliphist.enable = true;
+  # services.dunst.enable = true;
+  # services.udiskie.enable = true;
+  # services.udiskie.tray = "always";
 
   # for xremap to work with wlroots
-  services.xremap.withWlroots = true;
+  # services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
+    dunst
+    foot
     hyprland
     hypridle
     hyprlock
     hyprpaper
     hyprpicker
+    imv
     libnotify
     meson
+    mpv
     pavucontrol
     rofi-wayland
+    udiskie
     wayland-protocols
     wayland-utils
     wl-clipboard
     wlroots
     xdg-desktop-portal-gtk
     xdg-desktop-portal-hyprland
+    zathura
   ];
 }
