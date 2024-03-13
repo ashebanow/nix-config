@@ -85,6 +85,7 @@
           }
         ];
       };
+
       limon = nixpkgs.lib.nixosSystem {
         system = linuxSystem;
         specialArgs = {inherit inputs;}; # forward inputs to modules
@@ -98,6 +99,14 @@
             home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users.ashebanow = import ./hosts/limon/home.nix;
           }
+        ];
+      };
+
+      installerIso = nixpkgs.lib.nixosSystem {
+        system = linuxSystem;
+        specialArgs = {inherit inputs;};
+        modules = [
+          ./os/linux/iso-configuration.nix
         ];
       };
     };

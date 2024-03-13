@@ -30,6 +30,21 @@ test:
     home-manager --show-trace -n switch --flake "{{FLAKE_DIR}}"
   fi
 
+[macos]
+build-iso:
+  echo "ISO build on non-nixOS platforms unsupported"
+  exit 1
+
+[linux]
+build-iso:
+  #!/usr/bin/env bash
+  if [ -f /etc/NIXOS ]; then
+    nix build "{{FLAKE_DIR}}#nixosConfigurations.installerIso.config.system.build.isoImage"
+  else
+    echo "Non-nixOS platforms unsupported"
+    exit 1
+  fi
+
 gc:
   #!/usr/bin/env bash
   sudo nix-collect-garbage --extra-experimental-features "nix-command flakes" --delete-old
