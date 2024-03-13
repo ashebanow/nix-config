@@ -37,4 +37,4 @@ gc:
 
 update:
   #!/usr/bin/env bash
-  nix flake update --extra-experimental-features "nix-command flakes" --commit-lock-file  --flake "$FLAKE_DIR"
+  nix flake update --extra-experimental-features "nix-command flakes" --flake "$FLAKE_DIR"
