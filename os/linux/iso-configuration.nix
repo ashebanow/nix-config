@@ -47,24 +47,8 @@
     alias grep=rg
   '';
 
-  programs = {
-    # Some programs need SUID wrappers, can be configured further or are
-    # started in user sessions.
-    # programs.mtr.enable = true;
-    gnupg.agent = {
-      enable = true;
-      enableSSHSupport = true;
-    };
-  };
-
-  # set up zsh as default shell
-  programs.zsh.enable = true;
-  users.defaultUserShell = pkgs.zsh;
-  environment.shells = with pkgs; [zsh];
-
-  # console ttys use the same keymap as X11
-  console.useXkbConfig = true;
-
+  # including this here because some hardware is dog slow without it,
+  # like my EKWB Vanquish 275
   powerManagement = {
     enable = true;
     cpuFreqGovernor = "performance";
@@ -73,10 +57,7 @@
   nixpkgs.hostPlatform = "x86_64-linux";
 
   environment.sessionVariables = {
-    EDITOR = "vim";
+    EDITOR = "nvim";
     GDK_SCALE = "1.5";
-    STEAM_FORCE_DESKTOPUI_SCALING = "1.5";
   };
-
-  fonts.fontconfig.enable = true;
 }
