@@ -5,16 +5,6 @@
     # nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # agenix = {
-    #   url = "github:ryantm/agenix";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-
-    ragenix = {
-      url = "github:yaxitech/ragenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     darwin = {
       url = "github:lnl7/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -40,16 +30,28 @@
       url = "github:hyprwm/hyprland-plugins";
       inputs.hyprland.follows = "hyprland";
     };
+
+    impermanence.url = "github:nix-community/impermanence";
+
+    impurity.url = "github:outfoxxed/impurity.nix";
+
+    ragenix = {
+      url = "github:yaxitech/ragenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
+    self,
     nixpkgs,
-    home-manager,
     darwin,
-    ragenix,
+    home-manager,
     hyprland,
     hyprland-plugins,
     hyprwm-contrib,
+    impermanence,
+    impurity,
+    ragenix,
     ...
   }: let
     linuxArmSystem = "aarch64-linux";
@@ -75,6 +77,10 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/yuzu/configuration.nix
+          {
+            imports = [impurity.nixosModules.impurity];
+            impurity.configRoot = self;
+          }
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -85,12 +91,19 @@
           }
         ];
       };
+      yuzu-impure =
+        self.nixosConfigurations.yuzu.extendModules
+        {modules = [{impurity.enable = true;}];};
 
       limon = nixpkgs.lib.nixosSystem {
         system = linuxSystem;
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/limon/configuration.nix
+          {
+            imports = [impurity.nixosModules.impurity];
+            impurity.configRoot = self;
+          }
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -101,6 +114,9 @@
           }
         ];
       };
+      limon-impure =
+        self.nixosConfigurations.limon.extendModules
+        {modules = [{impurity.enable = true;}];};
 
       installerIso = nixpkgs.lib.nixosSystem {
         system = linuxSystem;
@@ -117,6 +133,10 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./os/darwin/configuration.nix
+          {
+            imports = [impurity.nixosModules.impurity];
+            impurity.configRoot = self;
+          }
           home-manager.darwinModules.home-manager
           {
             home-manager.verbose = true;
@@ -127,6 +147,9 @@
           }
         ];
       };
+      miraclemax-impure =
+        self.darwinConfigurations.miraclemax.extendModules
+        {modules = [{impurity.enable = true;}];};
     };
 
     # this is currently used for the WSL2 install on Liquidity,

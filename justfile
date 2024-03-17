@@ -3,6 +3,7 @@ FLAKE_DIR := if path_exists("/etc/nixos/flake.nix") == "true" {
 } else {
   "$HOME/nix-config"
 }
+HOSTNAME := "$(hostname)"
 
 [macos]
 switch:
@@ -15,6 +16,24 @@ switch:
     sudo nixos-rebuild switch --impure --flake "{{FLAKE_DIR}}"
   else
     home-manager switch --impure --flake "{{FLAKE_DIR}}"
+  fi
+
+[macos]
+switch-impure:
+  IMPURITY_PATH="{{FLAKE_DIR}}" darwin-rebuild switch \
+    --impure --flake  "{{FLAKE_DIR}}#{{HOSTNAME}}-impure"
+
+[linux]
+switch-impure:
+  #!/usr/bin/env bash
+  if [ -f /etc/NIXOS ]; then
+    IMPURITY_PATH="{{FLAKE_DIR}}" sudo nixos-rebuild switch  \
+      --preserve-env=IMPURITY_PATH --impure --flake \
+      "{{FLAKE_DIR}}#{{HOSTNAME}}-impure"
+  else
+    IMPURITY_PATH="{{FLAKE_DIR}}" home-manager switch \
+      --preserve-env=IMPURITY_PATH --impure --flake \
+      "{{FLAKE_DIR}}#{{HOSTNAME}}-impure"
   fi
 
 [macos]
