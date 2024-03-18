@@ -7,6 +7,7 @@
   nix = {
     # package = pkgs.nixFlakes;
     settings = {
+      trusted-users = ["ashebanow"];
       auto-optimise-store = true;
       experimental-features = ["nix-command" "flakes"];
       warn-dirty = false;
@@ -23,6 +24,7 @@
   };
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.permittedInsecurePackages = ["nix-2.16.2"];
 
   imports = [
     ./modules/skhd.nix
@@ -39,6 +41,8 @@
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
     ];
   };
+
+  documentation.enable = false;
 
   # set up zsh as default shell
   programs.zsh.enable = true;

@@ -29,6 +29,28 @@
     ../../users/ashebanow.nix
   ];
 
+  nix = {
+    # package = pkgs.nixFlakes;
+    settings = {
+      trusted-users = ["ashebanow"];
+      auto-optimise-store = true;
+      experimental-features = ["nix-command" "flakes"];
+      warn-dirty = false;
+    };
+    gc = {
+      automatic = true;
+      interval = {
+        Weekday = 0;
+        Hour = 2;
+        Minute = 0;
+      };
+      options = "--delete-older-than 30d";
+    };
+  };
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.permittedInsecurePackages = ["nix-2.16.2"];
+
   networking.hostName = "yuzu";
   # interfaces."enp4s0".ipv4.addresses = [ {
   #   address = "10.40.60.6";

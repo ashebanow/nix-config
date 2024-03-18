@@ -5,7 +5,7 @@
   ...
 }: {
   home.packages = with pkgs; [
-    nixd
+    nil
     vscode
   ];
 
