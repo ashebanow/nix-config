@@ -31,7 +31,7 @@
     };
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/skhd/skhdrc".source = ../../dotfiles/skhdrc;
-    ".config/starship.toml".source = ../../dotfiles/starship.toml;
+    # ".config/starship.toml".source = ../../dotfiles/starship.toml;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".config/wezterm/wezterm.lua".source = ../../dotfiles/wezterm.lua;
     ".config/yabai/yabairc".source = ../../dotfiles/yabairc;
@@ -41,7 +41,7 @@
     ".local/bin/find-dirty-gits".source = ../../scripts/find-dirty-gits;
     ".local/bin/list-cloudflare-ips".source = ../../scripts/list-cloudflare-ips;
     ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
-    ".local/bin/test-starship".source = ../../scripts/test-starship;
+    # ".local/bin/test-starship".source = ../../scripts/test-starship;
 
     ".local/share/backgrounds" = {
       source = ../../dotfiles/backgrounds;

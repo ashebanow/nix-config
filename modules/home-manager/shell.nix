@@ -67,20 +67,13 @@
   programs = {
     zsh = {
       enable = true;
-      # autocd = true;
-      # dotDir = ".config/zsh";
-      # enableCompletion = true;
-      # enableAutosuggestions = true;
+      dotDir = ".config/zsh";
       initExtra = ''
-        # bindkey '^ ' autosuggest-accept
         eval "$(atuin init zsh)"
         if [[ -f /opt/homebrew/bin/brew ]]; then
           eval "$(/opt/homebrew/bin/brew shellenv)"
         fi
       '';
-      # syntaxHighlighting = {
-      #   enable = true;
-      # };
 
       antidote = {
         enable = true;
