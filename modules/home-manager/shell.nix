@@ -70,6 +70,9 @@
       dotDir = ".config/zsh";
       initExtra = ''
         eval "$(atuin init zsh)"
+        if [[ -f "~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh" ]]; then
+          eval "~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh"
+        fi
         if [[ -f /opt/homebrew/bin/brew ]]; then
           eval "$(/opt/homebrew/bin/brew shellenv)"
         fi

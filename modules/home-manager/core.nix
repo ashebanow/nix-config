@@ -37,6 +37,7 @@
     ".config/wezterm/wezterm.lua".source = ../../dotfiles/wezterm.lua;
     ".config/yabai/yabairc".source = ../../dotfiles/yabairc;
     ".config/zellij".source = ../../dotfiles/zellij-config.kdl;
+    ".config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh".source = ../../dotfiles/catppuccin_mocha-zsh-syntax-highlighting.zsh;
 
     ".local/bin/copy-ssh-keys".source = ../../scripts/copy-ssh-keys;
     ".local/bin/find-dirty-gits".source = ../../scripts/find-dirty-gits;
