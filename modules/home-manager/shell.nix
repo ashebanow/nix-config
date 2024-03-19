@@ -40,7 +40,11 @@
       neofetch = "fastfetch";
       nix-autoupdate-log = "systemctl status nixos-upgrade.service";
       nix-autoupdate-status = "systemctl status nixos-upgrade.timer";
-      nix-search = "nix search nixpkgs";
+      nb = "nix build";
+      nd = "nix develop";
+      nf = "nix flake";
+      nr = "nix run";
+      ns = "nix search";
       nsh = "nix-shell -p";
       vi = "nvim";
       vim = "nvim";
@@ -63,42 +67,44 @@
   programs = {
     zsh = {
       enable = true;
-      autocd = true;
-      dotDir = ".config/zsh";
-      enableCompletion = true;
-      enableAutosuggestions = true;
+      # autocd = true;
+      # dotDir = ".config/zsh";
+      # enableCompletion = true;
+      # enableAutosuggestions = true;
       initExtra = ''
-        bindkey '^ ' autosuggest-accept
+        # bindkey '^ ' autosuggest-accept
         eval "$(atuin init zsh)"
         if [[ -f /opt/homebrew/bin/brew ]]; then
           eval "$(/opt/homebrew/bin/brew shellenv)"
         fi
       '';
-      syntaxHighlighting = {
+      # syntaxHighlighting = {
+      #   enable = true;
+      # };
+
+      antidote = {
         enable = true;
+        package = pkgs.antidote;
+        plugins = [
+          # ZSH utility plugins
+          "zsh-users/zsh-autosuggestions"
+          "zsh-users/zsh-syntax-highlighting"
+          "zsh-users/zsh-completions"
+          "zsh-users/zsh-history-substring-search"
+          # ZSH prompt
+          "romkatv/powerlevel10k"
+          # Extra
+          "MichaelAquilina/zsh-you-should-use"
+          "nix-community/nix-zsh-completions"
+          "z-shell/zsh-eza"
+        ];
+        useFriendlyNames = true;
       };
     };
 
-    nushell = {
-      enable = true;
-      # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
-      configFile.source = ../../dotfiles/config.nu;
-      shellAliases = {
-        vi = "nvim";
-        vim = "nvim";
-        nano = "nvim";
-      };
-    };
-
-    carapace = {
-      enable = true;
-      enableNushellIntegration = true;
-      enableZshIntegration = true;
-    };
-
-    starship = {
-      enable = true;
-      enableZshIntegration = true;
-    };
+    # starship = {
+    #   enable = true;
+    #   enableZshIntegration = true;
+    # };
   };
 }
