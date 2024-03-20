@@ -71,7 +71,10 @@
       initExtra = ''
         eval "$(atuin init zsh)"
         if [[ -f "~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh" ]]; then
-          eval "~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh"
+          source "~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh"
+        fi
+        if [[ -f ~/.p10k.zsh ]]; then
+          source ~/.p10k.zsh
         fi
         if [[ -f /opt/homebrew/bin/brew ]]; then
           eval "$(/opt/homebrew/bin/brew shellenv)"
