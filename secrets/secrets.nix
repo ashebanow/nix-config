@@ -10,5 +10,6 @@ let
 in {
   # "secret1.age".publicKeys = [ashebanow_pub yuzu_pub];
   "tailscale-authkey.age".publicKeys = users ++ systems;
+  "tailscale-ashebanow-key.age".publicKeys = users ++ systems;
   "smb-secrets.age".publicKeys = users ++ systems;
 }

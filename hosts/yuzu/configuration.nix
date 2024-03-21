@@ -20,6 +20,7 @@
     ../../modules/nixos/raid-mounts.nix
     # ../../modules/nixos/rancher-k3s.nix
     ../../modules/nixos/sound.nix
+    ../../modules/nixos/tailscale.nix
     ../../modules/nixos/virtualisation.nix
 
     # ../../modules/nixos/desktops/gnome.nix
