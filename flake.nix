@@ -75,6 +75,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/yuzu/configuration.nix
+          ragenix.nixosModules.default
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -91,6 +92,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/limon/configuration.nix
+          ragenix.nixosModules.default
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -107,6 +109,7 @@
         specialArgs = {inherit inputs;};
         modules = [
           ./os/linux/iso-configuration.nix
+          ragenix.nixosModules.default
         ];
       };
     };

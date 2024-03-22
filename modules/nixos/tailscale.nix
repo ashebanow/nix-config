@@ -11,7 +11,7 @@
   ];
 
   services.tailscale = {
-    authKeyFile = config.age.secrets.tailscale-ashebanow-key.path;
+    authKeyFile = config.age.secrets."tailscale-ashebanow-key.age".path;
     enable = true;
     extraUpFlags = ["--ssh"];
     openFirewall = true;
