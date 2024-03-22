@@ -5,6 +5,7 @@
 }: {
   imports = [
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+    ../../modules/basics.nix
   ];
 
   environment.systemPackages = with pkgs; [

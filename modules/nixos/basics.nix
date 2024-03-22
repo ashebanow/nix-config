@@ -4,7 +4,11 @@
   inputs,
   ...
 }: {
-  environment.systemPackages = with pkgs; [
+  age.secrets."tailscale-authkey.age".file = ../../secrets/tailscale-authkey.age;
+  age.secrets."tailscale-ashebanow-key.age".file = ../../secrets/tailscale-ashebanow-key.age;
+  age.secrets."smb-secrets.age".file = ../../secrets/smb-secrets.age;
+
+  environment.systemPackages = [
     inputs.ragenix.packages.x86_64-linux.default
   ];
 

@@ -20,6 +20,7 @@
     ../../modules/nixos/raid-mounts.nix
     # ../../modules/nixos/rancher-k3s.nix
     ../../modules/nixos/sound.nix
+    ../../modules/nixos/tailscale.nix
     ../../modules/nixos/virtualisation.nix
 
     # ../../modules/nixos/desktops/gnome.nix
@@ -39,15 +40,15 @@
       experimental-features = ["nix-command" "flakes"];
       warn-dirty = false;
     };
-    gc = {
-      automatic = true;
-      interval = {
-        Weekday = 0;
-        Hour = 2;
-        Minute = 0;
-      };
-      options = "--delete-older-than 30d";
-    };
+    # gc = {
+    #   automatic = true;
+    #   interval = {
+    #     Weekday = 0;
+    #     Hour = 2;
+    #     Minute = 0;
+    #   };
+    #   options = "--delete-older-than 30d";
+    # };
   };
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
