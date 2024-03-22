@@ -104,6 +104,7 @@
       # "slack"
       # "soundsource"
       "steam"
+      "tailscale"
       "temurin"
       # "tg-pro"
       # "warp"
