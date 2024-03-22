@@ -87,6 +87,7 @@
       "discord"
       "disk-diet"
       # "firefox"
+      "google-chrome"
       # "google-drive"
       # "intellij-idea"
       # "karabiner-elements"

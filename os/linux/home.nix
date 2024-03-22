@@ -7,7 +7,6 @@
 
   imports = [
     ../../modules/home-manager/core.nix
-    ../../modules/home-manager/chrome.nix
     ../../modules/home-manager/git.nix
     # ../../modules/home-manager/hashi.nix
     ../../modules/home-manager/iputils.nix

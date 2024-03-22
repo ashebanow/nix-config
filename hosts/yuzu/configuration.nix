@@ -12,6 +12,7 @@
     ../../modules/nixos/basics.nix
     ../../modules/nixos/bluetooth.nix
     ../../modules/nixos/boot.nix
+    ../../modules/nixos/chrome.nix
     ../../modules/nixos/i18n.nix
     ../../modules/nixos/network.nix
     ../../modules/nixos/nix-settings.nix
