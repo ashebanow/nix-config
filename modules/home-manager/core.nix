@@ -106,6 +106,7 @@
     unzip
     vale
     vim
+    warp-terminal
     wezterm
     wget
     wishlist
