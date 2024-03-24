@@ -22,6 +22,7 @@
 
       ack = "rg";
       cat = "bat --paging=never --style=plain";
+      chrome = "wrapped-chrome";
       cls = "clear";
       cpuwatts = "sudo turbostat --Summary --quiet --show PkgWatt --interval 1";
       diff = "delta";
@@ -29,6 +30,7 @@
       flake-checker = "nix run github:DeterminateSystems/flake-checker";
       gst = "git status -sb";
       grep = "rg";
+      hl = "wrapped-hyperland";
       less = "bat";
       la = "eza -a";
       ll = "eza -al";
