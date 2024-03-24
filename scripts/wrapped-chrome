@@ -1,0 +1,4 @@
+#!env bash
+
+# TODO: make this work on non-nixos as well....
+/run/current-system/sw/bin/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland
