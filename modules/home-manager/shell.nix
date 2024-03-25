@@ -24,6 +24,7 @@
       cat = "bat --paging=never --style=plain";
       chrome = "wrapped-chrome";
       cls = "clear";
+      code = "NIXOS_OZONE_WL=1 code";
       cpuwatts = "sudo turbostat --Summary --quiet --show PkgWatt --interval 1";
       diff = "delta";
       diskspace = "df -hl";
@@ -48,6 +49,7 @@
       nr = "nix run";
       ns = "nix search";
       nsh = "nix-shell -p";
+      obsidian = "wrapped-obsidian";
       vi = "nvim";
       vim = "nvim";
       nano = "nvim";
