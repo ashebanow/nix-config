@@ -52,3 +52,32 @@ gc:
 
 update:
   nix flake update --extra-experimental-features "nix-command flakes" "{{FLAKE_DIR}}"
+
+deploy machine ip='':
+  #!/usr/bin/env sh
+  if [ {{machine}} = "miraclemax" ]; then
+    darwin-rebuild switch --flake .
+  elif [ -z "{{ip}}" ]; then
+    sudo nixos-rebuild switch --fast --flake ".#{{machine}}"
+  else
+    nixos-rebuild switch --fast --flake ".#{{machine}}" --use-remote-sudo --target-host "ashebanow@{{ip}}" --build-host "ashebanow@{{ip}}"
+  fi
+
+history:
+  nix profile history --profile /nix/var/nix/profiles/system
+
+# lint:
+#   statix check .
+
+repair:
+  sudo nix-store --verify --check-contents --repair
+
+# edit-secrets:
+#   sops secrets/secrets.yaml
+
+# rotate-secrets:
+#   for file in secrets/*; do sops --rotate --in-place "$file"; done
+  
+# sync-secrets:
+#   for file in secrets/*; do sops updatekeys "$file"; done
+
