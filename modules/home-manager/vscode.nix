@@ -9,6 +9,7 @@
       vscodeExtensions = with vscode-extensions;
         [
           ms-vscode-remote.remote-ssh
+          jnoortheen.nix-ide
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
           {
