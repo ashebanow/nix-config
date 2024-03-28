@@ -7,9 +7,9 @@
   programs = {
     gh = {
       enable = true;
-      extensions = [
-        "github/gh-copilot"
-      ];
+      # extensions = [
+      #   "github/gh-copilot"
+      # ];
     };
     git = {
       enable = true;

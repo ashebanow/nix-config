@@ -1,56 +1,48 @@
 {
   pkgs,
+  config,
   lib,
   ...
 }: {
-    programs.vscode.enable = true;
-    programs.vscode.package = let
-      super = pkgs.vscode;
-      fontPackages = with pkgs; [
-        material-design-icons
-        (nerdfonts.override { fonts = [ "SauceCodePro" ]; })
-      ];
-    in (pkgs.symlinkJoin {
-      inherit (super) name pname version;
-      paths = [ super ] ++ fontPackages;
-    });
-
-    programs.vscode.enableExtensionUpdateCheck = false;
-    programs.vscode.enableUpdateCheck = false;
-    programs.vscode.mutableExtensionsDir = false;
-
-    programs.vscode.extensions =
-      with pkgs.code.vscode-marketplace;
-      # with pkgs.code.vscode-marketplace-release;
-      [
-        # jdinhlife.gruvbox
-        aaron-bond.better-comments
-        amehw.errorlens
-        bottledlactose.darkbox
-        ecmel.vscode-html-css
-        editorconfig.editorconfig
-        esbenp.prettier-vscode
-        file-icons.file-icons
-        github.vscode-github-actions
-        github.vscode-pull-request-github
-        ionutvmi.path-autocomplete
-        jnoortheen.nix-ide
-        kamadorueda.alejandra
-        kdl-org.kdl
-        monokai.theme-monokai-pro-vscode
-        ms-python.python
-        ms-vscode-remote.remote-ssh
-        ms-vscode.cpptools
-        oderwat.indent-rainbow
-        pkief.material-icon-theme
-        redhat.java
-        redhat.vscode-yaml
-        redhat.vscode-yaml
-        sleistner.vscode-fileutils
-        streetsidesoftware.code-spell-checker
-        tamasfe.even-better-toml
-        yzhang.markdown-all-in-one
-      ];
+  home.packages = with pkgs; [
+    (vscode-with-extensions.override {
+      vscodeExtensions = with vscode-extensions;
+        [
+          # jdinhlife.gruvbox
+          aaron-bond.better-comments
+          usernamehw.errorlens
+          # bottledlactose.darkbox
+          ecmel.vscode-html-css
+          editorconfig.editorconfig
+          esbenp.prettier-vscode
+          file-icons.file-icons
+          github.vscode-github-actions
+          github.vscode-pull-request-github
+          # ionutvmi.path-autocomplete
+          jnoortheen.nix-ide
+          kamadorueda.alejandra
+          # kdl-org.kdl
+          # monokai.theme-monokai-pro-vscode
+          ms-vscode-remote.remote-ssh
+          oderwat.indent-rainbow
+          pkief.material-icon-theme
+          redhat.java
+          redhat.vscode-yaml
+          # sleistner.vscode-fileutils
+          streetsidesoftware.code-spell-checker
+          tamasfe.even-better-toml
+          yzhang.markdown-all-in-one
+        ]
+        ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+          {
+            name = "remote-ssh-edit";
+            publisher = "ms-vscode-remote";
+            version = "0.47.2";
+            sha256 = "1hp6gjh4xp2m1xlm1jsdzxw9d8frkiidhph6nvl24d0h8z34w49g";
+          }
+        ];
+    })
+  ];
 
   programs.vscode.userSettings = {
     ## Appearances ##
