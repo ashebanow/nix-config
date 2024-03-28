@@ -14,17 +14,18 @@
     };
     gc = {
       automatic = true;
+      # Note that nix-darwin uses launchd syntax via interval, not dates
       interval = {
+        # Run every Sunday (weekday 0) at 1:30 in the morning
         Weekday = 0;
-        Hour = 2;
-        Minute = 0;
+        Hour = 1;
+        Minute = 30;
       };
-      options = "--delete-older-than 30d";
+      options = "--delete-older-than 14d";
     };
   };
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
-  nixpkgs.config.permittedInsecurePackages = ["nix-2.16.2"];
 
   imports = [
     ./modules/skhd.nix

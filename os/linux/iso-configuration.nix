@@ -3,6 +3,15 @@
   modulesPath,
   ...
 }: {
+  nix = {
+    settings = {
+      experimental-features = ["nix-command" "flakes"];
+      warn-dirty = false;
+    };
+  };
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
   imports = [
     "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
     ../../modules/basics.nix
