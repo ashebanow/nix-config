@@ -9,14 +9,17 @@
       vscodeExtensions = with vscode-extensions;
         [
           aaron-bond.better-comments
-          usernamehw.errorlens
+          donjayamanne.githistory
           ecmel.vscode-html-css
           editorconfig.editorconfig
           esbenp.prettier-vscode
           file-icons.file-icons
+          formulahendry.code-runner
           github.vscode-github-actions
           github.vscode-pull-request-github
+          jdinhlife.gruvbox
           jnoortheen.nix-ide
+          johnpapa.vscode-peacock
           kamadorueda.alejandra
           ms-vscode-remote.remote-ssh
           oderwat.indent-rainbow
@@ -25,10 +28,10 @@
           redhat.vscode-yaml
           streetsidesoftware.code-spell-checker
           tamasfe.even-better-toml
+          usernamehw.errorlens
           yzhang.markdown-all-in-one
         ]
         ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-          # jdinhlife.gruvbox
           # bottledlactose.darkbox
           # ionutvmi.path-autocomplete
           # kdl-org.kdl
