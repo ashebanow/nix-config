@@ -1,9 +1,9 @@
 {
-  config,
   pkgs,
   inputs,
   ...
 }: {
+  age.secrets."atuin-sync.age".file = ../../secrets/atuin-sync.age;
   age.secrets."tailscale-authkey.age".file = ../../secrets/tailscale-authkey.age;
   age.secrets."tailscale-ashebanow-key.age".file = ../../secrets/tailscale-ashebanow-key.age;
   age.secrets."smb-secrets.age".file = ../../secrets/smb-secrets.age;

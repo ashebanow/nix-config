@@ -73,7 +73,6 @@
       enable = true;
       dotDir = ".config/zsh";
       initExtra = ''
-        eval "$(atuin init zsh)"
         if [[ -f ~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh ]]; then
           source ~/.config/zsh/catppuccin_mocha-zsh-syntax-highlighting.zsh
         fi

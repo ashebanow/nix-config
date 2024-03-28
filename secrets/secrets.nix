@@ -8,7 +8,7 @@ let
   yuzu_pub = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDXAe0NETgTw3cQYz2/pnB6RsB8JxUTRpdYdr1wTnaeV root@nixos";
   systems = [calamansi_pub limon_pub miraclemax_pub yuzu_pub];
 in {
-  # "secret1.age".publicKeys = [ashebanow_pub yuzu_pub];
+  "atuin-sync.age".publicKeys = users ++ systems;
   "tailscale-authkey.age".publicKeys = users ++ systems;
   "tailscale-ashebanow-key.age".publicKeys = users ++ systems;
   "smb-secrets.age".publicKeys = users ++ systems;

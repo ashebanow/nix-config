@@ -5,11 +5,6 @@
     # nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # agenix = {
-    #   url = "github:ryantm/agenix";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-
     ragenix = {
       url = "github:yaxitech/ragenix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -75,7 +70,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/yuzu/configuration.nix
-          ragenix.nixosModules.default
+          # ragenix.nixosModules.default
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -83,6 +78,10 @@
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users.ashebanow = import ./hosts/yuzu/home.nix;
+
+            imports = [
+              ragenix.homeManagerModules.default
+            ];
           }
         ];
       };
@@ -100,6 +99,10 @@
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users.ashebanow = import ./hosts/limon/home.nix;
+
+            imports = [
+              ragenix.homeManagerModules.default
+            ];
           }
         ];
       };
@@ -120,6 +123,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./os/darwin/configuration.nix
+          ragenix.darwinModules.default
           home-manager.darwinModules.home-manager
           {
             home-manager.verbose = true;
@@ -127,6 +131,10 @@
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {inherit inputs;};
             home-manager.users.ashebanow = import ./os/darwin/home.nix;
+
+            imports = [
+              ragenix.homeManagerModules.default
+            ];
           }
         ];
       };
@@ -141,6 +149,11 @@
 
       ashebanow = home-manager.lib.homeManagerConfiguration {
         pkgs = linuxPkgs;
+
+        imports = [
+          ragenix.homeManagerModules.default
+        ];
+
         modules = [
           ./os/linux/home.nix
         ];

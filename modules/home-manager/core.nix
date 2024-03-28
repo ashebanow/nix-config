@@ -1,4 +1,8 @@
-{pkgs, ...}: {
+{
+  age,
+  pkgs,
+  ...
+}: {
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
@@ -118,6 +122,19 @@
   ];
 
   programs = {
+    atuin = {
+      enable = true;
+      enableZshIntegration = true;
+      settings = {
+        enter_accept = "true";
+        inline_height = 15;
+        key_path = age.secrets."atuin-sync.age".path;
+        search_mode = "fuzzy";
+        style = "full";
+        update_check = false;
+      };
+    };
+
     bat = {
       enable = true;
       extraPackages = with pkgs.bat-extras; [batdiff batman batgrep batwatch prettybat batpipe];
