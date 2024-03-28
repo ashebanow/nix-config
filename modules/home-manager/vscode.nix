@@ -17,6 +17,7 @@
           formulahendry.code-runner
           github.vscode-github-actions
           github.vscode-pull-request-github
+          golang.go
           jdinhlife.gruvbox
           jnoortheen.nix-ide
           johnpapa.vscode-peacock
@@ -26,17 +27,43 @@
           pkief.material-icon-theme
           redhat.java
           redhat.vscode-yaml
+          rust-lang.rust-analyzer
           streetsidesoftware.code-spell-checker
           tamasfe.even-better-toml
           usernamehw.errorlens
           yzhang.markdown-all-in-one
         ]
-        ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
-          # bottledlactose.darkbox
-          # ionutvmi.path-autocomplete
-          # kdl-org.kdl
-          # monokai.theme-monokai-pro-vscode
-          # sleistner.vscode-fileutils
+        ++ vscode-utils.extensionsFromVscodeMarketplace [
+          {
+            name = "darkbox";
+            publisher = "bottledlactose";
+            version = "1.5.3";
+            sha256 = "sha256-E3t09v4aUQSg3tlF6BLlqAgZltX7xO0mMK1FfsnPRBA=";
+          }
+          {
+            name = "path-autocomplete";
+            publisher = "ionutvmi";
+            version = "1.25.0";
+            sha256 = "sha256-iz32o1znwKpbJSdrDYf+GDPC++uGvsCdUuGaQu6AWEo=";
+          }
+          {
+            name = "kdl";
+            publisher = "kdl-org";
+            version = "1.3.1";
+            sha256 = "sha256-0Wbyh6yaGyj/fyTUERB5KQd668i0fx/XLc/i2YkXYKg=";
+          }
+          {
+            name = "theme-monokai-pro-vscode";
+            publisher = "monokai";
+            version = "1.2.2";
+            sha256 = "sha256-xeLzzNgj/GmNnSmrwSfJW6i93++HO3MPAj8RwZzwzR4=";
+          }
+          {
+            name = "vscode-fileutils";
+            publisher = "sleistner";
+            version = "3.10.3";
+            sha256 = "sha256-v9oyoqqBcbFSOOyhPa4dUXjA2IVXlCTORs4nrFGSHzE=";
+          }
           {
             name = "remote-ssh-edit";
             publisher = "ms-vscode-remote";
