@@ -40,16 +40,20 @@
       url = "github:hyprwm/hyprland-plugins";
       inputs.hyprland.follows = "hyprland";
     };
+
+    vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
+
   };
 
   outputs = inputs @ {
     nixpkgs,
-    home-manager,
     darwin,
-    ragenix,
-    hyprland,
+    home-manager,
     hyprland-plugins,
+    hyprland,
     hyprwm-contrib,
+    ragenix,
+    vscode-extensions,
     ...
   }: let
     linuxArmSystem = "aarch64-linux";
