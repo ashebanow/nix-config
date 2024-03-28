@@ -43,6 +43,7 @@
     ".local/bin/find-dirty-gits".source = ../../scripts/find-dirty-gits;
     ".local/bin/list-cloudflare-ips".source = ../../scripts/list-cloudflare-ips;
     ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
+    ".local/bin/wrapped-1password".source = ../../scripts/wrapped-1password;
     ".local/bin/wrapped-chrome".source = ../../scripts/wrapped-chrome;
     ".local/bin/wrapped-hyprland".source = ../../scripts/wrapped-hyprland;
     ".local/bin/wrapped-obsidian".source = ../../scripts/wrapped-obsidian;
