@@ -5,6 +5,12 @@
   # "* ${builtins.readFile ~/.ssh/github_ed25519.pub}";
 
   programs = {
+    gh = {
+      enable = true;
+      extensions = [
+        "github/gh-copilot"
+      ];
+    };
     git = {
       enable = true;
       userName = "Andrew Shebanow";
@@ -69,15 +75,10 @@
       aliases = {
         a = "add";
         co = "checkout";
-        d = "diff";
-        ds = "diff --staged";
-        psf = "push --force-with-lease";
         rb = "rebase --interactive origin/main";
         rbm = "rebase --interactive origin/master";
         rba = "rebase --abort";
         rbc = "rebase --continue";
-        s = "status";
-        undo = "reset HEAD~1 --mixed";
       };
 
       attributes = [
