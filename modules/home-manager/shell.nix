@@ -17,9 +17,7 @@
       # brew = "op plugin run -- brew";
       # cachix = "op plugin run -- cachix";
 
-      # start1p = "1password --ozone-platform=wayland";
-      # start1p = "daemonize -e ~/.1password/stderr.log -o ~/.1password/stdout.log ${pkgs._1password-gui}/bin/1password --silent";
-
+      opapp = "wrapped-1password";
       ack = "rg";
       cat = "bat --paging=never --style=plain";
       chrome = "wrapped-chrome";

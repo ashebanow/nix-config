@@ -3,8 +3,32 @@
   pkgs,
   ...
 }: {
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
-  environment.sessionVariables.WLR_NO_HARDWARE_CURSORS = "1";
+  environment.sessionVariables = {
+    _JAVA_AWT_WM_NONREPARENTING = "1";
+    CLUTTER_BACKEND = "wayland";
+    GDK_BACKEND = "wayland";
+    GDK_SCALE = "1.5";
+    MOZ_ENABLE_WAYLAND = "1";
+    NIXOS_OZONE_WL = "1";
+    QT_QPA_PLATFORM = "wayland;xcb";
+    QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
+    WLR_NO_HARDWARE_CURSORS = "1";
+    XCURSOR_SIZE = "24";
+    XDG_SESSION_TYPE = "wayland";
+  };
+
+  services.xserver.enable = true;
+  services.xserver.displayManager = {
+    sddm = {
+      enable = true;
+      wayland.enable = true;
+      theme = "catppuccin-sddm-corners";
+    };
+    autoLogin = {
+      enable = true;
+      user = "ashebanow";
+    };
+  };
 
   # Enable Hyprland
   programs.hyprland = {
@@ -30,6 +54,7 @@
   # enable services hyprland uses
   # services.cliphist.enable = true;
   # services.dunst.enable = true;
+  # services.udisks2.enable = true;
   # services.udiskie.enable = true;
   # services.udiskie.tray = "always";
 
@@ -37,6 +62,7 @@
   # services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
+    catppuccin-sddm-corners
     dunst
     foot
     hyprland
@@ -50,6 +76,7 @@
     mpv
     pavucontrol
     rofi-wayland
+    sddm
     udiskie
     wayland-protocols
     wayland-utils

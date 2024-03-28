@@ -25,8 +25,8 @@
     ../../modules/nixos/virtualisation.nix
 
     # ../../modules/nixos/desktops/gnome.nix
-    # ../../modules/nixos/desktops/hyprland.nix
-    ../../modules/nixos/desktops/plasma.nix
+    ../../modules/nixos/desktops/hyprland.nix
+    # ../../modules/nixos/desktops/plasma.nix
 
     ../../modules/nixos/gaming/steam.nix
 

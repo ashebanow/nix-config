@@ -21,7 +21,7 @@
 
 4. Make a directory ```nix-config/hosts/$HOST```. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/hosts/```. 
 
-5. Edit the script ```~/nix-config/scripts/copy-ssh-keys.sh``` to understand your machine's hostnames and IP addresses if needed. Then run the script on a machine which has the necessary .ssh setup already, so that your private keys etc are transferred to the remote machine.
+5. Edit the script ```~/nix-config/scripts/copy-ssh-keys.sh``` to understand your machine's hostnames and IP addresses if needed. Then run the script on a machine which has the necessary .ssh setup already, so that your private keys etc are transferred to the remote machine. Alternatively, copy from a USB key.
 
 6. Set up the system to use our nix-config repo:
 
@@ -32,6 +32,14 @@
     ```
 
     If you get errors complaining that nix-command and flakes features are not enabled, copy dotfiles/nix.conf to ~/.config/nix/. You'll need to delete it once the command above runs successfully, then run it again.
+
+7. **Post Install** Be sure to:
+    a) run atuin login -u <username> && atuin sync
+    b) log in to 1password
+    c) on a different machine, update secrets/secrets.nix to contain the public ssh host key for your host:
+        ```
+        cat /etc/ssh/ssh_host_ed25519_key.pub
+        ```
 
 ## Linux Systems
 1. Install nix using the Deterministic Systems installer:
