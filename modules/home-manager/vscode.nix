@@ -178,6 +178,9 @@
       # allow 6 more characters from default 50 in commit subject
       "git.inputValidationSubjectLength" = 56;
 
+      # don't ask to confirm sync
+      "git.confirmSync" = false;
+
       # prevent pollute history with whitespace changes
       "diffEditor.ignoreTrimWhitespace" = false;
       # show blames at the end of current line
