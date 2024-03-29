@@ -19,7 +19,7 @@
 
     Do a ```sudo nixos-rebuild switch``` and then reboot the system.
 
-4. Make a directory ```nix-config/hosts/$HOST```. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/hosts/```. 
+4. Make a directory ```nix-config/hosts/$HOST```. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/hosts/```.
 
 5. Edit the script ```~/nix-config/scripts/copy-ssh-keys.sh``` to understand your machine's hostnames and IP addresses if needed. Then run the script on a machine which has the necessary .ssh setup already, so that your private keys etc are transferred to the remote machine. Alternatively, copy from a USB key.
 
@@ -69,18 +69,21 @@
 
 Similar to Linux systems above, but you need to use Darwin. More details coming soon..
 
-# WORK STILL NEEDED:
+## WORK STILL NEEDED
+
 1. ssh config
 2. git commit signing
 3. secrets in general
 
-# GENERAL NOTES:
+## GENERAL NOTES
 
-For debian:
+### For Debian/Ubuntu and WSL Systems
+
+#### NOTE: if you are using nixos-wsl, then install per their directions, then follow the steps for nixOS above
 
 ```bash
 sudo apt update && sudo apt install -y
-apt install -y wget curl git vim zsh
+apt install -y wget curl git vim zsh just
 
 sudo chsh -s $(which zsh) $USER
 
@@ -99,11 +102,3 @@ systemd=true
 ```
 
 If using WSL, reboot it via ```wsl --shutdown``` in PowerShell and open a new terminal window. For non-WSL, just close down your terminal session and open a new one. You may get a prompt about creating zsh files, you can skip creating them since our next step will take care of them.
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-# you will need to provide sudo password and confirm default settings.
-
-git clone https://github.com/ashebanow/nix-config.git
-cd nix-config
-```
