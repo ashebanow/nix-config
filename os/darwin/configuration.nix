@@ -59,7 +59,7 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
-    inputs.ragenix.packages.aarch64-darwin.default
+    inputs.agenix.packages.aarch64-darwin.default
     git
     just
     vim

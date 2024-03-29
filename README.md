@@ -100,7 +100,7 @@ If using WSL, reboot it via ```wsl --shutdown``` in PowerShell and open a new te
 ## WORK STILL NEEDED
 
 1. ssh config - still need to get rid of locally stored certs and rely on 1password ssh. Alternatively, get rid of 1password and rely on more traditional linux methods (gnupg, gnome wallet, etc)
-2. finish converting all secrets to ragenix
+2. finish converting all secrets to agenix
 3. convert yuzu and limon to use whole disk encryption and impermanence.
 4. Update hyprland config to something more pleasing
 5. convert all modules to have enable flags etc

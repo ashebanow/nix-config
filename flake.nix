@@ -2,16 +2,11 @@
   description = "ashebanow's way-too-complicated nix configuration";
 
   inputs = {
-    # nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    # agenix = {
-    #   url = "github:ryantm/agenix";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
-
-    ragenix = {
-      url = "github:yaxitech/ragenix";
+    agenix = {
+      url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -41,8 +36,10 @@
       inputs.hyprland.follows = "hyprland";
     };
 
-    vscode-extensions.url = "github:nix-community/nix-vscode-extensions";
-
+    vscode-extensions = {
+      url = "github:nix-community/nix-vscode-extensions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {
@@ -52,7 +49,7 @@
     hyprland-plugins,
     hyprland,
     hyprwm-contrib,
-    ragenix,
+    agenix,
     vscode-extensions,
     ...
   }: let
@@ -79,7 +76,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/yuzu/configuration.nix
-          ragenix.nixosModules.default
+          agenix.nixosModules.default
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -96,7 +93,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/limon/configuration.nix
-          ragenix.nixosModules.default
+          agenix.nixosModules.default
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -113,7 +110,7 @@
         specialArgs = {inherit inputs;};
         modules = [
           ./os/linux/iso-configuration.nix
-          ragenix.nixosModules.default
+          agenix.nixosModules.default
         ];
       };
     };
@@ -124,6 +121,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./os/darwin/configuration.nix
+          agenix.darwinModules.default
           home-manager.darwinModules.home-manager
           {
             home-manager.verbose = true;

@@ -9,7 +9,7 @@
   age.secrets."smb-secrets.age".file = ../../secrets/smb-secrets.age;
 
   environment.systemPackages = [
-    inputs.ragenix.packages.x86_64-linux.default
+    inputs.agenix.packages.x86_64-linux.default
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
