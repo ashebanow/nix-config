@@ -81,6 +81,7 @@
     dig
     direnv
     diskus
+    duf
     eza
     fastfetch
     foreman

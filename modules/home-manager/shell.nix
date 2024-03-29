@@ -24,6 +24,7 @@
       cls = "clear";
       code = "NIXOS_OZONE_WL=1 code";
       cpuwatts = "sudo turbostat --Summary --quiet --show PkgWatt --interval 1";
+      df = "duf";
       diff = "delta";
       diskspace = "df -hl";
       flake-checker = "nix run github:DeterminateSystems/flake-checker";
