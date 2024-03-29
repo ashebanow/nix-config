@@ -167,7 +167,7 @@
       # format pasted code if the formatter supports a range
       "editor.formatOnPaste" = true;
       # if the plugin supports range formatting always use that
-      "editor.formatOnSaveMode" = "modificationsIfAvailable";
+      # "editor.formatOnSaveMode" = "modificationsIfAvailable";
       # insert a newline at the end of a file when saved
       "files.insertFinalNewline" = true;
       # trim whitespace trailing at the ends of lines on save
@@ -258,26 +258,26 @@
         "&& !inCompositeEditor"
       ];
     in [
-      ### FORMAT DOCUMENT ON MANUAL SAVE ONLY ###
+      # ### FORMAT DOCUMENT ON MANUAL SAVE ONLY ###
 
-      # remove the default action for saving document
-      {
-        key = "ctrl+s";
-        command = "-workbench.action.files.save";
-        when = formatOnManualSaveOnlyCondition;
-      }
-      # formatting behavior identical to the default ctrl+k ctrl+f
-      # and the save as normal
-      {
-        key = "ctrl+s";
-        command = "extension.multiCommand.execute";
-        args = {
-          sequence = ["editor.action.formatDocument" "workbench.action.files.save"];
-        };
-        when = formatOnManualSaveOnlyCondition;
-      }
+      # # remove the default action for saving document
+      # {
+      #   key = "ctrl+s";
+      #   command = "-workbench.action.files.save";
+      #   when = formatOnManualSaveOnlyCondition;
+      # }
+      # # formatting behavior identical to the default ctrl+k ctrl+f
+      # # and the save as normal
+      # {
+      #   key = "ctrl+s";
+      #   command = "extension.multiCommand.execute";
+      #   args = {
+      #     sequence = ["editor.action.formatDocument" "workbench.action.files.save"];
+      #   };
+      #   when = formatOnManualSaveOnlyCondition;
+      # }
 
-      ### END ###
+      # ### END ###
 
       ### DELETE CURRENT LINE ###
 
