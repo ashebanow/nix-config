@@ -69,12 +69,6 @@
 
 Similar to Linux systems above, but you need to use Darwin. More details coming soon..
 
-## WORK STILL NEEDED
-
-1. ssh config
-2. git commit signing
-3. secrets in general
-
 ## GENERAL NOTES
 
 ### For Debian/Ubuntu and WSL Systems
@@ -102,3 +96,15 @@ systemd=true
 ```
 
 If using WSL, reboot it via ```wsl --shutdown``` in PowerShell and open a new terminal window. For non-WSL, just close down your terminal session and open a new one. You may get a prompt about creating zsh files, you can skip creating them since our next step will take care of them.
+
+## WORK STILL NEEDED
+
+1. ssh config - still need to get rid of locally stored certs and rely on 1password ssh. Alternatively, get rid of 1password and rely on more traditional linux methods (gnupg, gnome wallet, etc)
+2. finish converting all secrets to ragenix
+3. convert yuzu and limon to use whole disk encryption and impermanence.
+4. Update hyprland config to something more pleasing
+5. convert all modules to have enable flags etc
+6. track down duplicates in flake.lock
+7. figure out why rofi can launch chrome/obsidian but hyprland can't
+8. add missing extensions to vscode, and get it to work with settings.json read only.
+9. Handle code signing on WSL2 (1password runs in windows?)
