@@ -98,7 +98,6 @@
     lego
     less
     magic-wormhole-rs
-    (nerdfonts.override {fonts = ["SourceCodePro" "Hack"];})
     nil # nix LSP
     nix-direnv
     nixpkgs-fmt

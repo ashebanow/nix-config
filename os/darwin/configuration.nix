@@ -28,6 +28,7 @@
   nixpkgs.config.allowUnfree = true;
 
   imports = [
+    ./modules/fonts.nix
     ./modules/skhd.nix
     ./modules/yabai.nix
   ];
@@ -66,7 +67,8 @@
     zsh
   ];
 
-  fonts.fontDir.enable = true;
+  # Set up fonts
+  myfonts.enable = true;
 
   homebrew = {
     enable = true;

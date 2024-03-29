@@ -1,9 +1,14 @@
-{pkgs, ...}: {
-  environment.systemPackages = with pkgs; [
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
+  home.packages = with pkgs; [
     foot
   ];
 
-  foot = {
+  programs.foot = {
     enable = true;
     settings = {
       main = {

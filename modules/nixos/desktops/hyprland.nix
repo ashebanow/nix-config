@@ -3,10 +3,6 @@
   pkgs,
   ...
 }: {
-  imports = [
-    ../foot.nix
-  ];
-
   environment.sessionVariables = {
     _JAVA_AWT_WM_NONREPARENTING = "1";
     CLUTTER_BACKEND = "wayland";
@@ -68,7 +64,6 @@
   environment.systemPackages = with pkgs; [
     catppuccin-sddm-corners
     dunst
-    foot
     hyprland
     hypridle
     hyprlock
