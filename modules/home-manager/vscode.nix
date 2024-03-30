@@ -45,9 +45,11 @@
         unifiedjs.vscode-mdx
         usernamehw.errorlens
         yzhang.markdown-all-in-one
-      ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
+      ]
+      ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         # # TODO: add the following:
         # amodio.toggle-excluded-files
+        # brpaz.vscode-obsidianmd
         # codeforge.remix-forge
         # csstools.postcss
         # ionutvmi.path-autocomplete
