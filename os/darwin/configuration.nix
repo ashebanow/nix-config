@@ -7,24 +7,28 @@
   nix = {
     # package = pkgs.nixFlakes;
     settings = {
+      trusted-users = ["ashebanow"];
       auto-optimise-store = true;
       experimental-features = ["nix-command" "flakes"];
       warn-dirty = false;
     };
     gc = {
       automatic = true;
+      # Note that nix-darwin uses launchd syntax via interval, not dates
       interval = {
+        # Run every Sunday (weekday 0) at 1:30 in the morning
         Weekday = 0;
-        Hour = 2;
-        Minute = 0;
+        Hour = 1;
+        Minute = 30;
       };
-      options = "--delete-older-than 30d";
+      options = "--delete-older-than 14d";
     };
   };
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
   imports = [
+    ./modules/fonts.nix
     ./modules/skhd.nix
     ./modules/yabai.nix
   ];
@@ -40,6 +44,8 @@
     ];
   };
 
+  documentation.enable = false;
+
   # set up zsh as default shell
   programs.zsh.enable = true;
 
@@ -53,7 +59,7 @@
   # to install whats needed locally. Because nix uses symbolic links to point
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
-    inputs.ragenix.packages.aarch64-darwin.default
+    inputs.agenix.packages.aarch64-darwin.default
     git
     just
     vim
@@ -61,7 +67,8 @@
     zsh
   ];
 
-  fonts.fontDir.enable = true;
+  # Set up fonts
+  myfonts.enable = true;
 
   homebrew = {
     enable = true;
@@ -83,6 +90,7 @@
       "discord"
       "disk-diet"
       # "firefox"
+      "google-chrome"
       # "google-drive"
       # "intellij-idea"
       # "karabiner-elements"
@@ -100,6 +108,7 @@
       # "slack"
       # "soundsource"
       "steam"
+      "tailscale"
       "temurin"
       # "tg-pro"
       # "warp"

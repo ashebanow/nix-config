@@ -2,8 +2,13 @@
   description = "ashebanow's way-too-complicated nix configuration";
 
   inputs = {
-    # nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     darwin = {
       url = "github:lnl7/nix-darwin/master";
@@ -23,7 +28,7 @@
 
     hyprwm-contrib = {
       url = "github:hyprwm/contrib";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "hyprland";
     };
 
     hyprland-plugins = {
@@ -31,27 +36,30 @@
       inputs.hyprland.follows = "hyprland";
     };
 
+    vscode-extensions = {
+      url = "github:nix-community/nix-vscode-extensions";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     impermanence.url = "github:nix-community/impermanence";
 
     impurity.url = "github:outfoxxed/impurity.nix";
 
-    ragenix = {
-      url = "github:yaxitech/ragenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs = inputs @ {
     self,
     nixpkgs,
+    agenix,
     darwin,
     home-manager,
     hyprland,
     hyprland-plugins,
+    hyprland,
     hyprwm-contrib,
     impermanence,
     impurity,
-    ragenix,
+    vscode-extensions,
     ...
   }: let
     linuxArmSystem = "aarch64-linux";
@@ -77,6 +85,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/yuzu/configuration.nix
+          agenix.nixosModules.default
           {
             imports = [impurity.nixosModules.impurity];
             impurity.configRoot = self;
@@ -100,6 +109,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./hosts/limon/configuration.nix
+          agenix.nixosModules.default
           {
             imports = [impurity.nixosModules.impurity];
             impurity.configRoot = self;
@@ -123,6 +133,7 @@
         specialArgs = {inherit inputs;};
         modules = [
           ./os/linux/iso-configuration.nix
+          agenix.nixosModules.default
         ];
       };
     };
@@ -133,6 +144,7 @@
         specialArgs = {inherit inputs;}; # forward inputs to modules
         modules = [
           ./os/darwin/configuration.nix
+          agenix.darwinModules.default
           {
             imports = [impurity.nixosModules.impurity];
             impurity.configRoot = self;

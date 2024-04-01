@@ -19,9 +19,9 @@
 
     Do a ```sudo nixos-rebuild switch``` and then reboot the system.
 
-4. Make a directory ```nix-config/hosts/$HOST```. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/hosts/```. 
+4. Make a directory ```nix-config/hosts/$HOST```. Copy ```/etc/nixos/hardware-configuration.nix``` to ```nix-config/hosts/```.
 
-5. Edit the script ```~/nix-config/scripts/copy-ssh-keys.sh``` to understand your machine's hostnames and IP addresses if needed. Then run the script on a machine which has the necessary .ssh setup already, so that your private keys etc are transferred to the remote machine.
+5. Edit the script ```~/nix-config/scripts/copy-ssh-keys.sh``` to understand your machine's hostnames and IP addresses if needed. Then run the script on a machine which has the necessary .ssh setup already, so that your private keys etc are transferred to the remote machine. Alternatively, copy from a USB key.
 
 6. Set up the system to use our nix-config repo:
 
@@ -32,6 +32,14 @@
     ```
 
     If you get errors complaining that nix-command and flakes features are not enabled, copy dotfiles/nix.conf to ~/.config/nix/. You'll need to delete it once the command above runs successfully, then run it again.
+
+7. **Post Install** Be sure to:
+    a) run atuin login -u <username> && atuin sync
+    b) log in to 1password
+    c) on a different machine, update secrets/secrets.nix to contain the public ssh host key for your host:
+        ```
+        cat /etc/ssh/ssh_host_ed25519_key.pub
+        ```
 
 ## Linux Systems
 1. Install nix using the Deterministic Systems installer:
@@ -61,18 +69,15 @@
 
 Similar to Linux systems above, but you need to use Darwin. More details coming soon..
 
-# WORK STILL NEEDED:
-1. ssh config
-2. git commit signing
-3. secrets in general
+## GENERAL NOTES
 
-# GENERAL NOTES:
+### For Debian/Ubuntu and WSL Systems
 
-For debian:
+#### NOTE: if you are using nixos-wsl, then install per their directions, then follow the steps for nixOS above
 
 ```bash
 sudo apt update && sudo apt install -y
-apt install -y wget curl git vim zsh
+apt install -y wget curl git vim zsh just
 
 sudo chsh -s $(which zsh) $USER
 
@@ -92,10 +97,14 @@ systemd=true
 
 If using WSL, reboot it via ```wsl --shutdown``` in PowerShell and open a new terminal window. For non-WSL, just close down your terminal session and open a new one. You may get a prompt about creating zsh files, you can skip creating them since our next step will take care of them.
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-# you will need to provide sudo password and confirm default settings.
+## WORK STILL NEEDED
 
-git clone https://github.com/ashebanow/nix-config.git
-cd nix-config
-```
+1. ssh config - still need to get rid of locally stored certs and rely on 1password ssh. Alternatively, get rid of 1password and rely on more traditional linux methods (gnupg, gnome wallet, etc)
+2. finish converting all secrets to agenix
+3. convert yuzu and limon to use whole disk encryption and impermanence.
+4. Update hyprland config to something more pleasing
+5. convert all modules to have enable flags etc
+6. track down duplicates in flake.lock
+7. figure out why rofi can launch chrome/obsidian but hyprland can't
+8. add missing extensions to vscode, and get it to work with settings.json read only.
+9. Handle code signing on WSL2 (1password runs in windows?)

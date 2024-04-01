@@ -4,8 +4,12 @@
   inputs,
   ...
 }: {
-  environment.systemPackages = with pkgs; [
-    inputs.ragenix.packages.x86_64-linux.default
+  age.secrets."tailscale-authkey.age".file = ../../secrets/tailscale-authkey.age;
+  age.secrets."tailscale-ashebanow-key.age".file = ../../secrets/tailscale-ashebanow-key.age;
+  age.secrets."smb-secrets.age".file = ../../secrets/smb-secrets.age;
+
+  environment.systemPackages = [
+    inputs.agenix.packages.x86_64-linux.default
   ];
 
   # Some programs need SUID wrappers, can be configured further or are

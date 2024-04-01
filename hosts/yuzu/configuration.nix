@@ -4,6 +4,22 @@
   inputs,
   ...
 }: {
+  nix = {
+    settings = {
+      trusted-users = ["ashebanow"];
+      auto-optimise-store = true;
+      experimental-features = ["nix-command" "flakes"];
+      warn-dirty = false;
+    };
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 14d";
+    };
+  };
+  # Allow unfree packages
+  nixpkgs.config.allowUnfree = true;
+
   imports = [
     ./hardware-configuration.nix
 
@@ -12,14 +28,16 @@
     ../../modules/nixos/basics.nix
     ../../modules/nixos/bluetooth.nix
     ../../modules/nixos/boot.nix
+    ../../modules/nixos/chrome.nix
+    ../../modules/nixos/fonts.nix
     ../../modules/nixos/i18n.nix
     ../../modules/nixos/network.nix
-    ../../modules/nixos/nix-settings.nix
     ../../modules/nixos/openssh.nix
     ../../modules/nixos/printer.nix
     ../../modules/nixos/raid-mounts.nix
     # ../../modules/nixos/rancher-k3s.nix
     ../../modules/nixos/sound.nix
+    ../../modules/nixos/tailscale.nix
     ../../modules/nixos/virtualisation.nix
 
     # ../../modules/nixos/desktops/gnome.nix
