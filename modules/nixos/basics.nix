@@ -4,13 +4,16 @@
   inputs,
   ...
 }: {
-  age.secrets."tailscale-authkey.age".file = ../../secrets/tailscale-authkey.age;
-  age.secrets."tailscale-ashebanow-key.age".file = ../../secrets/tailscale-ashebanow-key.age;
-  age.secrets."smb-secrets.age".file = ../../secrets/smb-secrets.age;
-
   environment.systemPackages = [
     inputs.agenix.packages.x86_64-linux.default
   ];
+
+  age.secrets = {
+    "tailscale-authkey.age".file = ../../secrets/tailscale-authkey.age;
+    "tailscale-ashebanow-key.age".file = ../../secrets/tailscale-ashebanow-key.age;
+    "smb-secrets.age".file = ../../secrets/smb-secrets.age;
+    "syncthing-password.age".file = ../../secrets/syncthing-password.age;
+  };
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
