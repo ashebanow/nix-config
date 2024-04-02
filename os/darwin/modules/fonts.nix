@@ -18,7 +18,7 @@ with lib; {
   config = mkIf config.myfonts.enable {
     fonts.fontDir.enable = true;
     fonts.fonts = with pkgs; [
-      (nerdfonts.override {fonts = ["SourceCodePro" "Hack"];})
+      (nerdfonts.override {fonts = ["SourceCodePro" "Hack" "JetBrainsMono"];})
       noto-fonts
       noto-fonts-emoji
       dejavu_fonts
