@@ -2,7 +2,7 @@
   fonts = {
     enableDefaultPackages = true;
     packages = with pkgs; [
-      (nerdfonts.override {fonts = ["SourceCodePro" "Hack"];})
+      (nerdfonts.override {fonts = ["SourceCodePro" "Hack" "JetBrainsMono"];})
       noto-fonts
       noto-fonts-emoji
       dejavu_fonts
