@@ -135,7 +135,6 @@
       # "slack"
       # "soundsource"
       "steam"
-      "syncthing"
       "tailscale"
       "temurin"
       # "tg-pro"
