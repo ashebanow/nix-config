@@ -37,6 +37,7 @@
     ../../modules/nixos/raid-mounts.nix
     # ../../modules/nixos/rancher-k3s.nix
     ../../modules/nixos/sound.nix
+    ../../modules/nixos/syncthing.nix
     ../../modules/nixos/tailscale.nix
     ../../modules/nixos/virtualisation.nix
 
@@ -54,6 +55,9 @@
   #   address = "10.40.60.6";
   #   prefixLength = 24;
   # } ];
+
+  # enable relevant modules from my configuration:
+  my.modules.syncthing.enable = true;
 
   powerManagement = {
     enable = true;

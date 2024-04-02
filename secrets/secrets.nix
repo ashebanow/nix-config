@@ -12,4 +12,5 @@ in {
   "tailscale-authkey.age".publicKeys = users ++ systems;
   "tailscale-ashebanow-key.age".publicKeys = users ++ systems;
   "smb-secrets.age".publicKeys = users ++ systems;
+  "syncthing-password.age".publicKeys = users ++ systems;
 }
