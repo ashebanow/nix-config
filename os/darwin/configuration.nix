@@ -67,6 +67,13 @@
     zsh
   ];
 
+  age.secrets = {
+    "tailscale-authkey.age".file = ../../secrets/tailscale-authkey.age;
+    "tailscale-ashebanow-key.age".file = ../../secrets/tailscale-ashebanow-key.age;
+    "smb-secrets.age".file = ../../secrets/smb-secrets.age;
+    "syncthing-password.age".file = ../../secrets/syncthing-password.age;
+  };
+
   # Set up fonts
   myfonts.enable = true;
 
@@ -108,6 +115,7 @@
       # "slack"
       # "soundsource"
       "steam"
+      "syncthing"
       "tailscale"
       "temurin"
       # "tg-pro"
