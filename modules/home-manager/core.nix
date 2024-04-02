@@ -66,8 +66,6 @@
     STEAM_FORCE_DESKTOPUI_SCALING = "1.5";
   };
 
-  fonts.fontconfig.enable = true;
-
   home.packages = with pkgs; [
     alejandra
     atuin
