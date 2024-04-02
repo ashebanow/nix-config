@@ -23,6 +23,9 @@ in {
     #   define gui's user & password in agenix
     #   specify folders to share and devices to share them with
     #   to mimic google drive setup as best I can.
+    #
+    # See also https://github.com/jordanisaacs/dotfiles/blob/master/modules/system/services/syncthing/default.nix
+    # for another take on options including relays.
     services.syncthing = rec {
       configDir = "/home/ashebanow/.config/syncthing";
       dataDir = "/home/ashebanow/.local/share/syncthing";
