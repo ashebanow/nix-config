@@ -108,3 +108,4 @@ If using WSL, reboot it via ```wsl --shutdown``` in PowerShell and open a new te
 7. figure out why rofi can launch chrome/obsidian but hyprland can't
 8. add missing extensions to vscode, and get it to work with settings.json read only.
 9. Handle code signing on WSL2 (1password runs in windows?)
+10. integrate atuin and impurity sub-branches
