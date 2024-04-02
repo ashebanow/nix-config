@@ -140,13 +140,20 @@
       # scroll with an animation
       "editor.smoothScrolling" = true;
       "workbench.list.smoothScrolling" = true;
+
+      "terminal.external.linuxExec" = "footclient";
+      "terminal.external.osxExec" = "Warp.app";
       "terminal.integrated.smoothScrolling" = true;
+      # set the integrated terminal to use zsh
+      "terminal.integrated.defaultProfile.linux" = "zsh";
       # blink the cursor in terminal
       "terminal.integrated.cursorBlinking" = true;
       # line style cursor in terminal
       "terminal.integrated.cursorStyle" = "line";
       # fix fuzzy text in integrated terminal
       "terminal.integrated.gpuAcceleration" = "on";
+      # this makes the terminal horribly slow, so disabled for now...
+      # "terminal.integrated.shellIntegration.enabled" = true;
 
       # hide the action bar, I know the keybinds
       # "workbench.activityBar.location" = "hidden";
@@ -233,16 +240,8 @@
       "editor.rulers" = [80 120];
       # files can be recovered with undo
       "explorer.confirmDelete" = false;
-      # set the integrated terminal to use zsh
-      "terminal.integrated.defaultProfile.linux" = "zsh";
       # never ask to open parent git repo if one-off
       "git.openRepositoryInParentFolders" = "never";
-
-      ## Temporarily Disabled ###
-
-      # fancy features with the integrated terminal
-      # this makes the terminal horribly slow
-      # "terminal.integrated.shellIntegration.enabled" = true;
     };
 
     keybindings = let
