@@ -18,6 +18,8 @@
     ../../modules/nixos/fonts.nix
   ];
 
+  my.modules.fonts.enable = true;
+
   environment.systemPackages = with pkgs; [
     bat
     btop

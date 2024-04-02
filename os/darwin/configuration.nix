@@ -30,10 +30,15 @@
   imports = [
     ./modules/fonts.nix
     ./modules/skhd.nix
+    # ./modules/syncthing.nix
     ./modules/yabai.nix
   ];
 
   services.nix-daemon.enable = true;
+
+  # enable relevant modules from my configuration:
+  my.modules.fonts.enable = true;
+  # my.modules.syncthing.enable = true;
 
   users.users.ashebanow = {
     description = "Andrew Shebanow";
@@ -74,9 +79,6 @@
     "syncthing-password.age".file = ../../secrets/syncthing-password.age;
   };
 
-  # Set up fonts
-  myfonts.enable = true;
-
   homebrew = {
     enable = true;
     onActivation = {
@@ -115,7 +117,6 @@
       # "slack"
       # "soundsource"
       "steam"
-      "syncthing"
       "tailscale"
       "temurin"
       # "tg-pro"

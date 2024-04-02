@@ -5,7 +5,7 @@
   ...
 }:
 with lib; {
-  options.myfonts = {
+  options.my.modules.fonts = {
     enable = mkOption {
       type = types.bool;
       default = false;
@@ -15,13 +15,15 @@ with lib; {
     };
   };
 
-  config = mkIf config.myfonts.enable {
-    fonts.fontDir.enable = true;
-    fonts.fonts = with pkgs; [
-      (nerdfonts.override {fonts = ["SourceCodePro" "Hack" "JetBrainsMono"];})
-      noto-fonts
-      noto-fonts-emoji
-      dejavu_fonts
-    ];
+  config = mkIf config.my.modules.fonts.enable {
+    fonts = {
+      fontDir.enable = true;
+      fonts = with pkgs; [
+        (nerdfonts.override {fonts = ["SourceCodePro" "Hack" "JetBrainsMono"];})
+        noto-fonts
+        noto-fonts-emoji
+        dejavu_fonts
+      ];
+    };
   };
 }
