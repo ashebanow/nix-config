@@ -78,6 +78,7 @@
     glow
     gum
     hyperfine
+    kitty
     lego
     magic-wormhole-rs
     nil # nix LSP
