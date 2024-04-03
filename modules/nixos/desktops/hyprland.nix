@@ -69,13 +69,14 @@
     hyprlock
     hyprpaper
     hyprpicker
-    imv
+    # imv
     libnotify
     meson
     mpv
     pavucontrol
     rofi-wayland
     sddm
+    swayimg
     udiskie
     wayland-protocols
     wayland-utils
