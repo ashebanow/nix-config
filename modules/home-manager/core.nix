@@ -71,52 +71,25 @@
     alejandra
     atuin
     bandwhich
-    bat
-    btop
-    cachix
-    curl
-    daemonize
-    delta
-    dig
-    direnv
-    diskus
-    duf
-    eza
     fastfetch
     foreman
-    gh
-    git
     glances
     glow
-    gnupg
     gum
     hyperfine
-    jq
-    just
     kitty
     lego
-    less
     magic-wormhole-rs
     nil # nix LSP
-    nix-direnv
-    nixpkgs-fmt
     overmind
-    ripgrep
     speedtest-cli
-    starship
-    tldr
     tmux
-    unzip
     vale
-    vim
     warp-terminal
     wezterm
-    wget
     wishlist
     yarn
     zellij
-    zoxide
-    zsh
   ];
 
   programs = {

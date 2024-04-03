@@ -4,8 +4,36 @@
   inputs,
   ...
 }: {
-  environment.systemPackages = [
+  environment.systemPackages = with pkgs; [
     inputs.agenix.packages.x86_64-linux.default
+    bat
+    btop
+    cachix
+    curl
+    daemonize
+    delta
+    dig
+    direnv
+    diskus
+    duf
+    eza
+    gh
+    git
+    gnupg
+    jq
+    just
+    less
+    nix-direnv
+    nix-tree
+    nixpkgs-fmt
+    ripgrep
+    starship
+    tldr
+    unzip
+    vim
+    wget
+    zoxide
+    zsh
   ];
 
   age.secrets = {
