@@ -33,6 +33,7 @@
     ".config/neofetch/config".source = ../../dotfiles/neofetch-config;
     ".config/skhd/skhdrc".source = ../../dotfiles/skhdrc;
     # ".config/starship.toml".source = ../../dotfiles/starship.toml;
+    ".config/swayimg/config".source = ../../dotfiles/swayimg/config;
     ".config/tmux/tmux.conf".source = ../../dotfiles/tmux.conf;
     ".config/wezterm/wezterm.lua".source = ../../dotfiles/wezterm.lua;
     ".config/yabai/yabairc".source = ../../dotfiles/yabairc;
@@ -70,52 +71,25 @@
     alejandra
     atuin
     bandwhich
-    bat
-    btop
-    cachix
-    curl
-    daemonize
-    delta
-    dig
-    direnv
-    diskus
-    duf
-    eza
     fastfetch
     foreman
-    gh
-    git
     glances
     glow
-    gnupg
     gum
     hyperfine
-    jq
-    just
     kitty
     lego
-    less
     magic-wormhole-rs
     nil # nix LSP
-    nix-direnv
-    nixpkgs-fmt
     overmind
-    ripgrep
     speedtest-cli
-    starship
-    tldr
     tmux
-    unzip
     vale
-    vim
     warp-terminal
     wezterm
-    wget
     wishlist
     yarn
     zellij
-    zoxide
-    zsh
   ];
 
   programs = {

@@ -96,7 +96,7 @@
           # ZSH prompt
           "romkatv/powerlevel10k"
           # Extra
-          "MichaelAquilina/zsh-you-should-use"
+          # "MichaelAquilina/zsh-you-should-use"
           "nix-community/nix-zsh-completions"
           "z-shell/zsh-eza"
         ];
