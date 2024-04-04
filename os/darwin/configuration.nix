@@ -30,7 +30,7 @@
   imports = [
     ./modules/fonts.nix
     ./modules/skhd.nix
-    # ./modules/syncthing.nix
+    ./modules/syncthing.nix
     ./modules/yabai.nix
   ];
 
@@ -38,7 +38,7 @@
 
   # enable relevant modules from my configuration:
   my.modules.fonts.enable = true;
-  # my.modules.syncthing.enable = true;
+  my.modules.syncthing.enable = true;
 
   users.users.ashebanow = {
     description = "Andrew Shebanow";

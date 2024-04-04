@@ -8,31 +8,64 @@
   ...
 }:
 with lib; let
-  cfg = config.services.syncthing;
+  cfg = config.my.modules.syncthing;
 in {
   options = {
-    services.syncthing = {
+    my.modules.syncthing = {
       enable = mkOption {
         type = types.bool;
         default = false;
         description = "Whether to enable the Syncthing service.";
       };
 
+      dataDir = mkOption {
+        type =
+          types.str
+          // {
+            check = x: types.str.check x && (substring 0 1 x == "/" || substring 0 2 x == "~/");
+            description = types.str.description + " starting with / or ~/";
+          };
+        default = "~/.config/syncthing";
+        example = "~/.config/syncthing";
+        description = lib.mdDoc ''
+          The location of the default data folder.
+          Only absolute paths (starting with `/`) and paths relative to
+          the [user](#opt-services.syncthing.user)'s home directory
+          (starting with `~/`) are allowed.
+        '';
+      };
+
       homeDir = mkOption {
-        type = types.nullOr types.path;
-        default = "~";
-        example = "/Users/myCoolUserName";
-        description = ''
-          the base location for the syncthing folder
+        type =
+          types.str
+          // {
+            check = x: types.str.check x && (substring 0 1 x == "/" || substring 0 2 x == "~/");
+            description = types.str.description + " starting with / or ~/";
+          };
+        default = "~/";
+        example = "~/Sync";
+        description = lib.mdDoc ''
+          The location of the default sync folder, NOT CURRENTLY USED
+          Only absolute paths (starting with `/`) and paths relative to
+          the [user](#opt-services.syncthing.user)'s home directory
+          (starting with `~/`) are allowed.
         '';
       };
 
       logDir = mkOption {
-        type = types.nullOr types.path;
+        type =
+          types.str
+          // {
+            check = x: types.str.check x && (substring 0 1 x == "/" || substring 0 2 x == "~/");
+            description = types.str.description + " starting with / or ~/";
+          };
         default = "~/Library/Logs";
         example = "~/Library/Logs";
-        description = ''
-          The logfile to use for the Syncthing service.
+        description = lib.mdDoc ''
+          The logfile directory to use for the Syncthing service.
+          Only absolute paths (starting with `/`) and paths relative to
+          the [user](#opt-services.syncthing.user)'s home directory
+          (starting with `~/`) are allowed.
         '';
       };
     };
@@ -47,8 +80,9 @@ in {
         KeepAlive = true;
         LowPriorityIO = true;
         ProcessType = "Background";
-        StandardOutPath = "${cfg.logDir}/Syncthing.log";
-        StandardErrorPath = "${cfg.logDir}/Syncthing-Errors.log";
+        # FIXME use command line arguments for logging instead of stdin/out
+        # StandardOutPath = "${cfg.logDir}/Syncthing.log";
+        # StandardErrorPath = "${cfg.logDir}/Syncthing-Errors.log";
         EnvironmentVariables = {
           NIX_PATH = "nixpkgs=" + toString pkgs.path;
           STNORESTART = "1";
