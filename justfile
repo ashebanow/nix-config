@@ -19,7 +19,7 @@ switch:
 
 [macos]
 test:
-  darwin-rebuild --show-trace switch --flake "{{FLAKE_DIR}}"
+  darwin-rebuild --show-trace check --flake "{{FLAKE_DIR}}"
 
 [linux]
 test:
@@ -77,7 +77,7 @@ repair:
 
 # rotate-secrets:
 #   for file in secrets/*; do sops --rotate --in-place "$file"; done
-  
+
 # sync-secrets:
 #   for file in secrets/*; do sops updatekeys "$file"; done
 
