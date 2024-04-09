@@ -106,6 +106,7 @@
 
     # starship = {
     #   enable = true;
+    #   starship.catppuccin.enable = true;
     #   enableZshIntegration = true;
     # };
   };
