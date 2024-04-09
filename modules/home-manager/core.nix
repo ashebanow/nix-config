@@ -105,6 +105,9 @@
       };
     };
 
+    kitty.catppuccin.enable = true;
+    # tmux.catppuccin.enable = true;
+
     # direnv configuration.
     direnv = {
       enable = true;
