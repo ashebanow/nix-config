@@ -33,6 +33,8 @@
   # Enable Hyprland
   programs.hyprland = {
     enable = true;
+    # not sure if this will work if our hyprland.conf isn't generated
+    # catppuccin.enable = true;
     package = inputs.hyprland.packages.${pkgs.system}.hyprland;
     xwayland.enable = true;
     # systemd.enable = true;
@@ -50,6 +52,8 @@
   # enable programs hyprland uses
   programs.thunar.enable = true;
   programs.waybar.enable = true;
+
+  programs.zathura.catppuccin.enable = true;
 
   # enable services hyprland uses
   # services.cliphist.enable = true;

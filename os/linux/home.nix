@@ -1,5 +1,6 @@
 {
   nixpkgs,
+  catppuccin,
   config,
   ...
 }: {

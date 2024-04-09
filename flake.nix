@@ -10,6 +10,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    catppuccin.url = "github:catppuccin/nix";
+
     darwin = {
       url = "github:lnl7/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -42,17 +44,19 @@
     };
   };
 
-  outputs = inputs @ {
-    nixpkgs,
+  outputs = {
+    self,
+    agenix,
+    catppuccin,
     darwin,
     home-manager,
-    hyprland-plugins,
     hyprland,
+    hyprland-plugins,
     hyprwm-contrib,
-    agenix,
+    nixpkgs,
     vscode-extensions,
     ...
-  }: let
+  } @ inputs: let
     linuxArmSystem = "aarch64-linux";
     darwinSystem = "aarch64-darwin";
     linuxSystem = "x86_64-linux";
@@ -73,17 +77,24 @@
     nixosConfigurations = {
       yuzu = nixpkgs.lib.nixosSystem {
         system = linuxSystem;
-        specialArgs = {inherit inputs;}; # forward inputs to modules
+        specialArgs = {inherit inputs;};
         modules = [
           ./hosts/yuzu/configuration.nix
           agenix.nixosModules.default
+          catppuccin.nixosModules.catppuccin
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users.ashebanow = import ./hosts/yuzu/home.nix;
+
+            home-manager.users.ashebanow = {
+              imports = [
+                ./hosts/yuzu/home.nix
+                catppuccin.homeManagerModules.catppuccin
+              ];
+            };
           }
         ];
       };
@@ -94,13 +105,20 @@
         modules = [
           ./hosts/limon/configuration.nix
           agenix.nixosModules.default
+          catppuccin.nixosModules.catppuccin
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users.ashebanow = import ./hosts/limon/home.nix;
+
+            home-manager.users.ashebanow = {
+              imports = [
+                ./hosts/limon/home.nix
+                catppuccin.homeManagerModules.catppuccin
+              ];
+            };
           }
         ];
       };
@@ -128,7 +146,13 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {inherit inputs;};
-            home-manager.users.ashebanow = import ./os/darwin/home.nix;
+
+            home-manager.users.ashebanow = {
+              imports = [
+                ./os/darwin/home.nix
+                catppuccin.homeManagerModules.catppuccin
+              ];
+            };
           }
         ];
       };
@@ -145,6 +169,7 @@
         pkgs = linuxPkgs;
         modules = [
           ./os/linux/home.nix
+          catppuccin.homeManagerModules.catppuccin
         ];
       };
     };
