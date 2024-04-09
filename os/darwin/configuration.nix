@@ -65,10 +65,29 @@
   # to things, no disk space is wasted.
   environment.systemPackages = with pkgs; [
     inputs.agenix.packages.aarch64-darwin.default
+    alejandra
+    atuin
+    bandwhich
+    btop
+    cachix
+    curl
+    delta
+    dig
+    diskus
+    duf
+    fastfetch
+    foreman
+    gh
     git
     just
+    nix-tree
+    nixpkgs-fmt
+    starship
+    tldr
+    unzip
     vim
     wget
+    zoxide
     zsh
   ];
 
