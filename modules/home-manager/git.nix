@@ -16,6 +16,11 @@
       userName = "Andrew Shebanow";
       userEmail = "ashebanow@gmail.com";
 
+      delta = {
+        enable = true;
+        catppuccin.enable = true;
+      };
+
       # Sign all commits using ssh key via 1password
       signing = {
         key = "~/.ssh/github_ed25519.pub";
