@@ -78,7 +78,6 @@
     glow
     gum
     hyperfine
-    kitty
     lego
     magic-wormhole-rs
     nil # nix LSP
@@ -104,9 +103,6 @@
         # theme = "Solarized (dark)";
       };
     };
-
-    kitty.catppuccin.enable = true;
-    # tmux.catppuccin.enable = true;
 
     # direnv configuration.
     direnv = {

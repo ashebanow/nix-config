@@ -54,8 +54,6 @@
   programs.thunar.enable = true;
   programs.waybar.enable = true;
 
-  programs.zathura.catppuccin.enable = true;
-
   # enable services hyprland uses
   # services.cliphist.enable = true;
   # services.dunst.enable = true;
