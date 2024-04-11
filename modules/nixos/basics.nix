@@ -25,6 +25,7 @@
     nix-direnv
     nix-tree
     nixpkgs-fmt
+    inputs.nix-inspect.packages.default
     ripgrep
     starship
     tldr
