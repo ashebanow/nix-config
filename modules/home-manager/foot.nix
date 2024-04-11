@@ -10,6 +10,7 @@
 
   programs.foot = {
     enable = true;
+    server.enable = true;
     settings = {
       main = {
         bold-text-in-bright = true;

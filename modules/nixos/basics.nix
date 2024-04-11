@@ -11,7 +11,6 @@
     cachix
     curl
     daemonize
-    delta
     dig
     direnv
     diskus
@@ -42,8 +41,6 @@
     "smb-secrets.age".file = ../../secrets/smb-secrets.age;
     "syncthing-password.age".file = ../../secrets/syncthing-password.age;
   };
-
-  programs.delta.catppuccin.enable = true;
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.

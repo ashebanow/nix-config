@@ -77,7 +77,6 @@
     glow
     gum
     hyperfine
-    kitty
     lego
     magic-wormhole-rs
     nil # nix LSP
@@ -103,9 +102,6 @@
       };
     };
 
-    kitty.catppuccin.enable = true;
-    # tmux.catppuccin.enable = true;
-
     # direnv configuration.
     direnv = {
       enable = true;
@@ -118,6 +114,21 @@
     eza = {
       enable = true;
       icons = true;
+    };
+
+    kitty = {
+      enable = true;
+      catppuccin.enable = true;
+    };
+
+    # tmux = {
+    #   enable = true;
+    #   catppuccin.enable = true;
+    # };
+
+    zathura = {
+      enable = true;
+      catppuccin.enable = true;
     };
 
     zoxide = {

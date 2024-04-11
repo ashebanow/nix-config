@@ -71,7 +71,6 @@
     btop
     cachix
     curl
-    delta
     dig
     diskus
     duf
