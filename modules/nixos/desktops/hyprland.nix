@@ -1,6 +1,9 @@
 {
+  config,
   inputs,
+  lib,
   pkgs,
+  system,
   ...
 }: {
   environment.sessionVariables = {
@@ -51,21 +54,30 @@
 
   # enable programs hyprland uses
   programs.thunar.enable = true;
-  programs.waybar.enable = true;
+
+  programs.waybar = {
+    enable = true;
+    package = inputs.nixpkgs-wayland.packages.${system}.waybar;
+  };
 
   # enable services hyprland uses
-  # services.cliphist.enable = true;
-  # services.dunst.enable = true;
+  services.cliphist.enable = true;
+  services.dunst = {
+    enable = true;
+    package = inputs.nixpkgs-wayland.packages.${system}.dunst;
+    user = "ashebanow";
+  };
+
   # services.udisks2.enable = true;
   # services.udiskie.enable = true;
   # services.udiskie.tray = "always";
 
   # for xremap to work with wlroots
-  # services.xremap.withWlroots = true;
+  services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
     catppuccin-sddm-corners
-    dunst
+    inputs.hyprland-wayland.packages.${system}.dunst
     hyprland
     hypridle
     hyprlock
@@ -82,8 +94,8 @@
     udiskie
     wayland-protocols
     wayland-utils
-    wl-clipboard
-    wlroots
+    inputs.hyprland-wayland.wl-clipboard
+    inputs.hyprland-wayland.wlroots
     xdg-desktop-portal-gtk
     xdg-desktop-portal-hyprland
     zathura

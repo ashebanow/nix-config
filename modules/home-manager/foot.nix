@@ -1,16 +1,19 @@
 {
   config,
-  pkgs,
+  inputs,
   lib,
+  pkgs,
+  system,
   ...
 }: {
   home.packages = with pkgs; [
-    foot
+    inputs.nixpkgs-wayland.packages.${system}.foot
   ];
 
   programs.foot = {
     enable = true;
     server.enable = true;
+    package = inputs.nixpkgs-wayland.packages.${system}.foot;
     settings = {
       main = {
         bold-text-in-bright = true;

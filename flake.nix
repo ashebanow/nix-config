@@ -2,7 +2,6 @@
   description = "ashebanow's way-too-complicated nix configuration";
 
   inputs = {
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-23.11";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     agenix = {
@@ -38,6 +37,11 @@
       inputs.hyprland.follows = "hyprland";
     };
 
+    nixpkgs-wayland = {
+      url = "github:nix-community/nixpkgs-wayland";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-inspect.url = "github:bluskript/nix-inspect";
 
     vscode-extensions = {
@@ -57,6 +61,7 @@
     hyprwm-contrib,
     nix-inspect,
     nixpkgs,
+    nixpkgs-wayland,
     vscode-extensions,
     ...
   } @ inputs: let
