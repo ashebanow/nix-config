@@ -92,10 +92,10 @@
     sddm
     swayimg
     udiskie
-    wayland-protocols
+    inputs.hyprland-wayland.packages.${system}.new-wayland-protocols
     wayland-utils
-    inputs.hyprland-wayland.wl-clipboard
-    inputs.hyprland-wayland.wlroots
+    inputs.hyprland-wayland.packages.${system}.wl-clipboard
+    inputs.hyprland-wayland.packages.${system}.wlroots
     xdg-desktop-portal-gtk
     xdg-desktop-portal-hyprland
     zathura
