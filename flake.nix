@@ -38,7 +38,7 @@
       inputs.hyprland.follows = "hyprland";
     };
 
-    nix-inspect.url = "github:bluskript/nix-inspect";
+    # nix-inspect.url = "github:bluskript/nix-inspect";
 
     vscode-extensions = {
       url = "github:nix-community/nix-vscode-extensions";
@@ -55,7 +55,7 @@
     hyprland,
     hyprland-plugins,
     hyprwm-contrib,
-    nix-inspect,
+    # nix-inspect,
     nixpkgs,
     vscode-extensions,
     ...
