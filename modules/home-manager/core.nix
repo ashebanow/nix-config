@@ -42,6 +42,7 @@
 
     ".local/bin/copy-ssh-keys".source = ../../scripts/copy-ssh-keys;
     ".local/bin/find-dirty-gits".source = ../../scripts/find-dirty-gits;
+    ".local/bin/git-st".source = ../../scripts/git-st;
     ".local/bin/list-cloudflare-ips".source = ../../scripts/list-cloudflare-ips;
     ".local/bin/make-dev-shell".source = ../../scripts/make-dev-shell;
     ".local/bin/wrapped-1password".source = ../../scripts/wrapped-1password;
