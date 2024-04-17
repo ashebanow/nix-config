@@ -339,6 +339,21 @@
         "type": "github"
       }
     },
+    "nur-packages": {
+      "locked": {
+        "lastModified": 1713365147,
+        "narHash": "sha256-ZOPpV7NGnY0wd49vAuXWPYyNA+n3XbuAnlZ7NwXHyrU=",
+        "owner": "nix-community",
+        "repo": "NUR",
+        "rev": "9b0f500e19055bdb94942c5dde758301e8f4ea13",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "NUR",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "agenix": "agenix",
@@ -350,6 +365,7 @@
         "hyprwm-contrib": "hyprwm-contrib",
         "nixpkgs": "nixpkgs",
         "nixpkgs-stable": "nixpkgs-stable",
+        "nur-packages": "nur-packages",
         "vscode-extensions": "vscode-extensions"
       }
     },

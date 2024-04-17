@@ -40,6 +40,11 @@
 
     # nix-inspect.url = "github:bluskript/nix-inspect";
 
+    nur-packages = {
+      url = "github:nix-community/NUR";
+      # inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     vscode-extensions = {
       url = "github:nix-community/nix-vscode-extensions";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -56,6 +61,7 @@
     hyprland-plugins,
     hyprwm-contrib,
     # nix-inspect,
+    nur-packages,
     nixpkgs,
     vscode-extensions,
     ...
@@ -85,6 +91,7 @@
           ./hosts/yuzu/configuration.nix
           agenix.nixosModules.default
           catppuccin.nixosModules.catppuccin
+          nur-packages.nixosModules.nur
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -96,6 +103,7 @@
               imports = [
                 ./hosts/yuzu/home.nix
                 catppuccin.homeManagerModules.catppuccin
+                nur-packages.hmModules.nur
               ];
             };
           }
@@ -109,6 +117,7 @@
           ./hosts/limon/configuration.nix
           agenix.nixosModules.default
           catppuccin.nixosModules.catppuccin
+          nur-packages.nixosModules.nur
           home-manager.nixosModules.home-manager
           {
             home-manager.verbose = true;
@@ -120,6 +129,7 @@
               imports = [
                 ./hosts/limon/home.nix
                 catppuccin.homeManagerModules.catppuccin
+                nur-packages.hmModules.nur
               ];
             };
           }
@@ -132,6 +142,7 @@
         modules = [
           ./os/linux/iso-configuration.nix
           agenix.nixosModules.default
+          nur-packages.nixosModules.nur
         ];
       };
     };
