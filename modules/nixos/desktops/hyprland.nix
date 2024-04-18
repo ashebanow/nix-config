@@ -26,7 +26,7 @@
       theme = "catppuccin-sddm-corners";
     };
     autoLogin = {
-      enable = true;
+      enable = false;
       user = "ashebanow";
     };
   };
