@@ -9,6 +9,7 @@
 
   imports = [
     ../../modules/home-manager/core.nix
+    ../../modules/home-manager/firefox
     ../../modules/home-manager/foot.nix
     ../../modules/home-manager/git.nix
     ../../modules/home-manager/iputils.nix
@@ -27,6 +28,8 @@
   home.packages = with pkgs; [
     firefox
   ];
+
+  my.modules.firefox.enable = true;
 
   manual = {
     html.enable = false;
