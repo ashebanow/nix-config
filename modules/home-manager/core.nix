@@ -89,6 +89,7 @@
     wezterm
     wishlist
     yarn
+    youtube-music
     zellij
   ];
 
