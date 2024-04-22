@@ -101,7 +101,7 @@
       "editor.fontFamily" = lib.concatMapStringsSep ", " (s: "'${s}'") [
         "SauceCodePro Nerd Font"
       ];
-      "editor.fontSize" = 14;
+      "editor.fontSize" = 12;
       "editor.cursorSmoothCaretAnimation" = "explicit";
       # "editor.cursorStyle" = "block";
       "editor.cursorBlinking" = "smooth";
