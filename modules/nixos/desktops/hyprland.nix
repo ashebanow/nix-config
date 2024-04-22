@@ -25,10 +25,10 @@
       wayland.enable = true;
       theme = "catppuccin-sddm-corners";
     };
-    autoLogin = {
-      enable = false;
-      user = "ashebanow";
-    };
+    # autoLogin = {
+    #   enable = true;
+    #   user = "ashebanow";
+    # };
   };
 
   # Enable Hyprland
