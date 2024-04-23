@@ -13,7 +13,7 @@
     QT_QPA_PLATFORM = "wayland;xcb";
     QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
     WLR_NO_HARDWARE_CURSORS = "1";
-    XCURSOR_SIZE = "24";
+    XCURSOR_SIZE = "48";
     XDG_SESSION_TYPE = "wayland";
   };
 
@@ -25,10 +25,10 @@
       wayland.enable = true;
       theme = "catppuccin-sddm-corners";
     };
-    autoLogin = {
-      enable = false;
-      user = "ashebanow";
-    };
+    # autoLogin = {
+    #   enable = true;
+    #   user = "ashebanow";
+    # };
   };
 
   # Enable Hyprland

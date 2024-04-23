@@ -9,11 +9,11 @@
   # This will enable the Avahi service and open the firewall for it.
   # The nssmdns option is necessary to make the Avahi service work with the nss-mdns package.
   # The openFirewall option is necessary to open the firewall for the Avahi service.
-  services.avahi.nssmdns4 = {
-    enable = true;
-    nssmdns = true;
-    openFirewall = true;
-  };
+  # services.avahi.nssmdns4 = {
+  #   enable = true;
+  #   nssmdns = true;
+  #   openFirewall = true;
+  # };
 
   # These are open source drivers for HP printers.
   services.printing.drivers = [pkgs.hplip];
