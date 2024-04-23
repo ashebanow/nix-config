@@ -81,6 +81,7 @@
     just
     nix-tree
     nixpkgs-fmt
+    ripgrep
     starship
     tldr
     unzip
