@@ -56,7 +56,7 @@
 
   # enable relevant modules from my configuration:
   my.modules.fonts.enable = true;
-  my.modules.syncthing.enable = true;
+  my.modules.syncthing.enable = false;
 
   powerManagement = {
     enable = true;
