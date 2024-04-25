@@ -96,11 +96,11 @@
   programs = {
     bat = {
       enable = true;
-      catppuccin.enable = true;
+      # catppuccin.enable = true;
       extraPackages = with pkgs.bat-extras; [batdiff batman batgrep batwatch prettybat batpipe];
       config = {
         pager = "less -FR";
-        # theme = "Solarized (dark)";
+        theme = "gruvbox-dark";
       };
     };
 
