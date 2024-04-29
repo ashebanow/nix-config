@@ -57,6 +57,8 @@
   # } ];
 
   # enable relevant modules from my configuration:
+  my.modules._1password.enable = true;
+  my.modules._1password.enableGUI = true;
   my.modules.fonts.enable = true;
   my.modules.syncthing.enable = false;
 
