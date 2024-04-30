@@ -66,6 +66,7 @@
   # services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
+    ags
     catppuccin-sddm-corners
     dunst
     hyprland
