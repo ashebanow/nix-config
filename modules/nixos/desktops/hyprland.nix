@@ -80,7 +80,6 @@
     pavucontrol
     rofi-wayland
     sddm
-    swayimg
     udiskie
     wayland-protocols
     wayland-utils
