@@ -6,22 +6,24 @@ dest_ip=""
 case "$dest_machine" in
   storage )
     dest_ip="10.40.0.226";;
-  loquat )
+  limon )
     dest_ip="10.40.60.7";;
   yuzu )
     dest_ip="10.40.60.6";;
   miraclemax )
     dest_ip="10.4.0.44";;
+  nixos-wsl )
+    dest_ip=" 172.21.75.8";;
   gateway )
     dest_ip="10.40.0.1";;
   * )
-    echo "Usage: copy-ssh-keys.sh dest_machine"
+    echo "Usage: copy-ssh-keys dest_machine"
     echo "  dest_machine must be one of:"
     echo "    gateway"
     echo "    storage"
     echo "    limon"
-    echo "    loquat"
     echo "    miraclemax"
+    echo "    nixos-wsl"
     echo "    yuzu"
     exit 1
     ;;

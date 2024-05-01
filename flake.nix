@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     agenix = {
@@ -40,6 +41,8 @@
 
     # nix-inspect.url = "github:bluskript/nix-inspect";
 
+    nixos-wsl.url = "github:nix-community/NixOS-WSL/main";
+
     nur-packages = {
       url = "github:nix-community/NUR";
       # inputs.nixpkgs.follows = "nixpkgs";
@@ -63,6 +66,7 @@
     # nix-inspect,
     nur-packages,
     nixpkgs,
+    nixos-wsl,
     vscode-extensions,
     ...
   } @ inputs: let
@@ -128,6 +132,41 @@
             home-manager.users.ashebanow = {
               imports = [
                 ./hosts/limon/home.nix
+                catppuccin.homeManagerModules.catppuccin
+                nur-packages.hmModules.nur
+              ];
+            };
+          }
+        ];
+      };
+
+
+      NixOS-WSL = nixpkgs.lib.nixosSystem {
+        system = linuxSystem;
+        specialArgs = {inherit inputs;}; # forward inputs to modules
+        modules = [
+          ./hosts/nixos-wsl/configuration.nix
+          agenix.nixosModules.default
+          catppuccin.nixosModules.catppuccin
+          nur-packages.nixosModules.nur
+          nixos-wsl.nixosModules.default
+          {
+            system.stateVersion = "24.05";
+            wsl.enable = true;
+            wsl.defaultUser = "ashebanow";
+            wsl.interop.register = true;
+            wsl.docker-desktop.enable = true;
+          }
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.verbose = true;
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = {inherit inputs;};
+
+            home-manager.users.ashebanow = {
+              imports = [
+                ./hosts/nixos-wsl/home.nix
                 catppuccin.homeManagerModules.catppuccin
                 nur-packages.hmModules.nur
               ];

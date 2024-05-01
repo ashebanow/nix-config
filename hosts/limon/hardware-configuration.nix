@@ -16,17 +16,18 @@
   boot.initrd.kernelModules = [];
   boot.kernelModules = ["kvm-amd"];
   boot.extraModulePackages = [];
+  boot.kernelParams = ["intel_pstate=active"];
 
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/4de7d9d2-8b69-4cfb-a644-49cb76349856";
-      fsType = "btrfs";
-      options = [ "subvol=@" ];
-    };
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/4de7d9d2-8b69-4cfb-a644-49cb76349856";
+    fsType = "btrfs";
+    options = ["subvol=@"];
+  };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/78F8-B854";
-      fsType = "vfat";
-    };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/78F8-B854";
+    fsType = "vfat";
+  };
 
   swapDevices = [];
 

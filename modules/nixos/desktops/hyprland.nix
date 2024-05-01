@@ -66,6 +66,7 @@
   # services.xremap.withWlroots = true;
 
   environment.systemPackages = with pkgs; [
+    ags
     catppuccin-sddm-corners
     dunst
     hyprland
@@ -80,7 +81,6 @@
     pavucontrol
     rofi-wayland
     sddm
-    swayimg
     udiskie
     wayland-protocols
     wayland-utils
