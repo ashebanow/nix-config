@@ -79,6 +79,7 @@
     gh
     git
     just
+    nh
     nix-tree
     nixpkgs-fmt
     ripgrep

@@ -12,9 +12,9 @@ switch:
 switch:
   #!/usr/bin/env bash
   if [ -f /etc/NIXOS ]; then
-    sudo nixos-rebuild switch --impure --flake "{{FLAKE_DIR}}"
+    nh os switch "{{FLAKE_DIR}}"
   else
-    home-manager switch --impure --flake "{{FLAKE_DIR}}"
+    nh home switch "{{FLAKE_DIR}}"
   fi
 
 [macos]
@@ -25,7 +25,7 @@ test:
 test:
   #!/usr/bin/env bash
   if [ -f /etc/NIXOS ]; then
-    sudo nixos-rebuild --show-trace dry-activate --flake "{{FLAKE_DIR}}"
+    nh os test -v "{{FLAKE_DIR}}"
   else
     home-manager --show-trace -n switch --flake "{{FLAKE_DIR}}"
   fi
@@ -47,11 +47,10 @@ build-iso:
 
 gc:
   #!/usr/bin/env bash
-  sudo nix-collect-garbage --extra-experimental-features "nix-command flakes" --delete-old
-  nix-collect-garbage --extra-experimental-features "nix-command flakes" --delete-old
+  nh clean all
 
 update:
-  nix flake update --extra-experimental-features "nix-command flakes" "{{FLAKE_DIR}}"
+  nh os switch -u -a "{{FLAKE_DIR}}"
 
 deploy machine ip='':
   #!/usr/bin/env sh

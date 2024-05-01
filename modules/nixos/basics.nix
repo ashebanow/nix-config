@@ -22,6 +22,7 @@
     jq
     just
     less
+    nh
     nix-direnv
     nix-tree
     nixpkgs-fmt
@@ -49,6 +50,13 @@
   programs.gnupg.agent = {
     enable = true;
     enableSSHSupport = true;
+  };
+
+  programs.nh = {
+    enable = true;
+    clean.enable = true;
+    clean.extraArgs = "--keep-since 4d --keep 3";
+    flake = "/etc/nixos";
   };
 
   # set up zsh as default shell
