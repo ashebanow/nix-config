@@ -118,7 +118,7 @@
 
           "Mod+d".spawn-sh = self.mkWhichKeyExe config.pkgs [
             {
-              key = "b";
+              key = "Shift+b";
               desc = "Bluetooth";
               cmd = "${noctaliaExe} ipc call bluetooth togglePanel";
             }
@@ -128,9 +128,9 @@
               cmd = "${noctaliaExe} ipc call wifi togglePanel";
             }
             {
-              key = "f";
-              desc = "Firefox";
-              cmd = "firefox";
+              key = "b";
+              desc = "Chromium";
+              cmd = "chromium";
             }
             {
               key = "t";

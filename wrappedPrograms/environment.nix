@@ -9,7 +9,7 @@
     self',
     ...
   }: {
-    # My whole desktop in one package, includes kityy terminal
+    # My whole desktop in one package, includes kitty terminal
     packages.desktop = inputs.wrapper-modules.wrappers.niri.wrap {
       inherit pkgs;
       imports = [self.wrappersModules.niri];

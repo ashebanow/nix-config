@@ -4,24 +4,19 @@
   lib,
   ...
 }: {
-  flake.nixosConfigurations.mini = inputs.nixpkgs.lib.nixosSystem {
+  flake.nixosConfigurations.lumquat = inputs.nixpkgs.lib.nixosSystem {
     modules = [
-      self.nixosModules.hostMini
+      self.nixosModules.hostLumquat
     ];
   };
 
-  flake.nixosModules.hostMini = {pkgs, ...}: {
+  flake.nixosModules.hostLumquat = {pkgs, ...}: {
     imports = [
       self.nixosModules.base
       self.nixosModules.general
-      self.nixosModules.desktop
+      self.nixosModules.desktop   # TODO: REMOVE once ssh is set up and secured
 
-      self.nixosModules.discord
-      self.nixosModules.gimp
-      self.nixosModules.telegram
-      self.nixosModules.youtube-music
-
-      self.nixosModules.gaming
+      self.nixosModules.tailscale
 
       self.nixosModules.powersave
     ];
@@ -29,7 +24,7 @@
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
 
-    networking.hostName = "mini";
+    networking.hostName = "lumquat";
 
     networking.networkmanager.enable = true;
 

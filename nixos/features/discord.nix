@@ -4,9 +4,5 @@
       pkgs.vesktop
       pkgs.discord
     ];
-
-    persistance.cache.directories = [
-      ".config/vesktop"
-    ];
   };
 }

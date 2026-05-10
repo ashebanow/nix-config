@@ -19,24 +19,5 @@
       hashedPasswordFile = "/persist/passwd";
       initialPassword = "12345";
     };
-
-    persistance.data.directories = [
-      "nixconf"
-
-      "Videos"
-      "Documents"
-      "Projects"
-
-      ".ssh"
-    ];
-
-    # todo: remove
-    persistance.cache.directories = [
-      ".local/share/zoxide"
-      ".local/share/direnv"
-      ".local/share/nvim"
-      ".local/share/fish"
-      ".config/nvim"
-    ];
   };
 }

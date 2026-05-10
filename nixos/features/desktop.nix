@@ -6,7 +6,6 @@
       self.nixosModules.gtk
 
       self.nixosModules.pipewire
-      self.nixosModules.firefox
       self.nixosModules.chromium
     ];
 
