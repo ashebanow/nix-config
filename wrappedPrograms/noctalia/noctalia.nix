@@ -338,7 +338,7 @@
             audioCodec = "opus";
             audioSource = "default_output";
             colorRange = "limited";
-            directory = "/home/yurii/Videos";
+            directory = "/home/ashebanow/Videos";
             frameRate = 60;
             quality = "very_high";
             showCursor = true;

@@ -153,7 +153,7 @@
         #lua
         ''
           vim.lsp.config['parser4'] = {
-            cmd = { '/home/yurii/Videos/parser4/target/release/parser4', 'lsp' },
+            cmd = { '/home/ashebanow/Videos/parser4/target/release/parser4', 'lsp' },
             filetypes = { 'vjxl' },
             root_markers = { '.git' },
             root_dir = vim.fn.getcwd(),
