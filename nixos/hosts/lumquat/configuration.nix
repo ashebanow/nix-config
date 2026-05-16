@@ -14,7 +14,8 @@
     imports = [
       self.nixosModules.base
       self.nixosModules.general
-      self.nixosModules.desktop   # TODO: REMOVE once ssh is set up and secured
+
+      self.nixosModules.llm_serve
 
       self.nixosModules.tailscale
 
