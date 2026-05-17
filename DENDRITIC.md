@@ -33,6 +33,28 @@ The Dendritic ecosystem makes configurations **re-usable** by treating them as p
 - **Dependency-minimal**: Most libraries have zero or near-zero external dependencies
 - **Well-tested**: CI with checkmate, extensive test suites
 
+## Checklist
+
+### Do
+
+- **Do** implement each module for a single feature or concern
+- **Do** make modules parametric (accept options) rather than hardcoding values
+- **Do** place modules at paths that reflect their feature name
+- **Do** support multiple configuration classes (nixos, darwin, home-manager) in each module
+- **Do** use options to declare dependencies between modules
+- **Do** keep modules focused—extract sub-concerns into separate modules
+- **Do** write tests for your modules using `checkmate` or similar
+- **Do** document module options with descriptions
+
+### Don't
+
+- **Don't** bake host-specific or user-specific values directly into modules
+- **Don't** create modules that depend on external inputs unrelated to their feature
+- **Don't** make modules that are too broad (e.g., "my entire config")
+- **Don't** create implicit dependencies—use explicit option declarations
+- **Don't** duplicate functionality across modules
+- **Don't** use modules as simple include files—treat them as composable functions
+
 ## See Also
 
 - [Original dendritic pattern](https://github.com/mightyiam/dendritic) by @mightyiam
