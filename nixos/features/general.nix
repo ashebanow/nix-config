@@ -16,7 +16,7 @@
       extraGroups = ["wheel" "networkmanager"];
       shell = self.packages.${pkgs.system}.environment;
 
-      hashedPasswordFile = "/persist/passwd";
+      # hashedPasswordFile = "/persist/passwd";
       initialPassword = "12345";
 
       openssh.authorizedKeys.keys = [

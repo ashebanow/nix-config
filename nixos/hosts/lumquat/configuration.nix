@@ -14,12 +14,14 @@
     imports = [
       self.nixosModules.base
       self.nixosModules.general
-
-      self.nixosModules.llm_serve
-
-      self.nixosModules.tailscale
+      self.nixosModules.environment
 
       self.nixosModules.powersave
+
+      self.services.tailscale
+      self.services.bitwarden
+
+      self.nixosModules.llm_serve
     ];
 
     boot.loader.systemd-boot.enable = true;
