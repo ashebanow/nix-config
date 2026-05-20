@@ -9,28 +9,9 @@
     self',
     ...
   }: {
-    # My whole desktop in one package, includes kitty terminal
-    packages.desktop = inputs.wrapper-modules.wrappers.niri.wrap {
-      inherit pkgs;
-      imports = [self.wrappersModules.niri];
-      terminal = lib.getExe self'.packages.terminal;
-      env = {
-        EDITOR = lib.getExe self'.packages.neovim;
-      };
-    };
-
-    # My primary flake terminal
-    packages.terminal =
-      (inputs.wrappers.wrapperModules.kitty.apply {
-        inherit pkgs;
-        imports = [self.wrappersModules.kitty];
-        shell = lib.getExe self'.packages.environment;
-      }).wrapper;
-
     # My primary flake shell with all of it's packages
     packages.environment = inputs.wrappers.lib.wrapPackage {
       inherit pkgs;
-      package = self'.packages.fish;
       runtimeInputs = [
         # nix
         pkgs.nil
@@ -63,19 +44,15 @@
         pkgs.imv
         pkgs.ffmpeg-full
         pkgs.yt-dlp
+        pkgs.git
         pkgs.lazygit
 
         # wrapped
-        self'.packages.neovimDynamic
         self'.packages.qalc
-        self'.packages.lf
-        self'.packages.git
-        self'.packages.jujutsu
-        self'.packages.jjui
         self'.packages.nix-check-bin
       ];
       env = {
-        EDITOR = lib.getExe self'.packages.neovimDynamic;
+        EDITOR = nvim
       };
     };
 

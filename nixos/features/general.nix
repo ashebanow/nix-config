@@ -6,7 +6,6 @@
   }: {
     imports = [
       self.nixosModules.extra_hjem
-      self.nixosModules.gtk
       self.nixosModules.nix
     ];
 
@@ -22,14 +21,6 @@
       openssh.authorizedKeys.keys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
       ];
-    };
-
-    services.openssh = {
-      enable = true;
-      settings = {
-        PermitRootLogin = "no";
-        PasswordAuthentication = false;
-      };
     };
   };
 }

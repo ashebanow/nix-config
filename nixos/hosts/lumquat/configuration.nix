@@ -15,11 +15,8 @@
       self.nixosModules.base
       self.nixosModules.general
       self.nixosModules.environment
-
+      self.nixosModules.networking
       self.nixosModules.powersave
-
-      self.services.tailscale
-      self.services.bitwarden
 
       self.nixosModules.llm_serve
     ];
@@ -30,9 +27,6 @@
     networking.hostName = "lumquat";
 
     networking.networkmanager.enable = true;
-
-    programs.niri.enable = true;
-    programs.niri.package = self.packages.${pkgs.system}.niri;
 
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
