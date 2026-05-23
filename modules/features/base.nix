@@ -15,7 +15,15 @@ _: {
         isNormalUser = true;
         description = "Container operator";
         extraGroups = ["wheel" "docker" "podman"];
+        openssh.authorizedKeys.keys = [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
+        ];
       };
+
+      # Root SSH access with authorized key (no password login)
+      users.users.root.openssh.authorizedKeys.keys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
+      ];
 
       # Sudo access for wheel group
       security.sudo.wheelNeedsPassword = false;
