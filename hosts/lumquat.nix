@@ -10,7 +10,7 @@
   # Enable features via capability flags
   my.base = true;
   my.baseUsername = "podman";
-  my.baseTimezone = "America/New_York";
+  my.baseTimezone = "America/Los_Angeles";
 
   # LLM serving — Qwen3-70B for coding, DeepSeek v4 for planning
   my.llm = true;
