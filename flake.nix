@@ -22,37 +22,48 @@
 
   outputs = inputs @ {nixpkgs, ...}: let
     system = "x86_64-linux";
+    lib = nixpkgs.lib;
 
-    # Import all feature modules
-    baseFeature = import ./modules/features/base.nix;
-    accessFeature = import ./modules/features/access.nix;
-    llmFeature = import ./modules/features/llm.nix;
-    monitoringFeature = import ./modules/features/monitoring.nix;
-    secretsFeature = import ./modules/features/secrets.nix;
-    cliToolsFeature = import ./modules/features/cli-tools.nix;
+    # Import and evaluate feature modules
+    baseFeature = (import ./modules/features/base.nix) (_: {});
+    accessFeature = (import ./modules/features/access.nix) (_: {});
+    llmFeature = (import ./modules/features/llm.nix) (_: {});
+    monitoringFeature = (import ./modules/features/monitoring.nix) (_: {});
+    secretsFeature = (import ./modules/features/secrets.nix) (_: {});
+    cliToolsFeature = (import ./modules/features/cli-tools.nix) (_: {});
+
+    # Collect NixOS deferred modules from feature registrations
+    deferredNixosModules = lib.attrValues (
+      baseFeature.my.modules.nixos
+      // accessFeature.my.modules.nixos
+      // llmFeature.my.modules.nixos
+      // monitoringFeature.my.modules.nixos
+      // secretsFeature.my.modules.nixos
+    );
+
+    # Collect Home Manager deferred modules
+    deferredHmModules = lib.attrValues (
+      cliToolsFeature.my.modules.home-manager or {}
+    );
+
+    # Base infrastructure modules
+    baseModules = [
+      ./lib/my-options-module.nix
+      inputs.sops-nix.nixosModules.sops
+      inputs.nixos-hardware.nixosModules.common-cpu-amd
+    ];
   in
   {
     # NixOS host configurations
     nixosConfigurations.lumquat = nixpkgs.lib.nixosSystem {
       inherit system;
       specialArgs = {inherit inputs;};
-      modules = [
-        # Base infrastructure
-        ./lib/my-options-module.nix
-        inputs.sops-nix.nixosModules.sops
-        inputs.nixos-hardware.nixosModules.common-cpu-amd
-
-        # Feature modules
-        baseFeature
-        accessFeature
-        llmFeature
-        monitoringFeature
-        secretsFeature
-
-        # Host configuration
-        ./hosts/lumquat.nix
-        ./hosts/lumquat/hardware-configuration.nix
-      ];
+      modules = baseModules
+        ++ deferredNixosModules
+        ++ [
+          ./hosts/lumquat.nix
+          ./hosts/lumquat/hardware-configuration.nix
+        ];
     };
 
     # Home Manager for podman user
@@ -68,9 +79,8 @@
           };
         }
         ./lib/my-options-module.nix
-        cliToolsFeature
         ./hosts/lumquat/hm-configuration.nix
-      ];
+      ] ++ deferredHmModules;
     };
   };
 }
