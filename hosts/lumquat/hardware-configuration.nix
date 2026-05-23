@@ -1,26 +1,10 @@
-# NixOS infrastructure — host capability flags and base config.
+# Lumquat hardware configuration — Strix Halo (GMKTec Evo X2).
+# Host-specific: every host gets its own hardware-configuration.nix.
 {
-  config,
   lib,
   ...
 }: {
-  # Host capability flags
-  my.hostName = "lumquat";
-  my.base = true;
-  my.baseUsername = "podman";
-  my.baseTimezone = "America/Los_Angeles";
-  my.llm = true;
-  my.llmModelStorage = "/var/lib/llm-models";
-  my.access = true;
-  my.accessTailnetName = "lumquat";
-  my.accessEnableSSH = true;
-  my.accessEnableExitNode = false;
-  my.accessEnableFallbackSSH = true;
-  my.accessFallbackPort = 2222;
-  my.monitoring = true;
-  my.monitoringPort = 9090;
-
-  # Strix Halo hardware configuration
+  # Initrd modules for AMD GPU and storage
   boot.initrd.availableKernelModules = [
     "ahci"
     "xhci_pci"
@@ -33,18 +17,23 @@
   ];
   boot.initrd.kernelModules = ["amdgpu"];
   boot.kernelModules = [];
+
+  # Strix Halo kernel params for LLM GPU passthrough
+  # See: https://github.com/hellas-ai/nix-strix-halo
   boot.kernelParams = [
-    "amd_iommu=off"
-    "amdgpu.gttsize=126976"
-    "ttm.pages_limit=32505856"
+    "amd_iommu=off" # Required for Strix Halo stability
+    "amdgpu.gttsize=126976" # Expose ~124 GB VRAM to GPU
+    "ttm.pages_limit=32505856" # Full memory pool for TTM
   ];
 
+  # systemd-boot on EFI
   boot.loader = {
     systemd-boot.enable = true;
     efi.canTouchEfiVariables = true;
     efi.efiSysMountPoint = "/boot";
   };
 
+  # LUKS-encrypted root
   boot.initrd.luks.devices = {
     luks-root = {
       device = "/dev/disk/by-uuid/YOUR-LUKS-UUID-HERE";
@@ -52,6 +41,7 @@
     };
   };
 
+  # Filesystems (fill in UUIDs before deployment)
   fileSystems = {
     "/" = {
       device = "/dev/mapper/luks-root";
@@ -68,9 +58,7 @@
     };
   };
 
-  networking.useDHCP = lib.mkDefault true;
+  # AMD GPU
   hardware.graphics.enable = lib.mkDefault true;
   hardware.graphics.enable32Bit = lib.mkDefault true;
-  powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

@@ -18,7 +18,8 @@
     ../../lib/my-options-module.nix
     sops-nix.nixosModules.sops
     nixos-hardware.nixosModules.common-cpu-amd
-    ./nixos-infra.nix
+    ../../hosts/lumquat/configuration.nix
+    ../../hosts/lumquat/hardware-configuration.nix
   ];
 in {
   flake = {
