@@ -29,7 +29,7 @@ update:
 
 # Format all Nix files
 fmt:
-    alejandra . --fix
+    nix develop .# -c alejandra .
 
 # Run VM with the configuration
 vm:

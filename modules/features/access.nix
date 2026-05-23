@@ -10,12 +10,17 @@ _: {
       # Tailscale
       services.tailscale = {
         enable = true;
-        useRoutingFeatures = if config.my.accessEnableExitNode then "server" else "client";
-        extraUpFlags = [
-          "--hostname=${config.my.accessTailnetName}"
-        ] ++ lib.optionals config.my.accessEnableSSH [
-          "--ssh"
-        ];
+        useRoutingFeatures =
+          if config.my.accessEnableExitNode
+          then "server"
+          else "client";
+        extraUpFlags =
+          [
+            "--hostname=${config.my.accessTailnetName}"
+          ]
+          ++ lib.optionals config.my.accessEnableSSH [
+            "--ssh"
+          ];
       };
 
       # Tailscale auth key from SOPS secrets
