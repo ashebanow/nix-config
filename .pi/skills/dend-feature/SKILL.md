@@ -23,7 +23,7 @@ This repository uses a "dendritic" architecture where:
    (defined in `modules/infra/module-containers.nix`)
 3. **Capability flags** (`config.my.*`) control which features activate
 4. **Features guard with `lib.mkIf`** on capability flags, NOT hostname checks
-5. **`import-tree`** auto-imports all `.nix` files from `modules/features/`
+5. **`import-tree` auto-discovery** in flake.nix imports all `.nix` files from `modules/features/`
 6. **Cross-cutting features** spanning NixOS + HM should live in ONE file
 
 ## What to Check
@@ -45,11 +45,24 @@ Does it use `lib.mkIf config.my.<flag>` appropriately?
 Features should NOT check `config.my.hostName == "..."`;
 use capability flags instead.
 
-### 5. HM/NixOS Cohesion
+### 5. Auto-Discovery
+Does `flake.nix` use `import-tree` to auto-import from `modules/features/`?
+
+If NOT present: **-5 points**
+
+Expected pattern:
+```nix
+inputs.import-tree.flake = false;
+outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} {
+  imports = [(import-tree ./modules/features)];
+};
+```
+
+### 6. HM/NixOS Cohesion
 Are there related NixOS+HM configs that are split across separate files
 but should be unified?
 
-### 6. Naming Consistency
+### 7. Naming Consistency
 Does the container key match the feature name?
 
 ## Output Format
@@ -60,8 +73,19 @@ For each issue found, report:
 - **Severity**: high/medium/low
 - **Fix**: what should change
 
-End with a summary of total files reviewed, issues found by severity, and
-overall compliance percentage.
+### Scoring
+
+- **Auto-discovery** (import-tree in flake.nix): **-5 points if missing**
+- **Missing registration**: -5 points per occurrence
+- **Missing mkIf guard**: -2 points per occurrence
+- **Hostname check**: -3 points per occurrence
+
+End with a summary of:
+- Total files reviewed
+- Issues found by severity
+- Auto-discovery status (present/missing, -5 if missing)
+- Overall compliance percentage (after deductions)
+- Max possible score: 100 points
 
 ## See Also
 

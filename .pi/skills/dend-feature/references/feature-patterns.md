@@ -1,5 +1,29 @@
 # Feature Module Patterns
 
+## Auto-Discovery (Required)
+
+The flake.nix must use `import-tree` to auto-discover feature modules:
+
+```nix
+{
+  inputs = {
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    import-tree.url = "github:vic/import-tree";
+    import-tree.flake = false;
+  };
+
+  outputs = inputs: inputs.flake-parts.lib.mkFlake {inherit inputs;} {
+    imports = [
+      (import-tree ./modules/features)
+      (import-tree ./modules/hosts)
+    ];
+  };
+}
+```
+
+Without this, feature modules must be manually imported and registered — violating
+the dendritic pattern's auto-discovery principle.
+
 ## Correct NixOS Feature Module
 
 ```nix
