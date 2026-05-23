@@ -9,35 +9,50 @@ Lumquat is an AI server running NixOS on a GMKTec Evo X2 (Strix Halo mini PC) wi
 
 ## Architecture
 
-This configuration follows a **simplified dendritic pattern**:
-- **Capability flags** defined centrally in `lib/my-options-module.nix`
-- **Feature modules** in `modules/features/*.nix` — self-contained with `lib.mkIf` guards
-- **Host configuration** in `hosts/lumquat.nix` — sets capability flags
-
-## Key Files
+This configuration follows the **dendritic pattern** with auto-discovery:
 
 ```
-.
-├── flake.nix                    # NixOS + Home Manager configuration
-├── lib/
-│   └── my-options-module.nix   # Central capability flags (my.* options)
-├── modules/features/
-│   ├── base.nix                # Server foundation (users, SSH, podman)
-│   ├── access.nix              # Tailscale VPN + SSH
-│   ├── llm.nix                 # LLM container support
-│   ├── monitoring.nix          # Cockpit web UI
-│   ├── secrets.nix             # SOPS-nix integration
-│   └── cli-tools.nix           # Home Manager CLI tools
-└── hosts/lumquat/
-    ├── lumquat.nix             # Host capability flags
-    └── hardware-configuration.nix  # Strix Halo kernel params
+flake.nix
+  └── flake-parts + import-tree
+        ├── modules/infra/
+        │   ├── module-containers.nix   # Deferred module containers
+        │   └── nixos-infra.nix        # NixOS + HM configuration
+        └── modules/features/
+              ├── base.nix
+              ├── access.nix
+              ├── llm.nix
+              ├── monitoring.nix
+              ├── secrets.nix
+              └── cli-tools.nix
 ```
 
-## Dendritic Pattern Principles
+### Key Files
 
-1. **Capability flags** gate features — use `lib.mkIf config.my.<feature>` in modules
-2. **Self-contained modules** — each feature defines its own options and config
-3. **Host-specific config** — only sets capability flags, no imperative NixOS config
+| File | Purpose |
+|------|---------|
+| `flake.nix` | Entry point with flake-parts + import-tree |
+| `lib/my-options-module.nix` | Centralized capability flags (`my.*`) |
+| `modules/infra/module-containers.nix` | Defines `my.modules.nixos.*` containers |
+| `modules/infra/nixos-infra.nix` | Host configuration + NixOS/HM builders |
+| `modules/features/*.nix` | Self-contained feature modules |
+
+## Dendritic Pattern
+
+1. **Auto-discovery** via `import-tree` in flake.nix
+2. **Feature modules** register into `my.modules.nixos.*` or `my.modules.home-manager.*`
+3. **Capability flags** gate features: `lib.mkIf config.my.<feature>`
+4. **Deferred modules** collected and composed in nixos-infra.nix
+
+## Feature Modules
+
+| Module | Container | Capability Flag |
+|--------|----------|-----------------|
+| `base.nix` | `my.modules.nixos.base` | `my.base` |
+| `access.nix` | `my.modules.nixos.access` | `my.access` |
+| `llm.nix` | `my.modules.nixos.llm` | `my.llm` |
+| `monitoring.nix` | `my.modules.nixos.monitoring` | `my.monitoring` |
+| `secrets.nix` | `my.modules.nixos.secrets` | *(auto)* |
+| `cli-tools.nix` | `my.modules.home-manager.cli-tools` | `my.cliTools` |
 
 ## Building
 
@@ -52,20 +67,9 @@ nix build .#nixosConfigurations.lumquat
 nixos-rebuild switch --flake .#lumquat
 ```
 
-## Feature Modules
-
-| Module | Capability Flag | Purpose |
-|--------|-----------------|---------|
-| `base.nix` | `my.base` | Users, SSH, podman, timezone |
-| `access.nix` | `my.access` | Tailscale, firewall, fallback SSH |
-| `llm.nix` | `my.llm` | GPU passthrough, container support |
-| `monitoring.nix` | `my.monitoring` | Cockpit web UI |
-| `secrets.nix` | *(auto)* | SOPS-nix for secrets |
-| `cli-tools.nix` | `my.cliTools` | Home Manager CLI tools |
-
 ## Strix Halo Kernel Parameters
 
-Required in `hardware-configuration.nix`:
+Required kernel params (defined in nixos-infra.nix):
 ```nix
 boot.kernelParams = [
   "amd_iommu=off"           # Strix Halo stability
@@ -76,5 +80,5 @@ boot.kernelParams = [
 
 ## Known Issues
 
-- Home Manager configuration requires running on Linux (can't build on macOS)
+- Home Manager configuration requires running on Linux
 - Hardware UUIDs (`YOUR-LUKS-UUID-HERE`, etc.) must be filled in before deployment
