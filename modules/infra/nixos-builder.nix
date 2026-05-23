@@ -31,11 +31,13 @@ in {
     };
 
     # Home Manager for podman user
-    homeManagerConfigurations.podman = home-manager.lib.homeManagerConfiguration {
-      pkgs = import inputs.nixpkgs {inherit system;};
+    homeConfigurations.podman = home-manager.lib.homeManagerConfiguration {
+      pkgs = import inputs.nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
       modules =
         [
-          home-manager.nixosModules.home-manager
           {
             home-manager = {
               backupFileExtension = "backup";
