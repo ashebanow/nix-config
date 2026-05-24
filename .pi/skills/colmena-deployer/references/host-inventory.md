@@ -15,7 +15,7 @@
 - Cockpit: Port 9090 (Tailscale only)
 
 **Services**:
-- Podman containers (quadlets)
+- Podman containers (oci-containers)
 - Qwen-27B LLM
 - DeepSeek v4 LLM
 - Cockpit web UI

@@ -2,60 +2,52 @@
 
 ## Base Configuration
 
-```nix
-# modules/features/podman-base.nix
-_: {
-  my.modules.nixos.podman-base = _: {
-    environment.systemPackages = with pkgs; [
-      podman-tui      # Terminal UI for podman
-      dive             # Image layer inspection
-    ];
-
-    virtualisation = {
-      containers.enable = true;
-      podman = {
-        enable = true;
-        dockerCompat = true;  # docker CLI compatibility
-        defaultNetwork.settings.dns_enabled = true;
-      };
-    };
-  };
-}
-```
-
-## Quadlets vs docker-compose
-
-This project uses NixOS quadlet options, NOT docker-compose files.
-Quadlets are systemd unit files for containers, managed declaratively in Nix.
+Podman is enabled in `modules/features/base.nix`:
 
 ```nix
-# RIGHT: Quadlet via NixOS module
-virtualisation.podman.containers.myapp = {
-  image = "docker.io/library/nginx";
-  ports = ["8080:80"];
+virtualisation.podman = {
+  enable = true;
+  defaultNetwork.settings.dns_enabled = true;
 };
-
-# WRONG: docker-compose approach (not used here)
 ```
 
-## Rootless Podman
+Additional packages (podman-tui, dive, etc.) can be added to the podman
+user's home-manager config or system packages as needed.
 
-Podman runs rootless by default on NixOS. No daemon required.
+## OCI Containers (Recommended)
 
-## GPU Access in Rootless
+LLM containers use the NixOS `virtualisation.oci-containers` module with
+`backend = "podman"`. This generates systemd services automatically:
 
-For AMD GPUs in rootless podman:
 ```nix
-devices = ["/dev/dri"];  # Pass through /dev/dri device
+# modules/features/llm.nix
+virtualisation.oci-containers = {
+  backend = "podman";
+  containers.qwen3-27b = {
+    image = "ghcr.io/ggml-org/llama.cpp:server-rocm";
+    autoStart = true;
+    ports = ["8080:8080"];
+    # ...
+  };
+};
 ```
 
-## Auto-Update
+The module creates `podman-qwen3-27b.service` automatically.
 
-Enable auto-update for container images:
+> **Note:** We do NOT use the deprecated `virtualisation.podman.containers`
+> option. The `oci-containers` module is the current supported API.
+
+## GPU Access in Containers
+
+For AMD RDNA 3.5 (Strix Halo), containers need:
+
 ```nix
-virtualisation.podman.enable = true;
-# Container-level:
-autoStart = true;
+extraOptions = [
+  "--device" "/dev/dri"     # Rendering
+  "--device" "/dev/kfd"     # ROCm compute
+  "--group-add" "keep-groups"
+  "--security-opt" "label=disable"
+];
 ```
 
 ## Useful Commands
@@ -65,11 +57,14 @@ autoStart = true;
 podman ps -a
 
 # View logs
-podman logs <container>
+podman logs qwen3-27b
 
 # Restart container
-podman restart <container>
+systemctl restart podman-qwen3-27b
 
-# Inspect image layers
-dive <image>
+# Check service status
+systemctl status podman-qwen3-27b
+
+# Follow logs
+journalctl -fu podman-qwen3-27b
 ```

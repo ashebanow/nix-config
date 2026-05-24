@@ -246,29 +246,32 @@ cat /run/secrets/tailscale-auth-key
 
 ## Model Downloads
 
-### 13. Download LLM Models
+### 13. Models (Automatic)
 
-Models live at `/var/lib/llm-models`. Currently these must be downloaded
-manually:
+Models are declared in `modules/features/llm.nix` and downloaded automatically
+on first boot by `download-llm-models.service` before the llama.cpp container starts.
+
+Current model list:
+
+| Model | Quantization | Size | Source |
+|-------|-------------|------|--------|
+| Qwen3-27B | Q4_K_M | ~16 GB | huggingface.co/bartowski |
 
 ```bash
-# On lumquat
-mkdir -p /var/lib/llm-models
-cd /var/lib/llm-models
+# Check download status after deploy
+systemctl status download-llm-models
+journalctl -u download-llm-models
 
-# Qwen3-27B (GGUF format, ~16 GB)
-# Get URL from huggingface.co — e.g.:
-# wget https://huggingface.co/bartowski/Qwen3-27B-GGUF/resolve/main/Qwen3-27B-Q4_K_M.gguf
-
-# DeepSeek v4 — TBD when released
-
-# Verify
+# Models appear at
 ls -lh /var/lib/llm-models/
 ```
 
-> **Work item**: Automate model downloads with a systemd oneshot service that
-> pulls models on first boot. Waiting until LLM container definitions are
-> finalized (see Future Work).
+To add or change models, edit the `models` attrset in `modules/features/llm.nix`.
+The download service uses `wget --continue` and is idempotent — it skips files
+already present.
+
+LLM containers are declared via `virtualisation.oci-containers` in the same module
+(not quadlet files). See `modules/features/llm.nix` for the full definition.
 
 ---
 
@@ -291,17 +294,18 @@ decrypt SOPS secrets and rebuild the machine.
 > **Work item**: Add automated key backup (e.g., to 1Password or a secure git
 > repo). Currently manual.
 
-### 15. Back Up `/var/lib/llm-models`
+### 15. Back Up Model Definitions
 
-Model downloads are large and should be backed up or reproducible:
+Model URLs and versions are declared in `modules/features/llm.nix` and tracked
+in git. To reproduce the exact model set on a new machine, just deploy — the
+`download-llm-models` service handles it automatically.
+
+For disaster recovery, note the GGUF filenames and their SHA256 checksums:
 
 ```bash
-# Option: snapshot the partition
-# Option: keep a download script that reproduces the exact model versions
+sha256sum /var/lib/llm-models/*.gguf > model-checksums.txt
+# Store model-checksums.txt somewhere safe or commit it
 ```
-
-> **Work item**: Create a reproducible model download list (specific GGUF
-> filenames + checksums) stored in the repo.
 
 ---
 
@@ -312,8 +316,7 @@ These items are planned but not yet implemented:
 | Task | Priority | Notes |
 |------|----------|-------|
 | **Colmena deployment** | High | Replace manual `nixos-rebuild` with `colmena deploy` |
-| **LLM container definitions** | High | Quadlet files for Qwen3-27B + DeepSeek v4 with GPU passthrough |
-| **Automated model downloads** | Medium | Systemd oneshot on first boot |
+| **DeepSeek v4 container** | Medium | Add second container when model is released |
 | **`system.stateVersion`** | Low | Add explicit state version to base config |
 | **Automated key backup** | Medium | Backup SSH/age keys to secure storage |
 | **Monitoring dashboards** | Low | Grafana/Prometheus for GPU and LLM metrics |
@@ -332,25 +335,14 @@ colmena deploy --on lumquat
 colmena exec --on lumquat -- sudo systemctl status tailscaled
 ```
 
-### LLM Containers (Future)
+### LLM Containers
 
-Quadlet files will be placed in `/etc/containers/systemd/` on lumquat.
-Each container:
+The current Qwen3-27B container is defined in `modules/features/llm.nix` using
+`virtualisation.oci-containers`. To add a second model (e.g., DeepSeek v4):
 
-- Uses `--device /dev/dri` for GPU passthrough
-- Mounts `/var/lib/llm-models` read-only
-- Exposes an OpenAI-compatible API on localhost
-
-Example (not yet implemented):
-
-```ini
-# /etc/containers/systemd/qwen3-27b.container
-[Container]
-Image=ghcr.io/ggml-org/llama.cpp:server
-Volume=/var/lib/llm-models:/models:ro
-Device=/dev/dri:/dev/dri
-Exec=--model /models/Qwen3-27B-Q4_K_M.gguf --port 8080 --host 0.0.0.0
-```
+1. Add the model URL to the `models` attrset in `modules/features/llm.nix`
+2. Add a second entry under `virtualisation.oci-containers.containers`
+3. Give it a unique port (e.g., `8081`)
 
 ---
 
@@ -373,8 +365,10 @@ free -h
 # Disk
 df -h
 
-# LLM container logs
-podman logs qwen3-27b     # once containers are set up
+# LLM container
+systemctl status podman-qwen3-27b
+podman logs qwen3-27b
+curl -s http://localhost:8080/health | jq
 ```
 
 ### Update Configuration

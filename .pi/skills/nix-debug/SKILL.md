@@ -71,7 +71,7 @@ ssh lumquat "podman inspect <container-name>"
 ## Important Notes
 
 - Hosts connect via Tailscale mesh
-- Container services run via NixOS quadlet modules
+- Container services run via `virtualisation.oci-containers`
 - Always check `journalctl` before suggesting config changes
 - Read the corresponding Nix module to understand expected configuration
 - Verify GPU access if LLM containers are affected

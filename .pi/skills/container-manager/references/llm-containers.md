@@ -2,56 +2,73 @@
 
 ## Container Architecture
 
-Lumquat runs multiple LLM containers, each serving a different model:
+LLM containers are declared in `modules/features/llm.nix` using the NixOS
+`virtualisation.oci-containers` module with podman backend. Each container
+runs llama.cpp server with ROCm GPU passthrough for the Strix Halo's
+AMD RDNA 3.5 iGPU.
 
-### Qwen-27B (Coding)
+### Current Containers
+
+#### Qwen3-27B (Coding Assistant)
 
 ```nix
-virtualisation.podman.containers.qwen-27b = {
-  image = "ghcr.io/ggerganov/llama.cpp:server";
+virtualisation.oci-containers.containers.qwen3-27b = {
+  image = "ghcr.io/ggml-org/llama.cpp:server-rocm";
   autoStart = true;
-  environment = {
-    MODEL = "/models/qwen-27b-q4_k_m.gguf";
-    HOST = "127.0.0.1";  # Localhost only - accessed via Tailscale
-    PORT = "8080";
-  };
+  ports = ["8080:8080"];
   volumes = ["/var/lib/llm-models:/models:ro"];
-  devices = ["/dev/dri"];  # AMD RDNA 3.5 GPU
+  extraOptions = [
+    "--device" "/dev/dri"
+    "--device" "/dev/kfd"
+    "--group-add" "keep-groups"
+    "--security-opt" "label=disable"
+  ];
+  cmd = [
+    "--model" "/models/qwen3-27b-q4_k_m.gguf"
+    "--host" "0.0.0.0"
+    "--port" "8080"
+    "--n-gpu-layers" "99"
+    "--ctx-size" "32768"
+    "--metrics"
+  ];
 };
 ```
 
-### DeepSeek v4 (Planning/Multimodal)
+Systemd service: `podman-qwen3-27b.service`
 
-```nix
-virtualisation.podman.containers.deepseek-v4 = {
-  image = "ghcr.io/ggerganov/llama.cpp:server";
-  autoStart = true;
-  environment = {
-    MODEL = "/models/deepseek-v4-q4_k_m.gguf";
-    HOST = "127.0.0.1";
-    PORT = "8081";
-  };
-  volumes = ["/var/lib/llm-models:/models:ro"];
-  devices = ["/dev/dri"];
-};
-```
+### Adding a New Container (e.g., DeepSeek v4)
 
-## Access Control
-
-- Containers bind to `127.0.0.1` — not directly accessible
-- All LLM traffic routed through Tailscale Aperture
-- No firewall exposure except Tailscale interface
+1. Add the model URL to the `models` attrset in `modules/features/llm.nix`
+2. Add a new entry under `virtualisation.oci-containers.containers`:
+   - Use a unique host port (e.g., `"8081:8080"`)
+   - Reference the correct model filename
+3. Run `nix flake check` to validate
 
 ## GPU Passthrough
 
-The AMD RDNA 3.5 GPU in Strix Halo requires:
-- Container has access to `/dev/dri`
-- Kernel parameters set correctly (see host-inventory.md)
-- Proper Vulkan/ROCM setup if needed
+For AMD RDNA 3.5 (Strix Halo):
+- `/dev/dri` — rendering device nodes (required)
+- `/dev/kfd` — ROCm compute interface (required)
+- `--group-add keep-groups` — preserves supplementary groups for GPU access
+- `--security-opt label=disable` — disables SELinux labeling for device access
+
+Kernel parameters (set in `hosts/lumquat/hardware-configuration.nix`):
+- `amd_iommu=off`
+- `amdgpu.gttsize=126976`
+- `ttm.pages_limit=32505856`
 
 ## Model Storage
 
-Models stored at `/var/lib/llm-models/`:
-- Read-only mount into containers
-- Managed separately from NixOS configuration
-- Could be on separate partition for disk management
+Models live at `/var/lib/llm-models/` and are:
+- Downloaded automatically by `download-llm-models.service` on first boot
+- Mounted read-only into containers
+- Managed via the `models` attrset in `modules/features/llm.nix`
+
+Model URLs are declared alongside the container definitions for full reproducibility.
+
+## Access Control
+
+- Containers bind to `0.0.0.0` on the container side, mapped to host port via
+  the `ports` directive
+- Access control is handled at the firewall level (see `modules/features/access.nix`)
+- The Cockpit monitoring UI tracks container health

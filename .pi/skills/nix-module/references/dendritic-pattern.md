@@ -30,7 +30,7 @@ modules/
 # modules/features/llm-serve.nix
 _: {
   my.modules.nixos.llm-serve = {config, pkgs, ...}: {
-    virtualisation.podman.containers.qwen-27b = {
+    virtualisation.oci-containers.containers.qwen3-27b = {
       image = "ghcr.io/ggerganov/llama.cpp:server";
       autoStart = true;
       # ...

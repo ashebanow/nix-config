@@ -13,19 +13,33 @@ that pins container images by SHA256 digest.
 
 ## Container Configuration
 
-Containers are configured via NixOS quadlet options in feature modules:
+Containers are configured via `virtualisation.oci-containers` in feature modules.
+The NixOS module generates systemd services (`podman-<name>.service`) automatically.
 
 ```nix
-# modules/features/llm-serve.nix
-virtualisation.podman.containers.<name> = {
-  image = "ghcr.io/ggerganov/llama.cpp:server";
-  autoStart = true;
-  environment = {
-    MODEL = "/models/qwen-27b-q4_k_m.gguf";
-    PORT = "8080";
+# modules/features/llm.nix
+virtualisation.oci-containers = {
+  backend = "podman";
+  containers.qwen3-27b = {
+    image = "ghcr.io/ggml-org/llama.cpp:server-rocm";
+    autoStart = true;
+    ports = ["8080:8080"];
+    volumes = ["/var/lib/llm-models:/models:ro"];
+    extraOptions = [
+      "--device" "/dev/dri"
+      "--device" "/dev/kfd"
+      "--group-add" "keep-groups"
+      "--security-opt" "label=disable"
+    ];
+    cmd = [
+      "--model" "/models/qwen3-27b-q4_k_m.gguf"
+      "--host" "0.0.0.0"
+      "--port" "8080"
+      "--n-gpu-layers" "99"
+      "--ctx-size" "32768"
+      "--metrics"
+    ];
   };
-  volumes = ["/var/lib/llm-models:/models:ro"];
-  devices = ["/dev/dri"];  # GPU passthrough
 };
 ```
 
@@ -33,25 +47,28 @@ virtualisation.podman.containers.<name> = {
 
 | Image | Purpose | Registry |
 |-------|---------|----------|
-| ghcr.io/ggerganov/llama.cpp:server | LLM inference | GitHub Container Registry |
+| ghcr.io/ggml-org/llama.cpp:server-rocm | LLM inference (ROCm GPU) | GitHub Container Registry |
 
 ## Your Responsibilities
 
-1. Report which containers have updated digests
-2. Verify GPU passthrough is configured for AMD RDNA 3.5
-3. Check that container volumes and environment variables are correct
-4. Flag any container configuration issues
+1. Check whether `ghcr.io/ggml-org/llama.cpp:server-rocm` has an updated digest
+2. Verify GPU passthrough devices (`/dev/dri`, `/dev/kfd`) are correct for AMD RDNA 3.5
+3. Check that container volumes and command arguments are current
+4. Flag any container configuration issues in `modules/features/llm.nix`
 
 ## Common Issues
 
 ### GPU Not Accessible
-Verify `/dev/dri` is in container's `devices` list for AMD GPU access.
+The container needs both `/dev/dri` (rendering) and `/dev/kfd` (ROCm compute).
+Both are declared in `extraOptions`.
 
 ### Volume Mounts
-LLM model files should be mounted read-only from `/var/lib/llm-models`.
+LLM model files are mounted read-only from `/var/lib/llm-models`.
+Models are downloaded automatically by `download-llm-models.service` on first boot.
 
 ### Port Conflicts
-Each container needs a unique port if binding to host network.
+Each container needs a unique host port. The port is configurable via
+`config.my.llmPort` (default 8080).
 
 ## See Also
 
