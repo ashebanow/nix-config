@@ -34,7 +34,7 @@ _: {
       virtualisation.oci-containers = {
         backend = "podman";
         containers.qwen3-27b = {
-          image = "ghcr.io/ggml-org/llama.cpp:server-rocm";
+          image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
           autoStart = true;
           ports = ["${port}:8080"];
           volumes = ["${modelsDir}:/models:ro"];

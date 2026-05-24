@@ -21,7 +21,7 @@ The NixOS module generates systemd services (`podman-<name>.service`) automatica
 virtualisation.oci-containers = {
   backend = "podman";
   containers.qwen3-27b = {
-    image = "ghcr.io/ggml-org/llama.cpp:server-rocm";
+    image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
     autoStart = true;
     ports = ["8080:8080"];
     volumes = ["/var/lib/llm-models:/models:ro"];
@@ -47,7 +47,7 @@ virtualisation.oci-containers = {
 
 | Image | Purpose | Registry |
 |-------|---------|----------|
-| ghcr.io/ggml-org/llama.cpp:server-rocm | LLM inference (ROCm GPU) | GitHub Container Registry |
+| docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp | LLM inference (ROCm + MTP) | Docker Hub |
 
 ## Your Responsibilities
 
@@ -60,7 +60,14 @@ virtualisation.oci-containers = {
 
 ### GPU Not Accessible
 The container needs both `/dev/dri` (rendering) and `/dev/kfd` (ROCm compute).
-Both are declared in `extraOptions`.
+Both are declared in `extraOptions` along with `--group-add video` and
+`--group-add render`.
+
+### Strix Halo Stability
+Three flags are critical (from [toolboxes README](https://github.com/kyuz0/amd-strix-halo-toolboxes)):
+- `-fa 1` — Flash attention (prevents crashes)
+- `--no-mmap` — Disable mmap (required for stability)
+- `--security-opt seccomp=unconfined` — Required by the toolbox container
 
 ### Volume Mounts
 LLM model files are mounted read-only from `/var/lib/llm-models`.
