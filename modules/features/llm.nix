@@ -2,8 +2,11 @@
 #
 # Image: kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp
 #   - ROCm 7.2.3 compiled for Strix Halo RDNA 3.5
-#   - MTP (Multi-Token Prediction) support via am17an/llama.cpp mtp-clean fork
+#   - MTP (Multi-Token Prediction) via am17an/llama.cpp mtp-clean fork
 #   - https://github.com/kyuz0/amd-strix-halo-toolboxes
+#
+# Model catalog: lib/models.nix (adapted from Doug Campos)
+#   https://random.qmx.me/posts/2026/01/08/nixifying-local-llms/
 #
 # Critical Strix Halo flags (from toolboxes README):
 #   -fa 1        Flash attention (required to avoid crashes)
@@ -18,48 +21,37 @@ _: {
     cfg = config.my;
     modelsDir = cfg.llmModelStorage;
     port = toString cfg.llmPort;
+    modelsLib = import ../../lib/models.nix {inherit lib;};
 
-    # Model definitions — name to huggingface GGUF URL
-    models = {
-      "qwen3-27b-q4_k_m.gguf" = "https://huggingface.co/bartowski/Qwen3-27B-GGUF/resolve/main/Qwen3-27B-Q4_K_M.gguf";
+    # Resolve model: Nix store path if promoted, null otherwise
+    model = modelsLib.fetchModel {
+      inherit pkgs;
+      hfRef = modelsLib.models.qwen3-27b.hf;
     };
 
-    # Generate a download script for all models
-    downloadScript = pkgs.writeShellScript "download-llm-models" ''
-      set -euo pipefail
-      mkdir -p "${modelsDir}"
+    # -m <path> if promoted, -hf <ref> otherwise
+    modelArg =
+      if model != null
+      then "-m ${model}"
+      else "-hf ${modelsLib.models.qwen3-27b.hf}";
 
-      ${lib.concatStringsSep "\n" (lib.mapAttrsToList (filename: url: ''
-        if [ ! -f "${modelsDir}/${filename}" ]; then
-          echo "Downloading ${filename}..."
-          ${pkgs.wget}/bin/wget -q --show-progress --continue \
-            -O "${modelsDir}/${filename}.tmp" "${url}"
-          mv "${modelsDir}/${filename}.tmp" "${modelsDir}/${filename}"
-          echo "  Done: ${filename}"
-        else
-          echo "  Skip: ${filename} (already present)"
-        fi
-      '') models)}
+    # Volume mount for Nix store model (only when promoted)
+    modelVolumes =
+      if model != null
+      then ["${model}:/models/${modelsLib.ggufs.${modelsLib.models.qwen3-27b.hf}.file}:ro"]
+      else [];
 
-      chmod 644 "${modelsDir}"/*.gguf 2>/dev/null || true
-    '';
+    # When using -hf, llama.cpp needs a writable cache dir for downloads
+    hfCacheDir =
+      if model == null
+      then ["${modelsDir}:/root/.cache/llama.cpp"]
+      else [];
   in {
     config = lib.mkIf cfg.llm {
-      # Model storage
+      # Model storage (used as HF cache until model is promoted)
       systemd.tmpfiles.rules = [
         "d ${modelsDir} 0775 root root -"
       ];
-
-      # Download models on first boot (before containers start)
-      systemd.services.download-llm-models = {
-        description = "Download LLM models";
-        wantedBy = ["multi-user.target"];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          ExecStart = downloadScript;
-        };
-      };
 
       # Declarative podman containers via NixOS oci-containers module
       virtualisation.oci-containers = {
@@ -69,7 +61,7 @@ _: {
           qwen3-27b = {
             image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
             ports = ["${port}:8080"];
-            volumes = ["${modelsDir}:/models:ro"];
+            volumes = modelVolumes ++ hfCacheDir;
             extraOptions = [
               "--device" "/dev/dri"
               "--device" "/dev/kfd"
@@ -79,7 +71,7 @@ _: {
             ];
             cmd = [
               "llama-server"
-              "-m" "/models/qwen3-27b-q4_k_m.gguf"
+              modelArg
               "--host" "0.0.0.0"
               "--port" "8080"
               "-ngl" "999"

@@ -246,32 +246,43 @@ cat /run/secrets/tailscale-auth-key
 
 ## Model Downloads
 
-### 13. Models (Automatic)
+### 13. Models (Declarative — Doug Campos Approach)
 
-Models are declared in `modules/features/llm.nix` and downloaded automatically
-on first boot by `download-llm-models.service` before the llama.cpp container starts.
+Model catalog adapted from [Doug Campos' nixifying-local-llms](https://random.qmx.me/posts/2026/01/08/nixifying-local-llms/)
+([source](https://github.com/qmx/dotfiles/blob/master/lib/models.nix)).
 
-Current model list:
+Models are defined in `lib/models.nix` with two tiers:
 
-| Model | Quantization | Size | Source |
-|-------|-------------|------|--------|
-| Qwen3-27B | Q4_K_M | ~16 GB | huggingface.co/bartowski |
+| Tier | Mechanism | Integrity |
+|------|-----------|-----------|
+| **Promoted** (`ggufs`) | `pkgs.fetchurl` with SHA256 → Nix store | ✅ Content-addressed |
+| **Experimental** (`models`) | llama.cpp `-hf` flag → HF download | ❌ Best-effort |
 
-```bash
-# Check download status after deploy
-systemctl status download-llm-models
-journalctl -u download-llm-models
+Current catalog:
 
-# Models appear at
-ls -lh /var/lib/llm-models/
-```
+| Model | Tier | Size |
+|-------|------|------|
+| Qwen3.6-27B Q4_K_M | Experimental (promote after first deploy) | ~17 GB |
 
-To add or change models, edit the `models` attrset in `modules/features/llm.nix`.
-The download service uses `wget --continue` and is idempotent — it skips files
-already present.
+### Promotion Workflow (from QMX blog)
 
-LLM containers are declared via `virtualisation.oci-containers` in the same module
-(not quadlet files). See `modules/features/llm.nix` for the full definition.
+1. Model starts in `models` section → llama.cpp downloads via `-hf` flag
+2. After first successful deploy, compute SHA256 on lumquat:
+   ```bash
+   nix-hash --flat --type sha256 /root/.cache/llama.cpp/hf/<model>.gguf | nix-to-sri
+   ```
+3. Add `sha256 = "sha256-...";` to `lib/models.nix` under `ggufs`
+4. Rebuild: model is now a Nix derivation, cached, and verified
+
+Once promoted, models benefit from:
+- Content-addressed storage in the Nix store
+- Integrity verification on every build
+- Shared cache across machines (LAN speed)
+
+### Model Files
+
+Models live at `/var/lib/llm-models` (used as HF download cache until promoted).
+After promotion, they live at `/nix/store/...` (immutable, read-only).
 
 ---
 
@@ -294,18 +305,16 @@ decrypt SOPS secrets and rebuild the machine.
 > **Work item**: Add automated key backup (e.g., to 1Password or a secure git
 > repo). Currently manual.
 
-### 15. Back Up Model Definitions
+### 15. Back Up Model Catalog
 
-Model URLs and versions are declared in `modules/features/llm.nix` and tracked
-in git. To reproduce the exact model set on a new machine, just deploy — the
-`download-llm-models` service handles it automatically.
+Model URLs and hashes are declared in `lib/models.nix` and tracked in git.
+The promotion workflow (fill in SHA256) ensures full reproducibility.
 
-For disaster recovery, note the GGUF filenames and their SHA256 checksums:
+For promoted models (SHA256 known), the model file is a Nix derivation —
+no manual backup needed. Rebuilds fetch from Nix cache or HuggingFace.
 
-```bash
-sha256sum /var/lib/llm-models/*.gguf > model-checksums.txt
-# Store model-checksums.txt somewhere safe or commit it
-```
+For experimental models (no SHA256), the file lives in the HF cache at
+`/var/lib/llm-models`. To recover, add the SHA256 to `lib/models.nix` and rebuild.
 
 ---
 

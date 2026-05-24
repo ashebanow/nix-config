@@ -32,11 +32,14 @@ virtualisation.oci-containers = {
       "--security-opt" "label=disable"
     ];
     cmd = [
-      "--model" "/models/qwen3-27b-q4_k_m.gguf"
+      "llama-server"
+      modelArg
       "--host" "0.0.0.0"
       "--port" "8080"
-      "--n-gpu-layers" "99"
-      "--ctx-size" "32768"
+      "-ngl" "999"
+      "-fa" "1"
+      "--no-mmap"
+      "-c" "32768"
       "--metrics"
     ];
   };
@@ -48,6 +51,14 @@ virtualisation.oci-containers = {
 | Image | Purpose | Registry |
 |-------|---------|----------|
 | docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp | LLM inference (ROCm + MTP) | Docker Hub |
+
+## Model Management
+
+Models are defined in `lib/models.nix` (adapted from [Doug Campos' qmx/dotfiles](https://github.com/qmx/dotfiles/blob/master/lib/models.nix)):
+- **Promoted**: SHA256-known → `pkgs.fetchurl` → Nix store path (`-m` flag)
+- **Experimental**: SHA256 unknown → `-hf` flag (llama.cpp downloads from HuggingFace)
+
+See [Model Catalog](references/model-catalog.md) for the promotion workflow.
 
 ## Your Responsibilities
 

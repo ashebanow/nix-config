@@ -24,11 +24,14 @@ virtualisation.oci-containers.containers.qwen3-27b = {
     "--security-opt" "label=disable"
   ];
   cmd = [
-    "--model" "/models/qwen3-27b-q4_k_m.gguf"
+    "llama-server"
+    modelArg             # -m Nix store or -hf huggingface (lib/models.nix)
     "--host" "0.0.0.0"
     "--port" "8080"
-    "--n-gpu-layers" "99"
-    "--ctx-size" "32768"
+    "-ngl" "999"
+    "-fa" "1"
+    "--no-mmap"
+    "-c" "32768"
     "--metrics"
   ];
 };
