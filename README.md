@@ -260,9 +260,10 @@ Models are defined in `lib/models.nix` with two tiers:
 
 Current catalog:
 
-| Model | Tier | Size |
-|-------|------|------|
-| Qwen3.6-27B Q4_K_M | Experimental (promote after first deploy) | ~17 GB |
+| Model | Tier | Purpose | Port | Context |
+|-------|------|---------|------|---------|
+| Qwen 3.6 35B-A3B Q8 | Experimental | Coding assistant (MTP) | 8080 | 128K |
+| Gemma 3 27B Q8 | Experimental | Creative / multimodal | 8081 | 256K |
 
 ### Promotion Workflow (from QMX blog)
 
@@ -346,12 +347,19 @@ colmena exec --on lumquat -- sudo systemctl status tailscaled
 
 ### LLM Containers
 
-The current Qwen3-27B container is defined in `modules/features/llm.nix` using
-`virtualisation.oci-containers`. To add a second model (e.g., DeepSeek v4):
+Two containers are defined in `modules/features/llm.nix` using
+`virtualisation.oci-containers`:
 
-1. Add the model URL to the `models` attrset in `modules/features/llm.nix`
-2. Add a second entry under `virtualisation.oci-containers.containers`
-3. Give it a unique port (e.g., `8081`)
+| Container | Model | Port | Purpose |
+|-----------|-------|------|---------|
+| `qwen-35b-a3b` | Qwen 3.6 35B Q8 | 8080 | Coding (MTP) |
+| `gemma-27b` | Gemma 3 27B Q8 | 8081 | Creative/multimodal |
+
+To add a third model:
+
+1. Add to `lib/models.nix` (ggufs + models sections)
+2. Add a new entry under `virtualisation.oci-containers.containers`
+3. Give it a unique port (e.g., `8082`)
 
 ---
 
@@ -374,10 +382,15 @@ free -h
 # Disk
 df -h
 
-# LLM container
-systemctl status podman-qwen3-27b
-podman logs qwen3-27b
-curl -s http://localhost:8080/health | jq
+# LLM containers
+systemctl status podman-qwen-35b-a3b
+systemctl status podman-gemma-27b
+podman logs qwen-35b-a3b
+podman logs gemma-27b
+
+# Check model APIs
+curl -s http://localhost:8080/health | jq   # Qwen (coding)
+curl -s http://localhost:8081/health | jq   # Gemma (creative)
 ```
 
 ### Update Configuration

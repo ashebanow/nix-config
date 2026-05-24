@@ -20,68 +20,79 @@ _: {
   }: let
     cfg = config.my;
     modelsDir = cfg.llmModelStorage;
-    port = toString cfg.llmPort;
     modelsLib = import ../../lib/models.nix {inherit lib;};
 
+    # Shared container options for all LLM containers
+    baseOptions = [
+      "--device" "/dev/dri"
+      "--device" "/dev/kfd"
+      "--group-add" "video"
+      "--group-add" "render"
+      "--security-opt" "seccomp=unconfined"
+    ];
+
+    # Base llama-server flags shared by all models
+    baseFlags = [
+      "-fa" "1" # Flash attention (required on Strix Halo)
+      "--no-mmap" # Required for Strix Halo stability
+      "--metrics"
+    ];
+
     # Resolve model: Nix store path if promoted, null otherwise
-    model = modelsLib.fetchModel {
-      inherit pkgs;
-      hfRef = modelsLib.models.qwen3-27b.hf;
+    resolveModel = hfRef:
+      modelsLib.fetchModel {
+        inherit pkgs;
+        inherit hfRef;
+      };
+
+    # Build container config for a single model
+    mkContainer = name: modelCfg: let
+      modelPath = resolveModel modelCfg.hf;
+      isPromoted = modelPath != null;
+      gguf = modelsLib.ggufs.${modelCfg.hf} or {};
+      portStr = toString modelCfg.port;
+    in {
+      image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
+      ports = ["${portStr}:8080"];
+      autoStart = true;
+      extraOptions = baseOptions;
+      volumes =
+        (if isPromoted
+        then ["${modelPath}:/models/${gguf.file}:ro"]
+        else ["${modelsDir}:/root/.cache/llama.cpp"]);
+      cmd =
+        ["llama-server"]
+        ++ (
+          if isPromoted
+          then ["-m" "${modelPath}"]
+          else ["-hf" modelCfg.hf]
+        )
+        ++ [
+          "--host" "0.0.0.0"
+          "--port" "8080"
+          "-ngl" (toString modelCfg.ngl)
+        ]
+        ++ (lib.optional modelCfg.flashAttn "-fa")
+        ++ ["-c" (toString modelCfg.ctxSize)]
+        ++ (modelCfg.extraFlags or [])
+        ++ baseFlags;
     };
-
-    # -m <path> if promoted, -hf <ref> otherwise
-    modelArg =
-      if model != null
-      then "-m ${model}"
-      else "-hf ${modelsLib.models.qwen3-27b.hf}";
-
-    # Volume mount for Nix store model (only when promoted)
-    modelVolumes =
-      if model != null
-      then ["${model}:/models/${modelsLib.ggufs.${modelsLib.models.qwen3-27b.hf}.file}:ro"]
-      else [];
-
-    # When using -hf, llama.cpp needs a writable cache dir for downloads
-    hfCacheDir =
-      if model == null
-      then ["${modelsDir}:/root/.cache/llama.cpp"]
-      else [];
   in {
     config = lib.mkIf cfg.llm {
-      # Model storage (used as HF cache until model is promoted)
+      # Model storage (used as HF cache for unpromoted models)
       systemd.tmpfiles.rules = [
         "d ${modelsDir} 0775 root root -"
       ];
 
-      # Declarative podman containers via NixOS oci-containers module
+      # Declarative podman containers
       virtualisation.oci-containers = {
         backend = "podman";
         containers = {
-          # Qwen3-27B (coding assistant + general tasks)
-          qwen3-27b = {
-            image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
-            ports = ["${port}:8080"];
-            volumes = modelVolumes ++ hfCacheDir;
-            extraOptions = [
-              "--device" "/dev/dri"
-              "--device" "/dev/kfd"
-              "--group-add" "video"
-              "--group-add" "render"
-              "--security-opt" "seccomp=unconfined"
-            ];
-            cmd = [
-              "llama-server"
-              modelArg
-              "--host" "0.0.0.0"
-              "--port" "8080"
-              "-ngl" "999"
-              "-fa" "1" # Flash attention (required on Strix Halo)
-              "--no-mmap" # Required for Strix Halo stability
-              "-c" "32768"
-              "--metrics"
-            ];
-            autoStart = true;
-          };
+          # Qwen 3.6 35B-A3B Q8 — coding assistant (128K ctx, MTP)
+          qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b;
+
+          # Gemma 3 27B Q8 — creative / multimodal (256K ctx)
+          gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b;
         };
       };
     };

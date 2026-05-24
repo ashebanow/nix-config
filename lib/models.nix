@@ -23,9 +23,16 @@ in rec {
   ggufs = {
     # TODO: Fill in SHA256 after first deployment.
     # Model will be downloaded via -hf flag until hash is known.
-    "bartowski/Qwen_Qwen3.6-27B-GGUF:Q4_K_M" = {
-      file = "Qwen_Qwen3.6-27B-Q4_K_M.gguf";
-      url = "https://huggingface.co/bartowski/Qwen_Qwen3.6-27B-GGUF/resolve/main/Qwen_Qwen3.6-27B-Q4_K_M.gguf";
+    "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q8_K_XL" = {
+      file = "Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
+      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
+      # Fill in after first download:
+      # sha256 = "sha256-...";
+    };
+
+    "unsloth/gemma-3-27b-it-GGUF:UD-Q8_K_XL" = {
+      file = "gemma-3-27b-it-UD-Q8_K_XL.gguf";
+      url = "https://huggingface.co/unsloth/gemma-3-27b-it-GGUF/resolve/main/gemma-3-27b-it-UD-Q8_K_XL.gguf";
       # Fill in after first download:
       # sha256 = "sha256-...";
     };
@@ -34,11 +41,29 @@ in rec {
   # Model metadata — used when model is not yet promoted to ggufs.
   # llama.cpp downloads on demand via -hf flag.
   models = {
-    qwen3-27b = {
-      hf = "bartowski/Qwen_Qwen3.6-27B-GGUF:Q4_K_M";
-      ctxSize = 32768;
+    # Coding assistant — Qwen 3.6 35B MoE (3B active), Q8, 128K ctx, MTP
+    qwen-35b-a3b = {
+      hf = "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q8_K_XL";
+      ctxSize = 131072; # 128K
       flashAttn = true;
       ngl = 999;
+      port = 8080;
+      extraFlags = [
+        "--jinja" # Jinja template support
+      ];
+    };
+
+    # Creative/multimodal — Gemma 3 27B, Q8, 256K ctx
+    gemma-27b = {
+      hf = "unsloth/gemma-3-27b-it-GGUF:UD-Q8_K_XL";
+      ctxSize = 262144; # 256K
+      flashAttn = true;
+      ngl = 999;
+      port = 8081;
+      extraFlags = [
+        "--cache-type-k" "q4_0" # Q4 KV cache to save memory
+        "--cache-type-v" "q4_0"
+      ];
     };
   };
 

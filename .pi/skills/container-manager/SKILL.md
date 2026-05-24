@@ -13,35 +13,22 @@ that pins container images by SHA256 digest.
 
 ## Container Configuration
 
-Containers are configured via `virtualisation.oci-containers` in feature modules.
+Containers are configured via `virtualisation.oci-containers` in `modules/features/llm.nix`.
 The NixOS module generates systemd services (`podman-<name>.service`) automatically.
 
 ```nix
-# modules/features/llm.nix
+# Two models: Qwen (coding) + Gemma (creative/multimodal)
 virtualisation.oci-containers = {
   backend = "podman";
-  containers.qwen3-27b = {
+  containers.qwen-35b-a3b = {   # Coding assistant, 128K ctx, MTP
     image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
     autoStart = true;
     ports = ["8080:8080"];
-    volumes = ["/var/lib/llm-models:/models:ro"];
-    extraOptions = [
-      "--device" "/dev/dri"
-      "--device" "/dev/kfd"
-      "--group-add" "keep-groups"
-      "--security-opt" "label=disable"
-    ];
-    cmd = [
-      "llama-server"
-      modelArg
-      "--host" "0.0.0.0"
-      "--port" "8080"
-      "-ngl" "999"
-      "-fa" "1"
-      "--no-mmap"
-      "-c" "32768"
-      "--metrics"
-    ];
+  };
+  containers.gemma-27b = {      # Creative/multimodal, 256K ctx
+    image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
+    autoStart = true;
+    ports = ["8081:8080"];
   };
 };
 ```
@@ -51,6 +38,13 @@ virtualisation.oci-containers = {
 | Image | Purpose | Registry |
 |-------|---------|----------|
 | docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp | LLM inference (ROCm + MTP) | Docker Hub |
+
+## Active Models
+
+| Container | Model | Port | Context | Purpose |
+|-----------|-------|------|---------|---------|
+| `qwen-35b-a3b` | Qwen 3.6 35B-A3B Q8 | 8080 | 128K | Coding assistant (MTP) |
+| `gemma-27b` | Gemma 3 27B Q8 | 8081 | 256K | Creative / multimodal |
 
 ## Model Management
 

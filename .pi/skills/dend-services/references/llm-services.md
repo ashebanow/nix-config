@@ -7,10 +7,10 @@ the NixOS `virtualisation.oci-containers` module with podman backend.
 
 ## Current LLM Containers
 
-| Container | Model | Port | Systemd Service |
-|-----------|-------|------|-----------------|
-| qwen3-27b | Qwen3-27B Q4_K_M | 8080 (configurable via `my.llmPort`) | `podman-qwen3-27b.service` |
-| deepseek-v4 | DeepSeek v4 | TBD | Not yet implemented |
+| Container | Model | Port | Context | Systemd Service |
+|-----------|-------|------|---------|-----------------|
+| qwen-35b-a3b | Qwen 3.6 35B-A3B Q8 (Unsloth Dynamic) | 8080 | 128K | `podman-qwen-35b-a3b.service` |
+| gemma-27b | Gemma 3 27B Q8 (Unsloth Dynamic) | 8081 | 256K | `podman-gemma-27b.service` |
 
 ## Feature Module Structure
 
