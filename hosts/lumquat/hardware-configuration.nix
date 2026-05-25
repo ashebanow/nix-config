@@ -36,7 +36,7 @@
   # LUKS-encrypted root
   boot.initrd.luks.devices = {
     luks-root = {
-      device = "/dev/disk/by-uuid/YOUR-LUKS-UUID-HERE";
+      device = "/dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470";
       preLVM = true;
     };
   };
@@ -48,13 +48,8 @@
       fsType = "ext4";
     };
     "/boot" = {
-      device = "/dev/disk/by-uuid/YOUR-EFI-UUID-HERE";
+      device = "/dev/disk/by-uuid/179f8938-930f-4315-8c24-c8ce290d9165";
       fsType = "vfat";
-    };
-    "/var/lib/llm-models" = {
-      device = "/dev/disk/by-uuid/YOUR-MODELS-UUID-HERE";
-      fsType = "ext4";
-      options = ["noatime"];
     };
   };
 
