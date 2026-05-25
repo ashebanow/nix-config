@@ -23,9 +23,9 @@ in rec {
   ggufs = {
     # TODO: Fill in SHA256 after first deployment.
     # Model will be downloaded via -hf flag until hash is known.
-    "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q8_K_XL" = {
+    "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL" = {
       file = "Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
-      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
+      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
       # Fill in after first download:
       # sha256 = "sha256-...";
     };
@@ -43,17 +43,21 @@ in rec {
   models = {
     # Coding assistant — Qwen 3.6 35B MoE (3B active), Q8, 128K ctx, MTP
     qwen-35b-a3b = {
-      hf = "unsloth/Qwen3.6-35B-A3B-GGUF:UD-Q8_K_XL";
+      hf = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL";
       ctxSize = 131072; # 128K
       flashAttn = true;
       ngl = 999;
       port = 8080;
       extraFlags = [
         "--jinja" # Jinja template support
+        "--spec-type" "draft-mtp" # Multi-Token Prediction (~2x faster)
+        "--spec-draft-n-max" "3" # Draft 3 tokens per step
       ];
     };
 
     # Creative/multimodal — Gemma 3 27B, Q8, 256K ctx
+    # NOTE: Gemma 3 does NOT support MTP (no MTP heads in architecture).
+    #       Only Qwen 3.x models have graftable MTP layers.
     gemma-27b = {
       hf = "unsloth/gemma-3-27b-it-GGUF:UD-Q8_K_XL";
       ctxSize = 262144; # 256K

@@ -88,10 +88,10 @@ _: {
       virtualisation.oci-containers = {
         backend = "podman";
         containers = {
-          # Qwen 3.6 35B-A3B Q8 — coding assistant (128K ctx, MTP)
+          # Qwen 3.6 35B-A3B Q8 MTP — coding assistant (128K ctx, ~2x faster via MTP)
           qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b;
 
-          # Gemma 3 27B Q8 — creative / multimodal (256K ctx)
+          # Gemma 3 27B Q8 — creative / multimodal (256K ctx, no MTP support)
           gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b;
         };
       };
