@@ -24,6 +24,8 @@
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
-  powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";
+
+  # CPU governor is set centrally in base.nix (schedutil).
+  # Override here only if lumquat needs a different governor:
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

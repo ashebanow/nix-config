@@ -28,6 +28,36 @@ _: {
       # Sudo access for wheel group
       security.sudo.wheelNeedsPassword = false;
 
+      # ── Power management: prevent sleep/hibernate ────────────────
+      # Server must never sleep — it serves LLM requests
+      systemd.sleep.extraConfig = ''
+        AllowSuspend=no
+        AllowHibernation=no
+        AllowHybridSleep=no
+        AllowSuspendThenHibernate=no
+      '';
+
+      # Mask sleep targets to prevent any sleep action
+      systemd.targets = {
+        sleep.enable = false;
+        suspend.enable = false;
+        hibernate.enable = false;
+        hybrid-sleep.enable = false;
+      };
+
+      # Logind: ignore power/sleep buttons, lid switch
+      services.logind = {
+        lidSwitch = "ignore";
+        lidSwitchExternalPower = "ignore";
+        lidSwitchDocked = "ignore";
+        handlePowerKey = "ignore";
+        handleSuspendKey = "ignore";
+        handleHibernateKey = "ignore";
+      };
+
+      # CPU governor: schedutil (scheduler-driven, scales under load)
+      powerManagement.cpuFreqGovernor = lib.mkDefault "schedutil";
+
       # Enable SSH for remote access
       services.openssh = {
         enable = true;
