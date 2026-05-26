@@ -7,6 +7,9 @@
   # Host identity
   my.hostName = "lumquat";
 
+  # NixOS version this host was first installed with (for state migrations)
+  system.stateVersion = "26.05";
+
   # Capability flags — enables feature modules via mkIf guards
   my.base = true;
   my.baseUsername = "podman";

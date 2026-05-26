@@ -1,0 +1,8 @@
+keys:
+  - &lumquat age1m3masykmn7zgnadnjjvuccrjmactevdzk9xl7lsh62gu3vcj5urq0gtz4y
+
+creation_rules:
+  - path_regex: secrets/secrets\.yaml$
+    key_groups:
+      - age:
+          - *lumquat
