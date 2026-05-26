@@ -8,14 +8,20 @@ _: {
   }: {
     config = lib.mkIf config.my.cliTools {
       home.packages = with pkgs; [
-        pkgs.eza
         pkgs.bat
-        pkgs.git-delta
-        pkgs.fd
-        pkgs.ripgrep
-        pkgs.fzf
-        pkgs.zoxide
         pkgs.bottom
+        pkgs.curl
+        pkgs.eza
+        pkgs.fastfetch
+        pkgs.fd
+        pkgs.fzf
+        pkgs.git-delta
+        pkgs.iputils
+        pkgs.just
+        pkgs.neovim
+        pkgs.ripgrep
+        pkgs.wget
+        pkgs.zoxide
       ];
     };
   };
