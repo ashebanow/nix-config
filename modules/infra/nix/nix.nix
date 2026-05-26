@@ -1,12 +1,14 @@
+# Nix daemon settings — registered as a deferred NixOS module.
+# `inputs` is passed via specialArgs from nixos-builder.nix.
 {
-  flake,
-  pkgs,
   lib,
+  config,
+  pkgs,
+  inputs,
   ...
-}:
-{
+}: {
   nix = {
-    # Choose from https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=nix
+    # Use the latest Nix for all features
     package = lib.mkForce pkgs.nixVersions.latest;
 
     gc = {
@@ -14,32 +16,34 @@
       options = "--delete-older-than 30d";
     };
 
+    # Make <nixpkgs> references resolve to flake-pinned inputs
     nixPath = [
-      "nixpkgs=${flake.inputs.nixpkgs}"
-      "nixpkgs-stable=${flake.inputs.nixpkgs-stable}"
-    ]; # Enables use of `nix-shell -p ...` etc
+      "nixpkgs=${inputs.nixpkgs}"
+      # Uncomment when nixpkgs-stable input is added:
+      # "nixpkgs-stable=${inputs.nixpkgs-stable}"
+    ];
+
     registry = {
-      nixpkgs.flake = flake.inputs.nixpkgs; # Make `nix shell` etc use pinned nixpkgs
-      nixpkgs-stable.flake = flake.inputs.nixpkgs-stable;
+      nixpkgs.flake = inputs.nixpkgs;
+      # Uncomment when nixpkgs-stable input is added:
+      # nixpkgs-stable.flake = inputs.nixpkgs-stable;
     };
 
     settings = {
       warn-dirty = false;
-      extra-platforms = lib.mkIf pkgs.stdenv.isDarwin "aarch64-darwin x86_64-darwin";
-      # Nullify the registry for purity.
+      # Enable flakes and nix-command for the daemon and all users
+      experimental-features = [
+        "nix-command"
+        "flakes"
+        "auto-allocate-uids"
+        "cgroups"
+      ];
+      # Nullify the global registry for purity — use flake refs instead
       flake-registry = builtins.toFile "empty-flake-registry.json" ''{"flakes":[],"version":2}'';
-      trusted-users = [ (lib.optionalString pkgs.stdenv.isLinux "@wheel") ];
+      trusted-users = [ "@wheel" ];
     };
-
-    xdg.configFile = {
-      "nix/nix.conf".text = ''
-        experimental-features = nix-command flakes auto-allocate-uids cgroups
-        extra-experimental-features = nix-command flakes auto-allocate-uids cgroups
-      '';
-      "nixpkgs/config.nix".text = ''
-        { allowUnfree = true; }
-      '';
-    };
-
   };
+
+  # Allow unfree packages globally
+  nixpkgs.config.allowUnfree = true;
 }
