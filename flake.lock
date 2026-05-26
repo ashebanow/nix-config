@@ -152,17 +152,17 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1779753336,
-        "narHash": "sha256-1GPxsYg7/Clf6G93qd97E71aPJuOF+Tr6orgYh/Mfzg=",
-        "ref": "refs/heads/main",
-        "rev": "b96a3be8e4c54f6e8c5caaeb2aa8b3f7bd9928ee",
-        "revCount": 2,
-        "type": "git",
-        "url": "file:///Users/ashebanow/Development/nix/zmx"
+        "lastModified": 1779812335,
+        "narHash": "sha256-fBuc5chDR6Tr5sNjiGY4LOW7DByFjzes8S9/VqNBTtA=",
+        "owner": "ashebanow",
+        "repo": "zmx-flake",
+        "rev": "01c029765d885588f79a583c51e345b951cf2e18",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///Users/ashebanow/Development/nix/zmx"
+        "owner": "ashebanow",
+        "repo": "zmx-flake",
+        "type": "github"
       }
     }
   },

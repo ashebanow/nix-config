@@ -25,7 +25,7 @@
     nixos-hardware.url = "github:nixos/nixos-hardware";
 
     # zmx — session persistence for terminal processes
-    zmx.url = "git+file:///Users/ashebanow/Development/nix/zmx";
+    zmx.url = "github:ashebanow/zmx-flake";
   };
 
   outputs = inputs @ {flake-parts, ...}: let
