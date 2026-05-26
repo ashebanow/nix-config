@@ -21,14 +21,18 @@
     ../../hosts/lumquat/configuration.nix
     ../../hosts/lumquat/hardware-configuration.nix
   ];
+  # Build the NixOS config, then override `type` to a string.
+  # flake-parts expects nixosConfigurations.<name>.type to be a string (the system),
+  # but nixosSystem in newer nixpkgs returns type as an attrset.
+  nixosConfig = inputs.nixpkgs.lib.nixosSystem {
+    inherit system;
+    specialArgs = {inherit inputs;};
+    modules = baseModules ++ deferredNixosModules;
+  };
 in {
   flake = {
     # NixOS host configuration
-    nixosConfigurations.lumquat = inputs.nixpkgs.lib.nixosSystem {
-      inherit system;
-      specialArgs = {inherit inputs;};
-      modules = baseModules ++ deferredNixosModules;
-    };
+    nixosConfigurations.lumquat = nixosConfig // { type = system; };
 
     # Home Manager for podman user
     homeConfigurations.podman = home-manager.lib.homeManagerConfiguration {
