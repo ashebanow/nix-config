@@ -5,7 +5,7 @@ default: help
 
 # Build the lumquat configuration
 build:
-    nix build .#nixosConfigurations.lumquat
+    nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
 
 # Build Home Manager for podman user
 build-hm:
