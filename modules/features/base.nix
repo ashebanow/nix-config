@@ -30,12 +30,12 @@ _: {
 
       # ── Power management: prevent sleep/hibernate ────────────────
       # Server must never sleep — it serves LLM requests
-      systemd.sleep.extraConfig = ''
-        AllowSuspend=no
-        AllowHibernation=no
-        AllowHybridSleep=no
-        AllowSuspendThenHibernate=no
-      '';
+      systemd.sleep.settings.Sleep = {
+        AllowSuspend = "no";
+        AllowHibernation = "no";
+        AllowHybridSleep = "no";
+        AllowSuspendThenHibernate = "no";
+      };
 
       # Mask sleep targets to prevent any sleep action
       systemd.targets = {
@@ -46,13 +46,13 @@ _: {
       };
 
       # Logind: ignore power/sleep buttons, lid switch
-      services.logind = {
-        lidSwitch = "ignore";
-        lidSwitchExternalPower = "ignore";
-        lidSwitchDocked = "ignore";
-        powerKey = "ignore";
-        suspendKey = "ignore";
-        hibernateKey = "ignore";
+      services.logind.settings.Login = {
+        HandleLidSwitch = "ignore";
+        HandleLidSwitchExternalPower = "ignore";
+        HandleLidSwitchDocked = "ignore";
+        HandlePowerKey = "ignore";
+        HandleSuspendKey = "ignore";
+        HandleHibernateKey = "ignore";
       };
 
       # CPU governor: schedutil (scheduler-driven, scales under load)
