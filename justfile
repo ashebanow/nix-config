@@ -43,6 +43,10 @@ deploy HOST="lumquat":
 deploy-all:
     colmena deploy
 
+# Build the zmx binary (standalone, from the zmx repo)
+build-zmx:
+    nix build ~/Development/nix/zmx#zmx
+
 # Health check on lumquat
 health HOST="lumquat":
     colmena exec --on {{HOST}} -- sudo systemctl status tailscaled podman cockpit
