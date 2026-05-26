@@ -86,6 +86,13 @@
       description = "Cockpit web interface port.";
     };
 
+    # zmx feature
+    zmx = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable zmx session persistence tool.";
+    };
+
     # CLI tools feature (Home Manager)
     cliTools = lib.mkOption {
       type = lib.types.bool;

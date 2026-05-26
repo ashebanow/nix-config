@@ -50,9 +50,9 @@ _: {
         lidSwitch = "ignore";
         lidSwitchExternalPower = "ignore";
         lidSwitchDocked = "ignore";
-        handlePowerKey = "ignore";
-        handleSuspendKey = "ignore";
-        handleHibernateKey = "ignore";
+        powerKey = "ignore";
+        suspendKey = "ignore";
+        hibernateKey = "ignore";
       };
 
       # CPU governor: schedutil (scheduler-driven, scales under load)

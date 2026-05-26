@@ -21,6 +21,7 @@
   my.accessFallbackPort = 2222;
   my.monitoring = true;
   my.monitoringPort = 9090;
+  my.zmx = true;
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
