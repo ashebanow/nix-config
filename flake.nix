@@ -40,6 +40,7 @@
         (import-tree ./modules/features)
 
         # Infrastructure modules (explicit — not auto-discovered)
+        ./modules/infra/nix
         ./modules/infra/module-containers.nix
         ./modules/infra/devshell.nix
         ./modules/infra/nixos-builder.nix
