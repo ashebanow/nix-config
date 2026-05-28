@@ -40,7 +40,7 @@
       ];
       # Nullify the global registry for purity — use flake refs instead
       flake-registry = builtins.toFile "empty-flake-registry.json" ''{"flakes":[],"version":2}'';
-      trusted-users = [ "@wheel" ];
+      trusted-users = lib.mkDefault [ "root" "@wheel" ];
     };
   };
 
