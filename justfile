@@ -31,6 +31,33 @@ update:
 fmt:
     nix develop .# -c alejandra .
 
+# ── Secrets (SOPS) ────────────────────────────────────────────
+
+# One-time: generate age key from SSH identity (run on each dev machine)
+setup-age:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p ~/.config/sops/age
+    if [ ! -f ~/.config/sops/age/keys.txt ]; then
+        nix run nixpkgs#ssh-to-age -- -i ~/.ssh/id_ed25519 -private-key > ~/.config/sops/age/keys.txt
+        chmod 600 ~/.config/sops/age/keys.txt
+        echo "Age key written to ~/.config/sops/age/keys.txt"
+    else
+        echo "Age key already exists at ~/.config/sops/age/keys.txt"
+    fi
+
+# Edit secrets (decrypt, edit, re-encrypt)
+secrets-edit:
+    sops secrets/secrets.yaml
+
+# Show decrypted secrets (read-only)
+secrets-show:
+    sops -d secrets/secrets.yaml
+
+# Re-encrypt after changing .sops.yaml recipients
+secrets-rekey:
+    sops updatekeys secrets/secrets.yaml
+
 # Run VM with the configuration
 vm:
     nix run .#nixosConfigurations.lumquat.config.system.build.vm -- eval "$(nix --print-build-logs run .#nixosConfigurations.lumquat.config.system.build.toplevel --run 'cat' 2>/dev/null || echo 'echo "Build first"')"

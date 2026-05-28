@@ -1,8 +1,10 @@
 keys:
-  - &lumquat age1m3masykmn7zgnadnjjvuccrjmactevdzk9xl7lsh62gu3vcj5urq0gtz4y
+  - &ashebanow age1m3masykmn7zgnadnjjvuccrjmactevdzk9xl7lsh62gu3vcj5urq0gtz4y
+  - &lumquat age1sqxyva9etc72nye4rxar0pzpkqhqtaahqkr34duxzedwch8mn3fslvvuu8
 
 creation_rules:
   - path_regex: secrets/secrets\.yaml$
     key_groups:
       - age:
+          - *ashebanow
           - *lumquat
