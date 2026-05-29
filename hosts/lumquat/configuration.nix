@@ -1,9 +1,6 @@
 # Lumquat host configuration — capability flags.
 # Host-specific: every host gets its own configuration.nix.
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # Host identity
   my.hostName = "lumquat";
 

@@ -24,16 +24,22 @@ _: {
 
     # Shared container options for all LLM containers
     baseOptions = [
-      "--device" "/dev/dri"
-      "--device" "/dev/kfd"
-      "--group-add" "video"
-      "--group-add" "render"
-      "--security-opt" "seccomp=unconfined"
+      "--device"
+      "/dev/dri"
+      "--device"
+      "/dev/kfd"
+      "--group-add"
+      "video"
+      "--group-add"
+      "render"
+      "--security-opt"
+      "seccomp=unconfined"
     ];
 
     # Base llama-server flags shared by all models
     baseFlags = [
-      "-fa" "1" # Flash attention (required on Strix Halo)
+      "-fa"
+      "1" # Flash attention (required on Strix Halo)
       "--no-mmap" # Required for Strix Halo stability
       "--metrics"
     ];
@@ -57,9 +63,9 @@ _: {
       autoStart = true;
       extraOptions = baseOptions;
       volumes =
-        (if isPromoted
+        if isPromoted
         then ["${modelPath}:/models/${gguf.file}:ro"]
-        else ["${modelsDir}:/root/.cache/llama.cpp"]);
+        else ["${modelsDir}:/root/.cache/llama.cpp"];
       cmd =
         ["llama-server"]
         ++ (
@@ -68,9 +74,12 @@ _: {
           else ["-hf" modelCfg.hf]
         )
         ++ [
-          "--host" "0.0.0.0"
-          "--port" "8080"
-          "-ngl" (toString modelCfg.ngl)
+          "--host"
+          "0.0.0.0"
+          "--port"
+          "8080"
+          "-ngl"
+          (toString modelCfg.ngl)
         ]
         ++ (lib.optional modelCfg.flashAttn "-fa")
         ++ ["-c" (toString modelCfg.ctxSize)]

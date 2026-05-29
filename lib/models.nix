@@ -12,10 +12,7 @@
 #        nix-hash --flat --type sha256 /path/to/model.gguf | nix-to-sri
 #   3. Fill in sha256 below → model becomes a Nix derivation
 #   4. All machines share from Nix cache at LAN speed
-{
-  lib,
-  ...
-}: let
+{lib, ...}: let
   inherit (lib) optionalString;
 in rec {
   # Promoted models with SHA256 hashes — fetched via pkgs.fetchurl.
@@ -50,8 +47,10 @@ in rec {
       port = 8080;
       extraFlags = [
         "--jinja" # Jinja template support
-        "--spec-type" "draft-mtp" # Multi-Token Prediction (~2x faster)
-        "--spec-draft-n-max" "3" # Draft 3 tokens per step
+        "--spec-type"
+        "draft-mtp" # Multi-Token Prediction (~2x faster)
+        "--spec-draft-n-max"
+        "3" # Draft 3 tokens per step
       ];
     };
 
@@ -65,21 +64,26 @@ in rec {
       ngl = 999;
       port = 8081;
       extraFlags = [
-        "--cache-type-k" "q4_0" # Q4 KV cache to save memory
-        "--cache-type-v" "q4_0"
+        "--cache-type-k"
+        "q4_0" # Q4 KV cache to save memory
+        "--cache-type-v"
+        "q4_0"
       ];
     };
   };
 
   # Fetch a model file via Nix (if promoted) or return null (use -hf fallback).
   # Adapted from qmx/dotfiles modules/home-manager/llama-swap/default.nix
-  fetchModel = {pkgs, hfRef}:
-    let
-      gguf = ggufs.${hfRef} or null;
-    in
-      if gguf != null && gguf ? sha256
-      then pkgs.fetchurl {
+  fetchModel = {
+    pkgs,
+    hfRef,
+  }: let
+    gguf = ggufs.${hfRef} or null;
+  in
+    if gguf != null && gguf ? sha256
+    then
+      pkgs.fetchurl {
         inherit (gguf) url sha256;
       }
-      else null;
+    else null;
 }

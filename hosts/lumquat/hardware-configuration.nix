@@ -1,9 +1,6 @@
 # Lumquat hardware configuration — Strix Halo (GMKTec Evo X2).
 # Host-specific: every host gets its own hardware-configuration.nix.
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # Initrd modules for AMD GPU and storage
   boot.initrd.availableKernelModules = [
     "ahci"

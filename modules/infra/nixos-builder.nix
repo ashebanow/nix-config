@@ -32,7 +32,7 @@
 in {
   flake = {
     # NixOS host configuration
-    nixosConfigurations.lumquat = nixosConfig // { type = system; };
+    nixosConfigurations.lumquat = nixosConfig // {type = system;};
 
     # Home Manager for podman user
     homeConfigurations.podman = home-manager.lib.homeManagerConfiguration {
