@@ -10,9 +10,6 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "thunderbolt" "usbhid"
-    "usb_storage" "sd_mod" "sr_mod" "sdhci_pci" ];
-  boot.initrd.kernelModules = [ ];
   # Initrd modules for AMD GPU and storage
   boot.initrd.availableKernelModules = [
     "nvme"
