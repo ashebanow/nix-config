@@ -20,6 +20,7 @@
     nixos-hardware.nixosModules.common-cpu-amd
     ../../hosts/lumquat/configuration.nix
     ../../hosts/lumquat/hardware-configuration.nix
+    ./remote-builder.nix
   ];
   # Build the NixOS config, then override `type` to a string.
   # flake-parts expects nixosConfigurations.<name>.type to be a string (the system),
