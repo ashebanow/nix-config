@@ -55,7 +55,7 @@
       fsType = "ext4";
     };
     "/boot" = {
-      device = "/dev/disk/by-uuid/179f8938-930f-4315-8c24-c8ce290d9165";
+      device = "/dev/disk/by-uuid/8A6E-4E07";
       fsType = "vfat";
     };
   };
