@@ -6,6 +6,7 @@ pkgs.mkShell {
     (with pkgs; [
       alejandra # Nix formatter
       git
+      sops
     ])
     ++ (with pkgs; [
       # Platform-specific tools if needed
