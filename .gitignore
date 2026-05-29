@@ -1,4 +1,6 @@
 .direnv/
 
+result/
+
 # Age private keys — never commit
 secrets/keys/

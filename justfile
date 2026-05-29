@@ -7,12 +7,10 @@ default: help
 build:
     nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
 
-# Build from bergamot using lumquat as a remote builder
-# Uses raw SSH (not Tailscale SSH). Find lumquat's Tailscale IP:
-#   tailscale status | grep lumquat
-# Then: just build-remote 100.x.y.z
-build-remote IP:
-    nix build .#nixosConfigurations.lumquat.config.system.build.toplevel --builders 'ssh://{{IP}} x86_64-linux'
+# Build from bergamot using lumquat as a remote builder.
+# Uses the builder configured in /etc/nix/nix.conf.
+build-remote:
+    nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
 
 # Build Home Manager for podman user
 build-hm:
