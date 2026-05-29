@@ -16,7 +16,6 @@ _: {
           "tailscale-auth-key" = {
             mode = "0640";
             group = "root";
-            key = "data";
           };
         };
       };
