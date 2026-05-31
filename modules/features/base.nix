@@ -13,6 +13,7 @@ _: {
       # Create non-root user for containers
       users.users.${config.my.baseUsername} = {
         isNormalUser = true;
+        shell = pkgs.zsh;
         description = "Container operator";
         extraGroups = ["wheel" "docker" "podman"];
         openssh.authorizedKeys.keys = [
