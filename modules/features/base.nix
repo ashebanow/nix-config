@@ -25,6 +25,8 @@ _: {
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
       ];
 
+      xdg.configFile."starship.toml".source = ./dotfiles/.config/starship.toml;
+
       # Sudo access for wheel group
       security.sudo.wheelNeedsPassword = false;
 
