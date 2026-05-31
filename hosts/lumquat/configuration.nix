@@ -13,6 +13,7 @@
   my.baseTimezone = "America/Los_Angeles";
   my.llm = true;
   my.llmModelStorage = "/var/lib/llm-models";
+  my.llm-dev = true;
   my.access = true;
   my.accessTailnetName = "lumquat";
   my.accessEnableSSH = true;

@@ -71,10 +71,12 @@ _: {
       environment.systemPackages = with pkgs; [
         btop
         curl
+        ghostty.terminfo
         git
         htop
         just
         neovim
+        starship
         sudo
         vim
         wget
