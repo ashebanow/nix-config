@@ -5,7 +5,9 @@ pkgs.mkShell {
   nativeBuildInputs = with pkgs; [
     alejandra
     gh
+    git
     home-manager
+    pi-coding-agent
     sops
   ];
 
