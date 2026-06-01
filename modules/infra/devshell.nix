@@ -6,7 +6,6 @@ _: {
 
       packages = with pkgs; [
         alejandra # Nix formatter
-        git
       ];
 
       shellHook = ''

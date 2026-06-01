@@ -41,11 +41,6 @@
       default = 8080;
       description = "Port for llama.cpp API server.";
     };
-    llm-dev = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable LLM development tools, like pi.";
-    };
 
     # Access feature
     access = lib.mkOption {
