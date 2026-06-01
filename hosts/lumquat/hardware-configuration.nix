@@ -1,11 +1,15 @@
 # Lumquat hardware configuration — Strix Halo (GMKTec Evo X2).
 # Carefully maintained; hardware changes must be reflected here.
-{ config, lib, pkgs, modulesPath, ... }:
-
 {
-  imports =
-    [ (modulesPath + "/installer/scan/not-detected.nix")
-    ];
+  config,
+  lib,
+  pkgs,
+  modulesPath,
+  ...
+}: {
+  imports = [
+    (modulesPath + "/installer/scan/not-detected.nix")
+  ];
 
   # Initrd modules for AMD GPU and storage
   boot.initrd.availableKernelModules = [
@@ -22,8 +26,8 @@
     "radeon"
   ];
   boot.initrd.kernelModules = ["amdgpu"];
-  boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = [ ];
+  boot.kernelModules = ["kvm-amd"];
+  boot.extraModulePackages = [];
 
   # Strix Halo kernel params for LLM GPU passthrough
   # See: https://github.com/hellas-ai/nix-strix-halo
@@ -60,7 +64,7 @@
     };
   };
 
-  swapDevices = [ ];
+  swapDevices = [];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

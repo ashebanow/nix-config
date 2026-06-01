@@ -33,9 +33,6 @@
   in
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
-        # Home Manager flake-parts integration
-        inputs.home-manager.flakeModules.home-manager
-
         # Auto-discover all feature modules
         (import-tree ./modules/features)
 

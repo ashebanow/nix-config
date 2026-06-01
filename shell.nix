@@ -2,15 +2,12 @@
 pkgs.mkShell {
   name = "lumquat-dev";
 
-  packages =
-    (with pkgs; [
-      alejandra # Nix formatter
-      git
-      sops
-    ])
-    ++ (with pkgs; [
-      # Platform-specific tools if needed
-    ]);
+  nativeBuildInputs = with pkgs; [
+    alejandra
+    gh
+    home-manager
+    sops
+  ];
 
   shellHook = ''
     echo "Lumquat dev shell"

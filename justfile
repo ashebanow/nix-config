@@ -14,7 +14,7 @@ build-remote:
 
 # Build Home Manager for podman user
 build-hm:
-    nix build .#home-managerConfigurations.podman
+    nix build .#homeConfigurations.podman.activationPackage
 
 # Check the configuration
 check:

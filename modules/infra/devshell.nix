@@ -5,7 +5,10 @@ _: {
       name = "lumquat-dev";
 
       packages = with pkgs; [
-        alejandra # Nix formatter
+        alejandra
+        gh
+        home-manager
+        sops
       ];
 
       shellHook = ''

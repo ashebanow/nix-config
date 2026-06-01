@@ -6,7 +6,7 @@ _: {
     config,
     ...
   }: {
-    xdg.configFile."starship.toml".source = ./dotfiles/.config/starship.toml;
+    # xdg.configFile."starship.toml".source = ./dotfiles/.config/starship.toml;
 
     config = lib.mkIf config.my.cliTools {
       home.packages = with pkgs; [
@@ -17,6 +17,7 @@ _: {
         fastfetch
         fd
         fzf
+        gh
         just
         neovim
         pi-coding-agent

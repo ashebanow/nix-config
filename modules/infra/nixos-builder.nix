@@ -22,6 +22,7 @@
     ../../hosts/lumquat/hardware-configuration.nix
     ./remote-builder.nix
   ];
+
   # Build the NixOS config, then override `type` to a string.
   # flake-parts expects nixosConfigurations.<name>.type to be a string (the system),
   # but nixosSystem in newer nixpkgs returns type as an attrset.
@@ -30,30 +31,27 @@
     specialArgs = {inherit inputs;};
     modules = baseModules ++ deferredNixosModules;
   };
+
+  homeConfig = home-manager.lib.homeManagerConfiguration {
+    pkgs = import inputs.nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+    };
+    modules =
+      [
+        {
+          home.username = "podman";
+          home.homeDirectory = "/home/podman";
+          home.stateVersion = "26.05";
+        }
+        ../../lib/my-options-module.nix
+        ./hm-infra.nix
+      ]
+      ++ deferredHmModules;
+  };
 in {
   flake = {
-    # NixOS host configuration
     nixosConfigurations.lumquat = nixosConfig // {type = system;};
-
-    # Home Manager for podman user
-    homeConfigurations.podman = home-manager.lib.homeManagerConfiguration {
-      pkgs = import inputs.nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
-      modules =
-        [
-          {
-            home-manager = {
-              backupFileExtension = "backup";
-              useGlobalPkgs = true;
-              useUserPackages = true;
-            };
-          }
-          ../../lib/my-options-module.nix
-          ./hm-infra.nix
-        ]
-        ++ deferredHmModules;
-    };
+    homeConfigurations.podman = homeConfig // {type = system;};
   };
 }
