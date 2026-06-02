@@ -8,6 +8,7 @@ _: {
         alejandra
         gh
         home-manager
+        pi-coding-agent
         sops
       ];
 

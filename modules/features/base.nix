@@ -21,6 +21,7 @@ _: {
         ];
       };
 
+      programs.direnv.enable = true;
       programs.zsh.enable = true;
 
       # Root SSH access with authorized key (no password login)
