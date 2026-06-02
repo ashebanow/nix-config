@@ -18,9 +18,27 @@
     ../../lib/my-options-module.nix
     sops-nix.nixosModules.sops
     nixos-hardware.nixosModules.common-cpu-amd
+    home-manager.nixosModules.home-manager
     ../../hosts/lumquat/configuration.nix
     ../../hosts/lumquat/hardware-configuration.nix
     ./remote-builder.nix
+    # Wire home-manager into NixOS activation so
+    # nixos-rebuild switch applies it for the podman user.
+    {
+      home-manager.users.podman = {
+        imports =
+          [
+            {
+              home.username = "podman";
+              home.homeDirectory = "/home/podman";
+              home.stateVersion = "26.05";
+            }
+            ../../lib/my-options-module.nix
+            ./hm-infra.nix
+          ]
+          ++ deferredHmModules;
+      };
+    }
   ];
 
   # Build the NixOS config, then override `type` to a string.
@@ -32,6 +50,7 @@
     modules = baseModules ++ deferredNixosModules;
   };
 
+  # Same treatment for Home Manager — newer nixpkgs returns type as an attrset.
   homeConfig = home-manager.lib.homeManagerConfiguration {
     pkgs = import inputs.nixpkgs {
       inherit system;
