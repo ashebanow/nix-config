@@ -6,13 +6,12 @@ _: {
     config,
     ...
   }: {
-    # xdg.configFile."starship.toml".source = ./dotfiles/.config/starship.toml;
-
     config = lib.mkIf config.my.cliTools {
       home.packages = with pkgs; [
         bat
         bottom
         curl
+        direnv
         eza
         fastfetch
         fd
@@ -20,9 +19,9 @@ _: {
         gh
         just
         neovim
+        nix-direnv
         pi-coding-agent
         ripgrep
-        starship
         wget
         zoxide
       ];

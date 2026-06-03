@@ -7,7 +7,10 @@ _: {
       packages = with pkgs; [
         alejandra
         gh
+        git
         home-manager
+        nixd
+        nixfmt
         pi-coding-agent
         sops
       ];

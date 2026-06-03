@@ -7,6 +7,8 @@ pkgs.mkShell {
     gh
     git
     home-manager
+    nixd
+    nixfmt
     pi-coding-agent
     sops
   ];
