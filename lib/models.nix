@@ -76,9 +76,10 @@ in rec {
         "--cache-type-v"
         "q4_0"
 
-        # Speculative decoding: Gemma 3 2B drafts tokens for 27B (~2x speedup)
+        # Speculative decoding: Gemma 3 1B drafts tokens for 27B (~2x speedup)
+        # (2B is gated on HF, 1B is public and shares the same tokenizer)
         "--spec-draft-hf"
-        "unsloth/gemma-3-2b-it-GGUF:Q8_0"
+        "unsloth/gemma-3-1b-it-GGUF:Q8_0"
         "--spec-draft-n-max"
         "8" # Draft 8 tokens per step
         "--spec-draft-p-min"
