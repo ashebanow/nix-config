@@ -91,9 +91,10 @@ _: {
   in {
     config = lib.mkIf cfg.llm {
       # Model storage (used as HF cache for unpromoted models)
+      # hfCacheDir must be owned by the podman user so rootless containers can write to it
       systemd.tmpfiles.rules = [
         "d ${modelsDir} 0775 root root -"
-        "d ${hfCacheDir} 0775 root root -"
+        "d ${hfCacheDir} 0775 ${cfg.baseUsername} ${cfg.baseUsername} -"
       ];
 
       # Declarative podman containers
