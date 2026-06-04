@@ -20,6 +20,7 @@ _: {
   }: let
     cfg = config.my;
     modelsDir = cfg.llmModelStorage;
+    hfCacheDir = "${modelsDir}/huggingface-cache";
     modelsLib = import ../../lib/models.nix {inherit lib;};
 
     # Shared container options for all LLM containers
@@ -63,10 +64,11 @@ _: {
       autoStart = true;
       extraOptions = baseOptions;
       podman.user = cfg.baseUsername; # Run rootless as the podman user
-      volumes =
-        if isPromoted
+      volumes = [
+        "${hfCacheDir}:/root/.cache/huggingface"
+      ] ++ (if isPromoted
         then ["${modelPath}:/models/${gguf.file}:ro"]
-        else ["${modelsDir}:/root/.cache/llama.cpp"];
+        else ["${modelsDir}:/root/.cache/llama.cpp"]);
       cmd =
         ["llama-server"]
         ++ (
@@ -91,6 +93,7 @@ _: {
       # Model storage (used as HF cache for unpromoted models)
       systemd.tmpfiles.rules = [
         "d ${modelsDir} 0775 root root -"
+        "d ${hfCacheDir} 0775 root root -"
       ];
 
       # Declarative podman containers
