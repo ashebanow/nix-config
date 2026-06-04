@@ -75,6 +75,24 @@ in rec {
         "q4_0" # Q4 KV cache to save memory
         "--cache-type-v"
         "q4_0"
+
+        # Speculative decoding: Gemma 3 2B drafts tokens for 27B (~2x speedup)
+        "--spec-draft-hf"
+        "unsloth/gemma-3-2b-it-GGUF:Q8_0"
+        "--spec-draft-n-max"
+        "8" # Draft 8 tokens per step
+        "--spec-draft-p-min"
+        "0.6" # Accept ~60%+ probability matches
+
+        # Performance tuning
+        "--threads"
+        "32" # Use all 32 logical threads (16C/32T)
+        "--threads-batch"
+        "32"
+        "--poll"
+        "100" # Max polling = lower latency on unified memory
+        "--prio"
+        "2" # High process priority
       ];
     };
   };
