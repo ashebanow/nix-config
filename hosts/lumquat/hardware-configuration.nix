@@ -33,8 +33,8 @@
   # See: https://github.com/hellas-ai/nix-strix-halo
   boot.kernelParams = [
     "amd_iommu=off" # Required for Strix Halo stability
-    "amdgpu.gttsize=126976" # Expose ~124 GB VRAM to GPU
-    "ttm.pages_limit=32505856" # Full memory pool for TTM
+    "amdgpu.gttsize=40960" # Expose 40 GB GTT (104 GB total GPU: 64 VRAM + 40 GTT)
+    "ttm.pages_limit=27487790" # Total GPU addressable: 104 GB / 4 KB pages = 27487790
   ];
 
   # systemd-boot on EFI

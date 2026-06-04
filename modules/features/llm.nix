@@ -58,36 +58,42 @@ _: {
       isPromoted = modelPath != null;
       gguf = modelsLib.ggufs.${modelCfg.hf} or {};
       portStr = toString modelCfg.port;
-    in {
-      image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
-      ports = ["${portStr}:8080"];
-      autoStart = true;
-      extraOptions = baseOptions;
-      podman.user = cfg.baseUsername; # Run rootless as the podman user
-      volumes = [
-        "${hfCacheDir}:/root/.cache/huggingface"
-      ] ++ (if isPromoted
-        then ["${modelPath}:/models/${gguf.file}:ro"]
-        else ["${modelsDir}:/root/.cache/llama.cpp"]);
-      cmd =
-        ["llama-server"]
-        ++ (
-          if isPromoted
-          then ["-m" "${modelPath}"]
-          else ["-hf" modelCfg.hf]
-        )
-        ++ [
-          "--host"
-          "0.0.0.0"
-          "--port"
-          "8080"
-          "-ngl"
-          (toString modelCfg.ngl)
-        ]
-        ++ ["-c" (toString modelCfg.ctxSize)]
-        ++ (modelCfg.extraFlags or [])
-        ++ baseFlags;
-    } // extraConfig;
+    in
+      {
+        image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
+        ports = ["${portStr}:8080"];
+        autoStart = true;
+        extraOptions = baseOptions;
+        podman.user = cfg.baseUsername; # Run rootless as the podman user
+        volumes =
+          [
+            "${hfCacheDir}:/root/.cache/huggingface"
+          ]
+          ++ (
+            if isPromoted
+            then ["${modelPath}:/models/${gguf.file}:ro"]
+            else ["${modelsDir}:/root/.cache/llama.cpp"]
+          );
+        cmd =
+          ["llama-server"]
+          ++ (
+            if isPromoted
+            then ["-m" "${modelPath}"]
+            else ["-hf" modelCfg.hf]
+          )
+          ++ [
+            "--host"
+            "0.0.0.0"
+            "--port"
+            "8080"
+            "-ngl"
+            (toString modelCfg.ngl)
+          ]
+          ++ ["-c" (toString modelCfg.ctxSize)]
+          ++ (modelCfg.extraFlags or [])
+          ++ baseFlags;
+      }
+      // extraConfig;
   in {
     config = lib.mkIf cfg.llm {
       # Model storage (used as HF cache for unpromoted models)
@@ -107,7 +113,8 @@ _: {
           # Gemma 3 27B Q5_K_XL — creative / multimodal (256K ctx, no MTP support)
           # NOTE: ngl doesn't affect buffer allocation on ROCm/unified memory;
           # both models allocate their full model buffer regardless of ngl.
-          gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b {};
+          # autoStart disabled until Qwen is stable enough to coexist.
+          gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b { autoStart = false; };
         };
       };
     };

@@ -52,15 +52,21 @@ in rec {
         "draft-mtp" # Multi-Token Prediction (~2x faster)
         "--spec-draft-n-max"
         "3" # Draft 3 tokens per step
+        "--cache-type-k"
+        "q4_0" # Q4 KV cache (~4x reduction, frees GTT for Gemma)
+        "--cache-type-v"
+        "q4_0"
       ];
     };
 
-    # Creative/multimodal — Gemma 3 27B, Q5_K_XL, 256K ctx
+    # Creative/multimodal — Gemma 3 27B, Q5_K_XL
+    # NOTE: The GGUF's n_ctx_train is 131072, so 256K requests get capped to 128K.
+    #       Set to 128K explicitly to avoid the useless over-reservation.
     # NOTE: Gemma 3 does NOT support MTP (no MTP heads in architecture).
     #       Only Qwen 3.x models have graftable MTP layers.
     gemma-27b = {
       hf = "unsloth/gemma-3-27b-it-GGUF:UD-Q5_K_XL";
-      ctxSize = 262144; # 256K
+      ctxSize = 131072; # 128K (actual train ctx; 256K was being silently capped)
       flashAttn = true;
       ngl = 999; # ROCm allocates full model buffer regardless of ngl; ngl just controls compute
       port = 8081;
