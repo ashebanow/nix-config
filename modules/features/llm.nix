@@ -9,7 +9,7 @@
 #   https://random.qmx.me/posts/2026/01/08/nixifying-local-llms/
 #
 # Critical Strix Halo flags (from toolboxes README):
-#   -fa 1        Flash attention (required to avoid crashes)
+#   -fa on       Flash attention (required to avoid crashes; newer llama-server expects on|off|auto)
 #   --no-mmap    Disable mmap (required for stability)
 _: {
   my.modules.nixos.llm = {
@@ -39,7 +39,7 @@ _: {
     # Base llama-server flags shared by all models
     baseFlags = [
       "-fa"
-      "1" # Flash attention (required on Strix Halo)
+      "on" # Flash attention (required on Strix Halo, newer llama-server expects on|off|auto)
       "--no-mmap" # Required for Strix Halo stability
       "--metrics"
     ];
@@ -52,7 +52,7 @@ _: {
       };
 
     # Build container config for a single model
-    mkContainer = name: modelCfg: let
+    mkContainer = name: modelCfg: extraConfig: let
       modelPath = resolveModel modelCfg.hf;
       isPromoted = modelPath != null;
       gguf = modelsLib.ggufs.${modelCfg.hf} or {};
@@ -62,6 +62,7 @@ _: {
       ports = ["${portStr}:8080"];
       autoStart = true;
       extraOptions = baseOptions;
+      podman.user = cfg.baseUsername; # Run rootless as the podman user
       volumes =
         if isPromoted
         then ["${modelPath}:/models/${gguf.file}:ro"]
@@ -81,11 +82,10 @@ _: {
           "-ngl"
           (toString modelCfg.ngl)
         ]
-        ++ (lib.optional modelCfg.flashAttn "-fa")
         ++ ["-c" (toString modelCfg.ctxSize)]
         ++ (modelCfg.extraFlags or [])
         ++ baseFlags;
-    };
+    } // extraConfig;
   in {
     config = lib.mkIf cfg.llm {
       # Model storage (used as HF cache for unpromoted models)
@@ -97,11 +97,13 @@ _: {
       virtualisation.oci-containers = {
         backend = "podman";
         containers = {
-          # Qwen 3.6 35B-A3B Q8 MTP — coding assistant (128K ctx, ~2x faster via MTP)
-          qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b;
+          # Qwen 3.6 35B-A3B Q5_K_XL MTP — coding assistant (128K ctx, ~2x faster via MTP)
+          qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b {};
 
-          # Gemma 3 27B Q8 — creative / multimodal (256K ctx, no MTP support)
-          gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b;
+          # Gemma 3 27B Q5_K_XL — creative / multimodal (256K ctx, no MTP support)
+          # NOTE: ngl doesn't affect buffer allocation on ROCm/unified memory;
+          # both models allocate their full model buffer regardless of ngl.
+          gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b {};
         };
       };
     };

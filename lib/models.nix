@@ -20,16 +20,16 @@ in rec {
   ggufs = {
     # TODO: Fill in SHA256 after first deployment.
     # Model will be downloaded via -hf flag until hash is known.
-    "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL" = {
-      file = "Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
-      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
+    "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q5_K_XL" = {
+      file = "Qwen3.6-35B-A3B-UD-Q5_K_XL.gguf";
+      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q5_K_XL.gguf";
       # Fill in after first download:
       # sha256 = "sha256-...";
     };
 
-    "unsloth/gemma-3-27b-it-GGUF:UD-Q8_K_XL" = {
-      file = "gemma-3-27b-it-UD-Q8_K_XL.gguf";
-      url = "https://huggingface.co/unsloth/gemma-3-27b-it-GGUF/resolve/main/gemma-3-27b-it-UD-Q8_K_XL.gguf";
+    "unsloth/gemma-3-27b-it-GGUF:UD-Q5_K_XL" = {
+      file = "gemma-3-27b-it-UD-Q5_K_XL.gguf";
+      url = "https://huggingface.co/unsloth/gemma-3-27b-it-GGUF/resolve/main/gemma-3-27b-it-UD-Q5_K_XL.gguf";
       # Fill in after first download:
       # sha256 = "sha256-...";
     };
@@ -38,9 +38,10 @@ in rec {
   # Model metadata — used when model is not yet promoted to ggufs.
   # llama.cpp downloads on demand via -hf flag.
   models = {
-    # Coding assistant — Qwen 3.6 35B MoE (3B active), Q8, 128K ctx, MTP
+    # Coding assistant — Qwen 3.6 35B MoE (3B active), Q5_K_XL, 128K ctx, MTP
+    # NOTE: Q5_K_XL is the quality sweet spot; fits alongside Gemma Q5 with ~28GB to spare
     qwen-35b-a3b = {
-      hf = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL";
+      hf = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q5_K_XL";
       ctxSize = 131072; # 128K
       flashAttn = true;
       ngl = 999;
@@ -54,14 +55,14 @@ in rec {
       ];
     };
 
-    # Creative/multimodal — Gemma 3 27B, Q8, 256K ctx
+    # Creative/multimodal — Gemma 3 27B, Q5_K_XL, 256K ctx
     # NOTE: Gemma 3 does NOT support MTP (no MTP heads in architecture).
     #       Only Qwen 3.x models have graftable MTP layers.
     gemma-27b = {
-      hf = "unsloth/gemma-3-27b-it-GGUF:UD-Q8_K_XL";
+      hf = "unsloth/gemma-3-27b-it-GGUF:UD-Q5_K_XL";
       ctxSize = 262144; # 256K
       flashAttn = true;
-      ngl = 999;
+      ngl = 999; # ROCm allocates full model buffer regardless of ngl; ngl just controls compute
       port = 8081;
       extraFlags = [
         "--cache-type-k"

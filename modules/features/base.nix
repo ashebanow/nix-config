@@ -16,6 +16,7 @@ _: {
         shell = pkgs.zsh;
         description = "Container operator";
         extraGroups = ["wheel" "docker" "podman"];
+        linger = true; # Required for rootless podman systemd services
         openssh.authorizedKeys.keys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
         ];
