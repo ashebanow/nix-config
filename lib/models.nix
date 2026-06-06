@@ -18,13 +18,11 @@ in rec {
   # Promoted models with SHA256 hashes — fetched via pkgs.fetchurl.
   # Nix verifies integrity and caches the result.
   ggufs = {
-    # TODO: Fill in SHA256 after first deployment.
-    # Model will be downloaded via -hf flag until hash is known.
+    # Promoted — downloaded via Nix (SHA256 verified).
     "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL" = {
       file = "Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
       url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
-      # Fill in after first download:
-      # sha256 = "sha256-...";
+      sha256 = "sha256-bGuBZTerrZCyUKCXKzRUZgKNhh3f4xbV8N4xymRA94E=";
     };
 
     "unsloth/gemma-3-27b-it-GGUF:UD-Q5_K_XL" = {
