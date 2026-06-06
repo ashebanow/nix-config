@@ -20,9 +20,9 @@ in rec {
   ggufs = {
     # TODO: Fill in SHA256 after first deployment.
     # Model will be downloaded via -hf flag until hash is known.
-    "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q5_K_XL" = {
-      file = "Qwen3.6-35B-A3B-UD-Q5_K_XL.gguf";
-      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q5_K_XL.gguf";
+    "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL" = {
+      file = "Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
+      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
       # Fill in after first download:
       # sha256 = "sha256-...";
     };
@@ -38,10 +38,10 @@ in rec {
   # Model metadata — used when model is not yet promoted to ggufs.
   # llama.cpp downloads on demand via -hf flag.
   models = {
-    # Coding assistant — Qwen 3.6 35B MoE (3B active), Q5_K_XL, 128K ctx, MTP
-    # NOTE: Q5_K_XL is the quality sweet spot; fits alongside Gemma Q5 with ~28GB to spare
+    # Coding assistant — Qwen 3.6 35B MoE (3B active), UD-Q8_K_XL, 128K ctx, MTP
+    # NOTE: UD-Q8_K_XL is the highest quant available for MTP; fits comfortably in 104 GB alone
     qwen-35b-a3b = {
-      hf = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q5_K_XL";
+      hf = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL";
       ctxSize = 131072; # 128K
       flashAttn = true;
       ngl = 999;
@@ -53,7 +53,7 @@ in rec {
         "--spec-draft-n-max"
         "3" # Draft 3 tokens per step
         "--cache-type-k"
-        "q4_0" # Q4 KV cache (~4x reduction, frees GTT for Gemma)
+        "q4_0" # Q4 KV cache (~4x reduction vs F16, negligible quality loss)
         "--cache-type-v"
         "q4_0"
       ];

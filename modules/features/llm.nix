@@ -107,14 +107,13 @@ _: {
       virtualisation.oci-containers = {
         backend = "podman";
         containers = {
-          # Qwen 3.6 35B-A3B Q5_K_XL MTP — coding assistant (128K ctx, ~2x faster via MTP)
+          # Qwen 3.6 35B-A3B UD-Q8_K_XL MTP — coding assistant (128K ctx, ~2x faster via MTP)
           qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b {};
 
-          # Gemma 3 27B Q5_K_XL — creative / multimodal (256K ctx, no MTP support)
-          # NOTE: ngl doesn't affect buffer allocation on ROCm/unified memory;
-          # both models allocate their full model buffer regardless of ngl.
-          # autoStart disabled until Qwen is stable enough to coexist.
-          gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b { autoStart = false; };
+          # ———— INACTIVE ———— Gemma 3 27B Q5_K_XL — creative / multimodal
+          # Left here for when we return to a dual-model setup.
+          # Issue: draft model resolution hits 401 on HF API (no token configured).
+          #gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b { autoStart = false; };
         };
       };
     };
