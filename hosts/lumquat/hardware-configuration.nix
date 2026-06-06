@@ -31,10 +31,18 @@
 
   # Strix Halo kernel params for LLM GPU passthrough
   # See: https://github.com/hellas-ai/nix-strix-halo
+  #
+  # Memory layout:
+  #   - 64 GB VRAM (pre-allocated by BIOS/UEFI)
+  #   - 40 GB GTT (via ttm.pages_limit from system RAM)
+  #   - Total GPU-addressable: 104 GB
+  #   - Remaining for OS: ~24 GB (62 GB system - 40 GB GTT)
+  #
+  # amdgpu.gttsize is deprecated as of kernel 6.18+; ttm.pages_limit is the
+  # sole control. 104 GB = 27,262,976 pages (4 KB each).
   boot.kernelParams = [
     "amd_iommu=off" # Required for Strix Halo stability
-    "amdgpu.gttsize=40960" # Expose 40 GB GTT (104 GB total GPU: 64 VRAM + 40 GTT)
-    "ttm.pages_limit=27487790" # Total GPU addressable: 104 GB / 4 KB pages = 27487790
+    "ttm.pages_limit=27262976" # 104 GB / 4 KB = 27,262,976
   ];
 
   # systemd-boot on EFI
