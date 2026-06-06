@@ -78,7 +78,7 @@ _: {
           ["llama-server"]
           ++ (
             if isPromoted
-            then ["-m" "${modelPath}"]
+            then ["-m" "/models/${gguf.file}"]
             else ["-hf" modelCfg.hf]
           )
           ++ [
