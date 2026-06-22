@@ -12,6 +12,7 @@
   my.baseUsername = "podman";
   my.baseTimezone = "America/Los_Angeles";
   my.llm = true;
+  my.llmServe = true;
   my.llmModelStorage = "/var/lib/llm-models";
   my.access = true;
   my.accessTailnetName = "lumquat";

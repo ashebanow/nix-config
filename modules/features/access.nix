@@ -7,9 +7,10 @@ _: {
     ...
   }: {
     config = lib.mkIf config.my.access {
-      # Tailscale
+      # Tailscale — uses built-in autoconnect via authKeyFile + extraUpFlags
       services.tailscale = {
         enable = true;
+        authKeyFile = "/run/secrets/tailscale-auth-key";
         useRoutingFeatures =
           if config.my.accessEnableExitNode
           then "server"
@@ -21,18 +22,6 @@ _: {
           ++ lib.optionals config.my.accessEnableSSH [
             "--ssh"
           ];
-      };
-
-      # Tailscale auth key from SOPS secrets
-      systemd.services.tailscale-autoconnect = {
-        description = "Automatic connection to Tailscale";
-        wantedBy = ["multi-user.target"];
-        after = ["tailscale.service"];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          ExecStart = lib.mkForce "${lib.getExe pkgs.tailscale} up --authkey=@/run/secrets/tailscale-auth-key --ssh";
-        };
       };
 
       # Firewall configuration

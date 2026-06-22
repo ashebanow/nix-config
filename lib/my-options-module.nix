@@ -41,6 +41,11 @@
       default = 8080;
       description = "Port for llama.cpp API server.";
     };
+    llmServe = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable Tailscale Serve to publish LLM endpoints via Tailscale Services.";
+    };
 
     # Access feature
     access = lib.mkOption {

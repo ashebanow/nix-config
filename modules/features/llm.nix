@@ -116,6 +116,21 @@ _: {
           #gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b { autoStart = false; };
         };
       };
+
+      # Tailscale Serve — publish each model as a tailnet service
+      # Each model gets its own MagicDNS name: <service>.fluffy-walleye.ts.net
+      # Uses the built-in tailscale-serve.nix module (tailscale serve set-config --all)
+      services.tailscale.serve = lib.mkIf config.my.llmServe {
+        enable = true;
+        services = lib.mapAttrs' (
+          name: model:
+          lib.nameValuePair name {
+            endpoints = {
+              "tcp:443" = "http://localhost:${toString model.port}";
+            };
+          }
+        ) modelsLib.models;
+      };
     };
   };
 }
