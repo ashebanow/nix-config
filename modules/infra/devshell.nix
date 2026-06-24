@@ -1,11 +1,12 @@
 # Dev shell with alejandra for formatting
 _: {
-  perSystem = {pkgs, ...}: {
+  perSystem = { pkgs, ... }: {
     devShells.default = pkgs.mkShell {
       name = "lumquat-dev";
 
       packages = with pkgs; [
         alejandra
+        dig
         gh
         git
         home-manager

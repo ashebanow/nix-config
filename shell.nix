@@ -1,9 +1,12 @@
-{pkgs ? import <nixpkgs> {}}:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 pkgs.mkShell {
   name = "lumquat-dev";
 
   nativeBuildInputs = with pkgs; [
     alejandra
+    dig
     gh
     git
     home-manager
