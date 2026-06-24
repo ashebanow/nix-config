@@ -122,14 +122,16 @@ _: {
       # Uses the built-in tailscale-serve.nix module (tailscale serve set-config --all)
       services.tailscale.serve = lib.mkIf config.my.llmServe {
         enable = true;
-        services = lib.mapAttrs' (
-          name: model:
-          lib.nameValuePair name {
-            endpoints = {
-              "tcp:443" = "http://localhost:${toString model.port}";
-            };
-          }
-        ) modelsLib.models;
+        services =
+          lib.mapAttrs' (
+            name: model:
+              lib.nameValuePair name {
+                endpoints = {
+                  "tcp:443" = "http://localhost:${toString model.port}";
+                };
+              }
+          )
+          modelsLib.models;
       };
     };
   };
