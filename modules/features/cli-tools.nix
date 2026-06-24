@@ -21,10 +21,11 @@ _: {
         just
         neovim
         nix-direnv
-        pi-coding-agent
         ripgrep
         wget
         zoxide
+        sops
+        uv
       ];
     };
   };

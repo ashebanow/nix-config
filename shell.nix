@@ -8,10 +8,12 @@ pkgs.mkShell {
     gh
     git
     home-manager
+    mcp-nixos
     nixd
     nixfmt
     pi-coding-agent
     sops
+    uv
   ];
 
   shellHook = ''
