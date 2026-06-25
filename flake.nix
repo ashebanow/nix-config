@@ -4,6 +4,9 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
+    # Determinate Nix — replaces stock nix-daemon with determinate-nixd
+    determinate.url = "github:DeterminateSystems/determinate";
+
     # Flake framework
     flake-parts.url = "github:hercules-ci/flake-parts";
     import-tree.url = "github:vic/import-tree";
