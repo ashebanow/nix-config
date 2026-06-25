@@ -6,6 +6,7 @@ _: {
 
       packages = with pkgs; [
         alejandra
+        colmena
         dig
         gh
         git

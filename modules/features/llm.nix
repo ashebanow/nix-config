@@ -117,9 +117,14 @@ _: {
         };
       };
 
-      # Tailscale Serve — publish each model as a tailnet service
-      # Each model gets its own MagicDNS name: <service>.fluffy-walleye.ts.net
-      # Uses the built-in tailscale-serve.nix module (tailscale serve set-config --all)
+      # Tailscale Serve — publish each model as a tailnet service.
+      # Each service is accessible at https://<service-name> (MagicDNS resolves
+      # via tailnet search domain, e.g. <service>.fluffy-walleye.ts.net).
+      # TLS certs are issued automatically by Tailscale.
+      #
+      # NOTE: services must be advertised (tailscale serve advertise svc:<name>)
+      # for MagicDNS to create DNS records. This is handled via advertise-services
+      # in tailscale extraUpFlags below.
       services.tailscale.serve = lib.mkIf config.my.llmServe {
         enable = true;
         services =
@@ -127,12 +132,21 @@ _: {
             name: model:
               lib.nameValuePair name {
                 endpoints = {
-                  "tcp:443" = "http://localhost:${toString model.port}";
+                  "tcp:443" = "https://localhost:${toString model.port}";
                 };
               }
           )
           modelsLib.models;
       };
+
+      # Advertise services so MagicDNS creates DNS records for them.
+      # Without this, tailscale serve set-config creates services but
+      # they're not visible to the tailnet (no DNS, no routing).
+      services.tailscale.extraUpFlags = lib.mkIf config.my.llmServe (
+        builtins.map (name: "--advertise-services=svc:${name}") (
+          builtins.attrNames modelsLib.models
+        )
+      );
     };
   };
 }
