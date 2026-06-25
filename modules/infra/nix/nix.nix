@@ -8,8 +8,9 @@
   ...
 }: {
   nix = {
-    # Use the latest Nix for all features
-    package = lib.mkForce pkgs.nixVersions.latest;
+    # Use the latest Nix for all features (default only — may be overridden
+    # by Determinate Nix's module at higher priority when enabled)
+    package = lib.mkDefault pkgs.nixVersions.latest;
 
     gc = {
       automatic = true;

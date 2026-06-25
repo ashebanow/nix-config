@@ -6,7 +6,7 @@
   lib,
   ...
 }: let
-  inherit (inputs) sops-nix nixos-hardware home-manager;
+  inherit (inputs) sops-nix nixos-hardware home-manager determinate;
   system = "x86_64-linux";
 
   # Collect deferred modules registered by feature modules
@@ -19,6 +19,7 @@
     sops-nix.nixosModules.sops
     nixos-hardware.nixosModules.common-cpu-amd
     home-manager.nixosModules.home-manager
+    determinate.nixosModules.default
     ../../hosts/lumquat/configuration.nix
     ../../hosts/lumquat/hardware-configuration.nix
     ./remote-builder.nix
