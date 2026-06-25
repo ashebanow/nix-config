@@ -5,7 +5,7 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     # Determinate Nix — replaces stock nix-daemon with determinate-nixd
-    determinate.url = "github:DeterminateSystems/determinate";
+    determinate.url = "https://flakehub.com/f/DeterminateSystems/determinate/*";
 
     # Flake framework
     flake-parts.url = "github:hercules-ci/flake-parts";
