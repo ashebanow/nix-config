@@ -31,18 +31,24 @@ pkgs.mkShell {
         # 4. On NixOS, derive from SSH host key via ssh-to-age
         if [ -n "$SOPS_AGE_KEY" ] || [ -n "$SOPS_AGE_KEY_FILE" ]; then
           sops -d --extract '["deepseek-api-key"]' secrets/secrets.yaml 2>/dev/null
+          sops -d --extract '["minimax-api-key"]' secrets/secrets.yaml 2>/dev/null
         elif [ -f "$HOME/.config/sops/age/keys.txt" ]; then
-          SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt" \
-            sops -d --extract '["deepseek-api-key"]' secrets/secrets.yaml 2>/dev/null
+          export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+          sops -d --extract '["deepseek-api-key"]' secrets/secrets.yaml 2>/dev/null
+          sops -d --extract '["minimax-api-key"]' secrets/secrets.yaml 2>/dev/null
         elif [ -f /etc/ssh/ssh_host_ed25519_key ] && command -v ssh-to-age >/dev/null 2>&1; then
-          SOPS_AGE_KEY="$(sudo cat /etc/ssh/ssh_host_ed25519_key 2>/dev/null | ssh-to-age -private-key 2>/dev/null)" \
-            sops -d --extract '["deepseek-api-key"]' secrets/secrets.yaml 2>/dev/null
+          export SOPS_AGE_KEY="$(sudo cat /etc/ssh/ssh_host_ed25519_key 2>/dev/null | ssh-to-age -private-key 2>/dev/null)"
+          sops -d --extract '["deepseek-api-key"]' secrets/secrets.yaml 2>/dev/null
+          sops -d --extract '["minimax-api-key"]' secrets/secrets.yaml 2>/dev/null
         else
           return 1
         fi
       }
       if DEEPSEEK_API_KEY=$(_sops_decrypt) && [ -n "$DEEPSEEK_API_KEY" ]; then
         export DEEPSEEK_API_KEY
+      fi
+      if MINIMAX_API_KEY=$(_sops_decrypt) && [ -n "$MINIMAX_API_KEY" ]; then
+        export MINIMAX_API_KEY
       fi
     fi
   '';
