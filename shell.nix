@@ -6,6 +6,7 @@ pkgs.mkShell {
 
   nativeBuildInputs = with pkgs; [
     alejandra
+    colmena
     dig
     gh
     git
