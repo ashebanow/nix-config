@@ -163,10 +163,18 @@ _: {
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = "yes";
+            User = config.my.baseUsername;
+            Environment = [
+              "XDG_RUNTIME_DIR=/run/user/${toString config.users.users.${config.my.baseUsername}.uid}"
+            ];
+            LoadCredential = [
+              "ts-auth-key:${tsAuthKeyPath}"
+              "litellm-master-key:${litellmMasterKeyPath}"
+            ];
             ExecStart = pkgs.writeShellScript "litellm-compose-start" ''
               set -e
-              export TS_AUTHKEY="$(cat ${tsAuthKeyPath})"
-              export LITELLM_MASTER_KEY="$(cat ${litellmMasterKeyPath})"
+              export TS_AUTHKEY="$(cat $CREDENTIALS_DIRECTORY/ts-auth-key)"
+              export LITELLM_MASTER_KEY="$(cat $CREDENTIALS_DIRECTORY/litellm-master-key)"
               exec podman-compose -f /etc/litellm/compose.yml up -d
             '';
             ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/litellm/compose.yml down";
