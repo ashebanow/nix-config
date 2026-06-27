@@ -159,7 +159,7 @@ _: {
           after = [ "network.target" ];
           wants = [ "network.target" ];
           wantedBy = [ "multi-user.target" ];
-          path = [ pkgs.podman-compose ];
+          path = [ pkgs.podman-compose pkgs.podman ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = "yes";
