@@ -6,6 +6,17 @@
 # LiteLLM routes requests to model backends by model name in the request body.
 
 services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: litellm-db
+    environment:
+      - POSTGRES_DB=litellm
+      - POSTGRES_USER=litellm
+      - POSTGRES_PASSWORD=${LITELLM_DB_PASSWORD}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   tailscale:
     image: docker.io/tailscale/tailscale:latest
     container_name: litellm-ts
@@ -40,6 +51,7 @@ services:
       - tailscale
     environment:
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - DATABASE_URL=postgresql://litellm:${LITELLM_DB_PASSWORD}@postgres:5432/litellm
     volumes:
       - /etc/litellm/litellm-config.yaml:/app/config.yaml:ro
     restart: unless-stopped
@@ -53,3 +65,4 @@ services:
 
 volumes:
   ts-state:
+  pg-data:

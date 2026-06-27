@@ -153,6 +153,7 @@ _: {
         let
           tsAuthKeyPath = config.sops.secrets."litellm-tailscale-auth-key".path;
           litellmMasterKeyPath = config.sops.secrets."litellm-master-key".path;
+          litellmDbPasswordPath = config.sops.secrets."litellm-db-password".path;
         in
         {
           description = "LiteLLM proxy compose stack";
@@ -170,12 +171,14 @@ _: {
             LoadCredential = [
               "ts-auth-key:${tsAuthKeyPath}"
               "litellm-master-key:${litellmMasterKeyPath}"
+              "litellm-db-password:${litellmDbPasswordPath}"
             ];
             ExecStart = pkgs.writeShellScript "litellm-compose-start" ''
               set -e
               export XDG_RUNTIME_DIR="/run/user/$(id -u)"
               export TS_AUTHKEY="$(cat $CREDENTIALS_DIRECTORY/ts-auth-key)"
               export LITELLM_MASTER_KEY="$(cat $CREDENTIALS_DIRECTORY/litellm-master-key)"
+              export LITELLM_DB_PASSWORD="$(cat $CREDENTIALS_DIRECTORY/litellm-db-password)"
               exec podman-compose -f /etc/litellm/compose.yml up -d
             '';
             ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/litellm/compose.yml down";

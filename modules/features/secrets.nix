@@ -25,6 +25,10 @@ _: {
             mode = "0640";
             group = "root";
           };
+          "litellm-db-password" = {
+            mode = "0640";
+            group = "root";
+          };
         };
       };
     };
