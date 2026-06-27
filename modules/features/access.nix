@@ -2,7 +2,6 @@
 _: {
   my.modules.nixos.access = {
     lib,
-    pkgs,
     config,
     ...
   }: {

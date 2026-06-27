@@ -75,11 +75,19 @@ _: {
             else ["${modelsDir}:/root/.cache/llama.cpp"]
           );
         cmd =
-          ["llama-server"]
+          [
+            "llama-server"
+          ]
           ++ (
             if isPromoted
-            then ["-m" "/models/${gguf.file}"]
-            else ["-hf" modelCfg.hf]
+            then [
+              "-m"
+              "/models/${gguf.file}"
+            ]
+            else [
+              "-hf"
+              modelCfg.hf
+            ]
           )
           ++ [
             "--host"
@@ -89,7 +97,10 @@ _: {
             "-ngl"
             (toString modelCfg.ngl)
           ]
-          ++ ["-c" (toString modelCfg.ctxSize)]
+          ++ [
+            "-c"
+            (toString modelCfg.ctxSize)
+          ]
           ++ (modelCfg.extraFlags or [])
           ++ baseFlags;
       }
@@ -143,9 +154,7 @@ _: {
       # Without this, tailscale serve set-config creates services but
       # they're not visible to the tailnet (no DNS, no routing).
       services.tailscale.extraUpFlags = lib.mkIf config.my.llmServe (
-        builtins.map (name: "--advertise-services=svc:${name}") (
-          builtins.attrNames modelsLib.models
-        )
+        map (name: "--advertise-services=svc:${name}") (builtins.attrNames modelsLib.models)
       );
     };
   };

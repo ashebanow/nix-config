@@ -36,11 +36,6 @@
       default = "/var/lib/llm-models";
       description = "Read-only mount path for model files in containers.";
     };
-    llmPort = lib.mkOption {
-      type = lib.types.port;
-      default = 8080;
-      description = "Port for llama.cpp API server.";
-    };
     llmServe = lib.mkOption {
       type = lib.types.bool;
       default = false;
