@@ -165,7 +165,6 @@ _: {
             RemainAfterExit = "yes";
             User = config.my.baseUsername;
             Environment = [
-              "XDG_RUNTIME_DIR=/run/user/${toString config.users.users.${config.my.baseUsername}.uid}"
               "PATH=${pkgs.podman-compose}/bin:/run/current-system/sw/bin"
             ];
             LoadCredential = [
@@ -174,6 +173,7 @@ _: {
             ];
             ExecStart = pkgs.writeShellScript "litellm-compose-start" ''
               set -e
+              export XDG_RUNTIME_DIR="/run/user/$(id -u)"
               export TS_AUTHKEY="$(cat $CREDENTIALS_DIRECTORY/ts-auth-key)"
               export LITELLM_MASTER_KEY="$(cat $CREDENTIALS_DIRECTORY/litellm-master-key)"
               exec podman-compose -f /etc/litellm/compose.yml up -d
