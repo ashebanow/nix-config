@@ -128,34 +128,41 @@ _: {
         };
       };
 
-      # Tailscale Serve — publish each model as a tailnet service.
-      # Each service is accessible at https://<service-name> (MagicDNS resolves
-      # via tailnet search domain, e.g. <service>.fluffy-walleye.ts.net).
-      # TLS certs are issued automatically by Tailscale.
+      # Tailscale Serve — publish each model on the node's own hostname.
+      # Each model is accessible at https://lumquat.fluffy-walleye.ts.net/<name>
+      # (e.g. /qwen-35b-a3b, /gemma-27b).  TLS certs are issued automatically
+      # by Tailscale.  No admin approval needed — direct serve works on the
+      # Free plan and with tagged nodes.
       #
-      # NOTE: services must be advertised (tailscale serve advertise svc:<name>)
-      # for MagicDNS to create DNS records. This is handled via advertise-services
-      # in tailscale extraUpFlags below.
-      services.tailscale.serve = lib.mkIf config.my.llmServe {
-        enable = true;
-        services =
-          lib.mapAttrs' (
-            name: model:
-              lib.nameValuePair name {
-                endpoints = {
-                  "tcp:443" = "https://localhost:${toString model.port}";
-                };
-              }
-          )
-          modelsLib.models;
+      # We use direct serve (without --service=svc:) because the svc: service
+      # proxy feature requires the tailscale.com/cap/services tailnet capability
+      # which is not available on the Personal/Free plan.
+      #
+      # NOTE: llama-server serves plain HTTP, so the proxy target uses
+      # http:// (Tailscale terminates TLS at the edge and forwards to
+      # the HTTP backend).
+      systemd.services.tailscale-llm-serve = lib.mkIf config.my.llmServe {
+        description = "Tailscale Serve for LLM services";
+        after = [
+          "tailscaled.service"
+          "tailscaled-autoconnect.service"
+        ];
+        wants = [ "tailscaled.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        path = [ config.services.tailscale.package ];
+        script = lib.concatMapStringsSep "\n" (
+          name: let
+            model = modelsLib.models.${name};
+          in ''
+            echo "Configuring Tailscale Serve for ${name} -> http://localhost:${toString model.port}"
+            tailscale serve --bg --set-path=/${name} http://localhost:${toString model.port}
+          ''
+        ) (builtins.attrNames modelsLib.models);
       };
-
-      # Advertise services so MagicDNS creates DNS records for them.
-      # Without this, tailscale serve set-config creates services but
-      # they're not visible to the tailnet (no DNS, no routing).
-      services.tailscale.extraUpFlags = lib.mkIf config.my.llmServe (
-        map (name: "--advertise-services=svc:${name}") (builtins.attrNames modelsLib.models)
-      );
     };
   };
 }
