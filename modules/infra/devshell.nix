@@ -59,15 +59,7 @@ _: {
           }
 
           if _setup_sops_key; then
-            # Decrypt individual secrets (one sops call each)
-            if DEEPSEEK_API_KEY=$(sops -d --extract '["deepseek-api-key"]' secrets/secrets.yaml 2>/dev/null) && [ -n "$DEEPSEEK_API_KEY" ]; then
-              export DEEPSEEK_API_KEY
-              echo "  [sops] DEEPSEEK_API_KEY loaded"
-            fi
-            if MINIMAX_API_KEY=$(sops -d --extract '["minimax-api-key"]' secrets/secrets.yaml 2>/dev/null) && [ -n "$MINIMAX_API_KEY" ]; then
-              export MINIMAX_API_KEY
-              echo "  [sops] MINIMAX_API_KEY loaded"
-            fi
+            : # SOPS key configured, secrets available via 'sops -d --extract ...'
           else
             echo "  [sops] WARNING: No age key found — SOPS secrets unavailable" >&2
             echo "  [sops] Run: sudo cat /etc/ssh/ssh_host_ed25519_key | ssh-to-age -private-key > secrets/keys/lumquat.age" >&2
