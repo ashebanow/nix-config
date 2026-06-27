@@ -29,6 +29,14 @@ _: {
             mode = "0640";
             group = "root";
           };
+          "deepseek-api-key" = {
+            mode = "0640";
+            group = "root";
+          };
+          "anthropic-api-key" = {
+            mode = "0640";
+            group = "root";
+          };
         };
       };
     };
