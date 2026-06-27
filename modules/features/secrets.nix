@@ -17,6 +17,14 @@ _: {
             mode = "0640";
             group = "root";
           };
+          "litellm-tailscale-auth-key" = {
+            mode = "0640";
+            group = "root";
+          };
+          "litellm-master-key" = {
+            mode = "0640";
+            group = "root";
+          };
         };
       };
     };

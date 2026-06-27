@@ -112,6 +112,9 @@ _: {
       systemd.tmpfiles.rules = [
         "d ${modelsDir} 0775 root root -"
         "d ${hfCacheDir} 0775 ${cfg.baseUsername} ${cfg.baseUsername} -"
+        "d /etc/litellm 0755 root root -"
+        "L+ /etc/litellm/compose.yml - - - - ${../../compose/llm/compose.yml}"
+        "L+ /etc/litellm/litellm-config.yaml - - - - ${../../compose/llm/litellm-config.yaml}"
       ];
 
       # Declarative podman containers
@@ -141,6 +144,36 @@ _: {
       # NOTE: llama-server serves plain HTTP, so the proxy target uses
       # http:// (Tailscale terminates TLS at the edge and forwards to
       # the HTTP backend).
+      # LiteLLM proxy with Tailscale sidecar (podman-compose).
+      # Serves at https://litellm.fluffy-walleye.ts.net.
+      # Routes model names → local llama.cpp backends (and remote APIs).
+      # Secrets are fed from SOPS at /run/secrets/ at boot — no .env on disk.
+      # Compose + config are symlinked to /etc/litellm via tmpfiles above.
+      systemd.services.litellm-compose = lib.mkIf config.my.llmServe (
+        let
+          tsAuthKeyPath = config.sops.secrets."litellm-tailscale-auth-key".path;
+          litellmMasterKeyPath = config.sops.secrets."litellm-master-key".path;
+        in
+        {
+          description = "LiteLLM proxy compose stack";
+          after = [ "network.target" ];
+          wants = [ "network.target" ];
+          wantedBy = [ "multi-user.target" ];
+          path = [ pkgs.podman-compose ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = "yes";
+            ExecStart = pkgs.writeShellScript "litellm-compose-start" ''
+              set -e
+              export TS_AUTHKEY="$(cat ${tsAuthKeyPath})"
+              export LITELLM_MASTER_KEY="$(cat ${litellmMasterKeyPath})"
+              exec podman-compose -f /etc/litellm/compose.yml up -d
+            '';
+            ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/litellm/compose.yml down";
+          };
+        }
+      );
+
       systemd.services.tailscale-llm-serve = lib.mkIf config.my.llmServe {
         description = "Tailscale Serve for LLM services";
         after = [
