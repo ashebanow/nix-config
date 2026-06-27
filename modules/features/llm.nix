@@ -159,13 +159,14 @@ _: {
           after = [ "network.target" ];
           wants = [ "network.target" ];
           wantedBy = [ "multi-user.target" ];
-          path = [ pkgs.podman-compose pkgs.podman ];
+          path = [ pkgs.podman-compose ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = "yes";
             User = config.my.baseUsername;
             Environment = [
               "XDG_RUNTIME_DIR=/run/user/${toString config.users.users.${config.my.baseUsername}.uid}"
+              "PATH=${pkgs.podman-compose}/bin:/run/current-system/sw/bin"
             ];
             LoadCredential = [
               "ts-auth-key:${tsAuthKeyPath}"
