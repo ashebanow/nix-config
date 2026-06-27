@@ -11,7 +11,7 @@ services:
     container_name: litellm-ts
     hostname: litellm
     environment:
-      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_AUTHKEY=$$TS_AUTHKEY
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_HOSTNAME=litellm
       - TS_ACCEPT_DNS=true
@@ -27,7 +27,7 @@ services:
       sh -c '
         tailscaled --tun=tailscale0 --state=/var/lib/tailscale/tailscaled.state &
         sleep 2
-        tailscale up --auth-key=$TS_AUTHKEY --hostname=litellm --accept-dns
+        tailscale up --auth-key=$$TS_AUTHKEY --hostname=litellm --accept-dns
         tailscale serve --bg http://localhost:4000
         wait
       '
@@ -38,8 +38,10 @@ services:
     network_mode: "service:tailscale"
     depends_on:
       - tailscale
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
     volumes:
-      - ./litellm-config.yaml:/app/config.yaml:ro
+      - /etc/litellm/litellm-config.yaml:/app/config.yaml:ro
     restart: unless-stopped
     command:
       - --config
