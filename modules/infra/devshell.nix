@@ -1,6 +1,6 @@
 # Dev shell with alejandra for formatting
 _: {
-  perSystem = {pkgs, ...}: {
+  perSystem = { pkgs, ... }: {
     devShells.default = pkgs.mkShell {
       name = "lumquat-dev";
 
@@ -22,7 +22,6 @@ _: {
 
       shellHook = ''
         echo "Lumquat dev shell"
-        echo "Run 'just fmt' to format Nix files"
 
         # Load DEEPSEEK_API_KEY and MINIMAX_API_KEY from SOPS secrets.
         # Also makes SOPS_AGE_KEY available in the dev shell for manual sops use.
