@@ -20,36 +20,27 @@ model_list:
       rpm: 100
       timeout: 600
 
-  # Remote models (API keys from environment)
-  - model_name: deepseek-v4-pro
+  # Remote models — OpenAI-compatible providers with custom api_base
+  # Using openai/* provider bypasses LiteLLM's outdated built-in mappings.
+  # The model field must include the matched prefix so the upstream
+  # receives the full model ID (e.g. deepseek-v4-flash, not just v4-flash).
+  - model_name: deepseek-*
     litellm_params:
-      model: deepseek/deepseek-chat
+      model: openai/deepseek-*
+      api_base: https://api.deepseek.com/v1
       api_key: os.environ/DEEPSEEK_API_KEY
 
-  - model_name: deepseek-v4-flash
+  - model_name: minimax-*
     litellm_params:
-      model: deepseek/deepseek-chat
-      api_key: os.environ/DEEPSEEK_API_KEY
-
-  - model_name: claude-opus-4
-    litellm_params:
-      model: anthropic/claude-opus-4-20250514
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  - model_name: claude-sonnet-4
-    litellm_params:
-      model: anthropic/claude-sonnet-4-20250514
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  - model_name: claude-haiku-3-5
-    litellm_params:
-      model: anthropic/claude-3-5-haiku-20241022
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  - model_name: minimax-m3
-    litellm_params:
-      model: minimax/minimax-m3
+      model: openai/minimax-*
+      api_base: https://api.minimax.io/v1
       api_key: os.environ/MINIMAX_API_KEY
+
+  # Anthropic uses LiteLLM's native provider (model IDs are current)
+  - model_name: claude-*
+    litellm_params:
+      model: anthropic/*
+      api_key: os.environ/ANTHROPIC_API_KEY
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
