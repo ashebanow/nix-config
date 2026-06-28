@@ -60,14 +60,7 @@ _: {
 
           if _setup_sops_key; then
             # Export API keys from SOPS (hyphens → underscores for env compat)
-            eval $(sops -d secrets/secrets.yaml 2>/dev/null | python3 -c "
-import sys, yaml, re
-d = yaml.safe_load(sys.stdin)
-for k, v in d.items():
-    if 'api-key' in k or 'master-key' in k:
-        name = re.sub(r'[^a-zA-Z0-9]', '_', k).upper()
-        print(f'export {name}={v!r}')
-")
+            eval $(sops -d secrets/secrets.yaml | ${../../scripts/sops-export-keys.py})
           else
             echo "  [sops] WARNING: No age key found — SOPS secrets unavailable" >&2
             echo "  [sops] Run: sudo cat /etc/ssh/ssh_host_ed25519_key | ssh-to-age -private-key > secrets/keys/lumquat.age" >&2
