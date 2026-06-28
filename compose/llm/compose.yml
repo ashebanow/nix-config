@@ -54,6 +54,7 @@ services:
       - DATABASE_URL=postgresql://litellm:${LITELLM_DB_PASSWORD}@postgres:5432/litellm
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
     volumes:
       - /etc/litellm/litellm-config.yaml:/app/config.yaml:ro
     restart: unless-stopped

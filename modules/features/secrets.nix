@@ -37,6 +37,10 @@ _: {
             mode = "0640";
             group = "root";
           };
+          "minimax-api-key" = {
+            mode = "0640";
+            group = "root";
+          };
         };
       };
     };

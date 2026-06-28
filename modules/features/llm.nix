@@ -156,6 +156,7 @@ _: {
           litellmDbPasswordPath = config.sops.secrets."litellm-db-password".path;
           deepseekKeyPath = config.sops.secrets."deepseek-api-key".path;
           anthropicKeyPath = config.sops.secrets."anthropic-api-key".path;
+          minimaxKeyPath = config.sops.secrets."minimax-api-key".path;
         in
         {
           description = "LiteLLM proxy compose stack";
@@ -176,6 +177,7 @@ _: {
               "litellm-db-password:${litellmDbPasswordPath}"
               "deepseek-api-key:${deepseekKeyPath}"
               "anthropic-api-key:${anthropicKeyPath}"
+              "minimax-api-key:${minimaxKeyPath}"
             ];
             ExecStart = pkgs.writeShellScript "litellm-compose-start" ''
               set -e
@@ -185,6 +187,7 @@ _: {
               export LITELLM_DB_PASSWORD="$(cat $CREDENTIALS_DIRECTORY/litellm-db-password)"
               export DEEPSEEK_API_KEY="$(cat $CREDENTIALS_DIRECTORY/deepseek-api-key)"
               export ANTHROPIC_API_KEY="$(cat $CREDENTIALS_DIRECTORY/anthropic-api-key)"
+              export MINIMAX_API_KEY="$(cat $CREDENTIALS_DIRECTORY/minimax-api-key)"
               exec podman-compose -f /etc/litellm/compose.yml up -d
             '';
             ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/litellm/compose.yml down";
