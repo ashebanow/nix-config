@@ -32,19 +32,23 @@ _: {
               group = "root";
             };
             "deepseek-api-key" = {
-              mode = "0640";
+              mode = "0600";
               group = "root";
             };
             "exa-api-key" = {
-              mode = "0640";
+              mode = "0600";
+              group = "root";
+            };
+            "gemini-api-key" = {
+              mode = "0600";
               group = "root";
             };
             "anthropic-api-key" = {
-              mode = "0640";
+              mode = "0600";
               group = "root";
             };
             "minimax-api-key" = {
-              mode = "0640";
+              mode = "0600";
               group = "root";
             };
           };
