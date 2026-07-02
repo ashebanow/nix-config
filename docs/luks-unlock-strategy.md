@@ -32,27 +32,40 @@ re-enroll with `0+7` for added boot chain integrity verification.
 
 ### NixOS Configuration
 
-Added to `hardware-configuration.nix`:
+Declared in `hardware-configuration.nix`:
 
 ```nix
 boot.initrd.systemd.enable = true;
-boot.initrd.availableKernelModules = [ ... "tpm_tis" "r8169" ];
+
+boot.initrd.luks.devices.luks-root = {
+  device = "/dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470";
+  crypttabExtraOpts = ["tpm2-device=auto"];  # declares TPM2 intent for initrd
+};
 ```
 
-The `tpm_tis` module ensures TPM access in the initrd. The `r8169` module
-was also added (previously missing, needed for future Tang networking).
+An activation-time check warns if TPM2 enrollment is missing:
+
+```
+⚠  WARNING: No systemd-tpm2 token found on /dev/disk/by-uuid/...
+TPM2 auto-unlock will NOT work.
+To enroll: sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=0 ...
+```
+
+This catches the "fresh install" or "firmware update invalidated PCRs" cases.
+Enrollment itself remains a manual per-machine step — the NixOS wiki confirms
+this cannot be fully declarative since each TPM is unique.
 
 ### Enrollment
 
-Run once on lumquat:
+Run once on lumquat (or after firmware updates that change PCR 0):
 
 ```bash
-systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0 \
+sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=0 \
   /dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470
 ```
 
-This adds a TPM2-protected keyslot to the existing LUKS2 header.
-The original passphrase keyslot is **preserved** as a fallback.
+`--wipe-slot=tpm2` replaces any existing TPM2 keyslot, making this safely
+repeatable. The original passphrase keyslot is **preserved** as a fallback.
 
 ### Verification
 
@@ -118,13 +131,23 @@ the passphrase prompt. You can:
 1. Attach a keyboard/monitor and type the passphrase at the console
 2. (Future) Set up initrd SSH for remote passphrase entry via Tailscale
 
+## Re-enrollment After Firmware Updates
+
+If a UEFI firmware update changes PCR 0, TPM2 unlock stops working and the
+system falls back to the passphrase prompt. After entering the passphrase at
+the console, re-run the enrollment command:
+
+```bash
+sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=0 \
+  /dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470
+```
+
 ## Rollback
 
 To undo TPM2 enrollment:
 
 ```bash
-# Find and remove the TPM2 keyslot
-systemd-cryptenroll /dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470 --wipe=tpm2
+sudo systemd-cryptenroll /dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470 --wipe-slot=tpm2
 ```
 
 NixOS config rollback: remove `boot.initrd.systemd.enable = true` and rebuild.
