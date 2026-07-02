@@ -17,18 +17,13 @@ Containers are configured via `virtualisation.oci-containers` in `modules/featur
 The NixOS module generates systemd services (`podman-<name>.service`) automatically.
 
 ```nix
-# Two models: Qwen (coding) + Gemma (creative/multimodal)
+# One model: Qwen (coding)
 virtualisation.oci-containers = {
   backend = "podman";
-  containers.qwen-35b-a3b = {   # Coding assistant, 128K ctx, MTP
+  containers.qwen-35b-a3b = {   # Coding assistant, 256K ctx, MTP
     image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
     autoStart = true;
     ports = ["8080:8080"];
-  };
-  containers.gemma-27b = {      # Creative/multimodal, 256K ctx
-    image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
-    autoStart = true;
-    ports = ["8081:8080"];
   };
 };
 ```
@@ -43,8 +38,7 @@ virtualisation.oci-containers = {
 
 | Container | Model | Port | Context | Purpose |
 |-----------|-------|------|---------|---------|
-| `qwen-35b-a3b` | Qwen 3.6 35B-A3B Q8 | 8080 | 128K | Coding assistant (MTP) |
-| `gemma-27b` | Gemma 3 27B Q8 | 8081 | 256K | Creative / multimodal |
+| `qwen-35b-a3b` | Qwen 3.6 35B-A3B Q8 | 8080 | 256K | Coding assistant (MTP) |
 
 ## Model Management
 

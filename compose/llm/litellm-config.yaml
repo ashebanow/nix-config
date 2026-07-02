@@ -12,14 +12,6 @@ model_list:
       rpm: 100
       timeout: 600
 
-  - model_name: gemma-27b
-    litellm_params:
-      model: openai/gemma-27b
-      api_base: http://host.containers.internal:8081/v1
-      api_key: sk-dummy
-      rpm: 100
-      timeout: 600
-
   # Remote models — OpenAI-compatible providers with custom api_base
   # Using openai/* provider bypasses LiteLLM's outdated built-in mappings.
   # The model field must include the matched prefix so the upstream

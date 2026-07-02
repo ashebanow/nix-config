@@ -9,8 +9,7 @@ the NixOS `virtualisation.oci-containers` module with podman backend.
 
 | Container | Model | Port | Context | Systemd Service |
 |-----------|-------|------|---------|-----------------|
-| qwen-35b-a3b | Qwen 3.6 35B-A3B Q8 (Unsloth Dynamic) | 8080 | 128K | `podman-qwen-35b-a3b.service` |
-| gemma-27b | Gemma 3 27B Q8 (Unsloth Dynamic) | 8081 | 256K | `podman-gemma-27b.service` |
+| qwen-35b-a3b | Qwen 3.6 35B-A3B Q8 (Unsloth Dynamic) | 8080 | 256K | `podman-qwen-35b-a3b.service` |
 
 ## Feature Module Structure
 

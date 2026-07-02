@@ -262,8 +262,7 @@ Current catalog:
 
 | Model | Tier | Purpose | Port | Context |
 |-------|------|---------|------|---------|
-| Qwen 3.6 35B-A3B Q8 | Experimental | Coding assistant (MTP) | 8080 | 128K |
-| Gemma 3 27B Q8 | Experimental | Creative / multimodal | 8081 | 256K |
+| Qwen 3.6 35B-A3B Q8 | Experimental | Coding assistant (MTP) | 8080 | 256K |
 
 ### Promotion Workflow (from QMX blog)
 
@@ -352,10 +351,9 @@ Two containers are defined in `modules/features/llm.nix` using
 
 | Container | Model | Port | Purpose |
 |-----------|-------|------|---------|
-| `qwen-35b-a3b` | Qwen 3.6 35B Q8 | 8080 | Coding (MTP) |
-| `gemma-27b` | Gemma 3 27B Q8 | 8081 | Creative/multimodal |
+| `qwen-35b-a3b` | Qwen 3.6 35B Q8 | 8080 | Coding (256K, MTP) |
 
-To add a third model:
+To add a second model:
 
 1. Add to `lib/models.nix` (ggufs + models sections)
 2. Add a new entry under `virtualisation.oci-containers.containers`
@@ -384,13 +382,10 @@ df -h
 
 # LLM containers
 systemctl status podman-qwen-35b-a3b
-systemctl status podman-gemma-27b
 podman logs qwen-35b-a3b
-podman logs gemma-27b
 
-# Check model APIs
+# Check model API
 curl -s http://localhost:8080/health | jq   # Qwen (coding)
-curl -s http://localhost:8081/health | jq   # Gemma (creative)
 ```
 
 ### Update Configuration

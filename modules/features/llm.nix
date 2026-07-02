@@ -121,25 +121,22 @@ _: {
           "d /etc/litellm 0755 root root -"
           "L+ /etc/litellm/compose.yml - - - - ${../../compose/llm/compose.yml}"
           "L+ /etc/litellm/litellm-config.yaml - - - - ${../../compose/llm/litellm-config.yaml}"
+          "d /etc/openwebui 0755 root root -"
+          "L+ /etc/openwebui/compose.yml - - - - ${../../compose/llm/openwebui-compose.yml}"
         ];
 
         # Declarative podman containers
         virtualisation.oci-containers = {
           backend = "podman";
           containers = {
-            # Qwen 3.6 35B-A3B UD-Q8_K_XL MTP — coding assistant (128K ctx, ~2x faster via MTP)
+            # Qwen 3.6 35B-A3B UD-Q8_K_XL MTP — coding assistant (256K ctx, ~2x faster via MTP)
             qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b { };
-
-            # ———— INACTIVE ———— Gemma 3 27B Q5_K_XL — creative / multimodal
-            # Left here for when we return to a dual-model setup.
-            # Issue: draft model resolution hits 401 on HF API (no token configured).
-            #gemma-27b = mkContainer "gemma-27b" modelsLib.models.gemma-27b { autoStart = false; };
           };
         };
 
         # Tailscale Serve — publish each model on the node's own hostname.
         # Each model is accessible at https://lumquat.fluffy-walleye.ts.net/<name>
-        # (e.g. /qwen-35b-a3b, /gemma-27b).  TLS certs are issued automatically
+        # (e.g. /qwen-35b-a3b).  TLS certs are issued automatically
         # by Tailscale.  No admin approval needed — direct serve works on the
         # Free plan and with tagged nodes.
         #
@@ -200,6 +197,40 @@ _: {
                 exec podman-compose -f /etc/litellm/compose.yml up -d
               '';
               ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/litellm/compose.yml down";
+            };
+          }
+        );
+
+        systemd.services.openwebui-compose = lib.mkIf config.my.llmServe (
+          let
+            tsAuthKeyPath = config.sops.secrets."openwebui-tailscale-auth-key".path;
+            litellmMasterKeyPath = config.sops.secrets."litellm-master-key".path;
+          in
+          {
+            description = "Open WebUI compose stack";
+            after = [ "network.target" ];
+            wants = [ "network.target" ];
+            wantedBy = [ "multi-user.target" ];
+            path = [ pkgs.podman-compose ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = "yes";
+              User = config.my.baseUsername;
+              Environment = [
+                "PATH=${pkgs.podman-compose}/bin:/run/current-system/sw/bin"
+              ];
+              LoadCredential = [
+                "ts-auth-key:${tsAuthKeyPath}"
+                "litellm-master-key:${litellmMasterKeyPath}"
+              ];
+              ExecStart = pkgs.writeShellScript "openwebui-compose-start" ''
+                set -e
+                export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+                export OPENWEBUI_TS_AUTHKEY="$(cat $CREDENTIALS_DIRECTORY/ts-auth-key)"
+                export LITELLM_MASTER_KEY="$(cat $CREDENTIALS_DIRECTORY/litellm-master-key)"
+                exec podman-compose -f /etc/openwebui/compose.yml up -d
+              '';
+              ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/openwebui/compose.yml down";
             };
           }
         );

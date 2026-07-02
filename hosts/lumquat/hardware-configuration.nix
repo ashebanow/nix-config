@@ -32,17 +32,20 @@
   # Strix Halo kernel params for LLM GPU passthrough
   # See: https://github.com/hellas-ai/nix-strix-halo
   #
-  # Memory layout:
-  #   - 64 GB VRAM (pre-allocated by BIOS/UEFI)
-  #   - 40 GB GTT (via ttm.pages_limit from system RAM)
-  #   - Total GPU-addressable: 104 GB
-  #   - Remaining for OS: ~24 GB (62 GB system - 40 GB GTT)
+  # Memory layout (unified CPU+GPU, ~124 GB usable of 128 GB):
+  #   - vis_vramlimit: 100 GB reported to ROCm/llama.cpp
+  #   - ttm.pages_limit: 106 GB TTM-managed pool
+  #   - OS reserve: ~22 GB (safe for containers + system)
   #
-  # amdgpu.gttsize is deprecated as of kernel 6.18+; ttm.pages_limit is the
-  # sole control. 104 GB = 27,262,976 pages (4 KB each).
+  # Model budget: qwen Q8 256K (~89 GB). 100 GB GPU + 6 GB TTM headroom.
+  # Remaining GPU headroom: ~13 GB for KV cache bursts / future growth
+  #
+  # vis_vramlimit overrides the incorrect 64 GB VRAM reporting.
+  # 100 GB = 102,400 MiB. 106 GB = 27,787,264 pages (4 KB each).
   boot.kernelParams = [
     "amd_iommu=off" # Required for Strix Halo stability
-    "ttm.pages_limit=27262976" # 104 GB / 4 KB = 27,262,976
+    "ttm.pages_limit=27787264" # 106 GB / 4 KB
+    "amdgpu.vis_vramlimit=102400" # 100 GB visible VRAM
   ];
 
   # systemd-boot on EFI
