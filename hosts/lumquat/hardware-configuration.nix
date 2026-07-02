@@ -11,7 +11,7 @@
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
 
-  # Initrd modules for AMD GPU and storage
+  # Initrd modules for AMD GPU, storage, network, and LUKS unlock
   boot.initrd.availableKernelModules = [
     "nvme"
     "xhci_pci"
@@ -24,6 +24,7 @@
     "ahci"
     "amdgpu"
     "radeon"
+    "r8169"  # Realtek 2.5GbE — needed for initrd networking (future Tang)
   ];
   boot.initrd.kernelModules = ["amdgpu"];
   boot.kernelModules = ["kvm-amd"];
@@ -55,11 +56,15 @@
     efi.efiSysMountPoint = "/boot";
   };
 
-  # LUKS-encrypted root
+  # systemd initrd — required for TPM2 LUKS auto-unlock
+  boot.initrd.systemd.enable = true;
+
+  # LUKS-encrypted root with TPM2 auto-unlock via systemd-cryptenroll.
+  # Original passphrase keyslot preserved as fallback.
+  # See: docs/luks-unlock-strategy.md
   boot.initrd.luks.devices = {
     luks-root = {
       device = "/dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470";
-      preLVM = true;
     };
   };
 
