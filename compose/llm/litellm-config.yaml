@@ -1,13 +1,16 @@
 # LiteLLM proxy configuration
 # Routes model names to backend API endpoints.
-# LiteLLM reaches the llama.cpp containers via the podman host gateway.
+# LiteLLM reaches the llama.cpp containers via the host's Tailscale IP.
+# host.containers.internal does not forward pasta-mapped ports to bridge
+# networks in rootless podman. The Tailscale IP (100.x) is a stable CGNAT
+# address assigned by the coordination server, not DHCP.
 
 model_list:
   # Local models on llama.cpp
   - model_name: qwen-35b-a3b
     litellm_params:
       model: openai/qwen-35b-a3b
-      api_base: http://host.containers.internal:8080/v1
+      api_base: http://100.90.247.10:8080/v1
       api_key: sk-dummy
       rpm: 100
       timeout: 600
