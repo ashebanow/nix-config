@@ -45,6 +45,10 @@ _: {
         "on" # Flash attention (required on Strix Halo, newer llama-server expects on|off|auto)
         "--no-mmap" # Required for Strix Halo stability
         "--metrics"
+        "--timeout"
+        "0" # Disable HTTP read timeout (default 600s causes connection teardown on long idle)
+        "--cache-ram"
+        "0" # Unified KV cache in VRAM — never save/clear to disk on idle (prevents forced re-processing)
       ];
 
       # Resolve model: Nix store path if promoted, null otherwise
@@ -130,7 +134,20 @@ _: {
           backend = "podman";
           containers = {
             # Qwen 3.6 35B-A3B UD-Q8_K_XL MTP — coding assistant (256K ctx, ~2x faster via MTP)
-            qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b { };
+            qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b {
+              # Warm-up: send a dummy request on start so model is preloaded before first real query.
+              # Without this, the very first user request triggers prompt cache init which adds latency.
+              extraOptions = baseOptions ++ [
+                "--health-cmd"
+                "curl -sf http://127.0.0.1:8080/health"
+                "--health-interval"
+                "30s"
+                "--health-retries"
+                "60"
+                "--health-start-period"
+                "120s"
+              ];
+            };
           };
         };
 

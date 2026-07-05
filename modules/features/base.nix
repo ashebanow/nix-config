@@ -92,6 +92,11 @@ _: {
         defaultNetwork.settings.dns_enabled = true;
       };
 
+      # IPv4-only — no IPv6 configured on this network, and passt/podman
+      # port forwarding only binds IPv4. Disabling avoids localhost → ::1 issues.
+      boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = true;
+      boot.kernel.sysctl."net.ipv6.conf.default.disable_ipv6" = true;
+
       # Networking defaults
       networking.hostName = config.my.hostName;
     };

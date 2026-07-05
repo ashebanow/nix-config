@@ -33,11 +33,13 @@ in rec {
     # NOTE: UD-Q8_K_XL is the highest quant available for MTP; fits comfortably in 104 GB alone
     qwen-35b-a3b = {
       hf = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL";
-      ctxSize = 262144; # 256K
+      ctxSize = 1572864; # 6 slots × 256K (total context pool)
       flashAttn = true;
       ngl = 999;
       port = 8080;
       extraFlags = [
+        "-np"
+        "6" # Parallel slots — 2 users × ~3 subagents, ~23-35 GB GTT headroom
         "--jinja" # Jinja template support
         "--spec-type"
         "draft-mtp" # Multi-Token Prediction (~2x faster)
