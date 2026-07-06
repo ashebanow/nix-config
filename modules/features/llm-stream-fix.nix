@@ -13,62 +13,75 @@ _: {
       ...
     }:
     let
-      proxyScript = pkgs.writePython3 "llm-stream-fix" {
-        libraries = with pkgs.python3Packages; [
-          flask
-        ];
-        flakeIgnore = [ "E501" ];
-      } ''
-        import json
-        import flask
-        import urllib.request
+      proxyScript = pkgs.writeShellScript "llm-stream-fix" ''
+        exec ${pkgs.python3}/bin/python3 ${pkgs.writeText "llm-stream-fix.py" ''
+  import json
+  import urllib.request
+  from http.server import HTTPServer, BaseHTTPRequestHandler
 
-        app = flask.Flask(__name__)
-        UPSTREAM = "http://127.0.0.1:8080"
+  UPSTREAM = "http://127.0.0.1:8080"
 
-        @app.route("/health", methods=["GET"])
-        def health():
-            return flask.jsonify({"status": "ok"})
 
-        @app.route("/v1/<path:path>", methods=["POST"])
-        def proxy(path):
-            try:
-                body = flask.request.get_json(force=True)
-            except Exception:
-                return flask.jsonify({"error": "invalid json"}), 400
+  class Handler(BaseHTTPRequestHandler):
+      def do_GET(self):
+          if self.path == "/health":
+              self.send_response(200)
+              self.send_header("Content-Type", "application/json")
+              self.end_headers()
+              self.wfile.write(b'{"status":"ok"}')
+          else:
+              self.send_response(404)
+              self.end_headers()
 
-            # Force non-streaming — LiteLLM proxy has a known bug where
-            # streaming request bodies are truncated at ~12 KB.
-            if body.get("stream"):
-                body["stream"] = False
+      def do_POST(self):
+          length = int(self.headers.get("Content-Length", 0))
+          raw = self.rfile.read(length)
+          try:
+              body = json.loads(raw)
+          except Exception:
+              self.send_response(400)
+              self.end_headers()
+              self.wfile.write(b'{"error":"invalid json"}')
+              return
 
-            url = f"{UPSTREAM}/v1/{path}"
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(body).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            try:
-                with urllib.request.urlopen(req, timeout=600) as resp:
-                    return flask.Response(
-                        resp.read(),
-                        status=resp.status,
-                        content_type=resp.headers.get("Content-Type", "application/json"),
-                    )
-            except urllib.error.HTTPError as e:
-                return flask.Response(e.read(), status=e.code, content_type="application/json")
-            except Exception as e:
-                return flask.jsonify({"error": str(e)}), 502
+          # Force non-streaming
+          if body.get("stream"):
+              body["stream"] = False
 
-        if __name__ == "__main__":
-            app.run(host="0.0.0.0", port=8081)
+          data = json.dumps(body).encode("utf-8")
+          url = f"{UPSTREAM}{self.path}"
+          req = urllib.request.Request(
+              url, data=data,
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=600) as resp:
+                  self.send_response(resp.status)
+                  ct = resp.headers.get("Content-Type", "application/json")
+                  self.send_header("Content-Type", ct)
+                  self.end_headers()
+                  self.wfile.write(resp.read())
+          except urllib.error.HTTPError as e:
+              self.send_response(e.code)
+              self.send_header("Content-Type", "application/json")
+              self.end_headers()
+              self.wfile.write(e.read())
+          except Exception as e:
+              self.send_response(502)
+              self.send_header("Content-Type", "application/json")
+              self.end_headers()
+              self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+  server = HTTPServer(("0.0.0.0", 8081), Handler)
+  server.serve_forever()
+        ''}
       '';
     in
     {
       config = lib.mkIf config.my.llm {
         systemd.services.llm-stream-fix = {
-          description = "LLM streaming fix proxy (forces non-streaming)";
+          description = "LLM streaming fix proxy";
           after = [ "podman-qwen-35b-a3b.service" ];
           requires = [ "podman-qwen-35b-a3b.service" ];
           wantedBy = [ "multi-user.target" ];
