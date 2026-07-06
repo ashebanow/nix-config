@@ -4,6 +4,14 @@
 # host.containers.internal does not forward pasta-mapped ports to bridge
 # networks in rootless podman. The Tailscale IP (100.x) is a stable CGNAT
 # address assigned by the coordination server, not DHCP.
+#
+# ⚠ Streaming bug: the proxy's streaming handler truncates request bodies
+#   at ~12 KB, causing 400 errors on large prompts. Non-streaming works
+#   fine up to 60 KB+. Workaround: configure AI clients (pi, etc.) to
+#   use non-streaming for local models. Open WebUI has a toggle in
+#   Settings → Advanced → "Stream Chat Response". For pi, configure
+#   the litellm provider to use `stream: false`.
+#   Track: https://github.com/BerriAI/litellm/issues (search: streaming body truncation)
 
 model_list:
   # Local models on llama.cpp
@@ -14,6 +22,9 @@ model_list:
       api_key: sk-dummy
       rpm: 100
       timeout: 600
+      stream_timeout: 600
+      context_window: 262144
+      max_input_tokens: 262144
 
   # Remote models — OpenAI-compatible providers with custom api_base
   # Using openai/* provider bypasses LiteLLM's outdated built-in mappings.
@@ -42,4 +53,5 @@ general_settings:
 
 litellm_settings:
   drop_params: true
-  set_verbose: false
+  set_verbose: true
+  max_tokens: 32768
