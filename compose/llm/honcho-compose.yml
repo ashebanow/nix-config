@@ -188,6 +188,7 @@ services:
       - EMBEDDING_MODEL_CONFIG__TRANSPORT=gemini
       - EMBEDDING_MODEL_CONFIG__MODEL=gemini-embedding-2
       - EMBEDDING_MAX_INPUT_TOKENS=30000
+      - DERIVER_LOG_OBSERVATIONS=true
       # Deriver polling: faster startup (default jitter/backoff too slow)
       - DERIVER_POLLING_STARTUP_JITTER_SECONDS=0
       - DERIVER_POLLING_BACKOFF_ENABLED=false
