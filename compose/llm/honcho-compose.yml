@@ -191,6 +191,8 @@ services:
       # Deriver polling: faster startup (default jitter/backoff too slow)
       - DERIVER_POLLING_STARTUP_JITTER_SECONDS=0
       - DERIVER_POLLING_BACKOFF_ENABLED=false
+      - DERIVER_FLUSH_ENABLED=true
+      - LOG_LEVEL=DEBUG
       # Deriver → qwen-35b-a3b via LiteLLM with DeepSeek fallback
       - DERIVER_MODEL_CONFIG__TRANSPORT=openai
       - DERIVER_MODEL_CONFIG__MODEL=qwen-35b-a3b
