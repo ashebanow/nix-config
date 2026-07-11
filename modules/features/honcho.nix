@@ -121,7 +121,6 @@ EOF
           serviceConfig = {
             Type = "oneshot";
             User = cfg.baseUsername;
-            RuntimeMaxSec = 420;
           } // lib.optionalAttrs (builtins.hasAttr "discord-webhook-url" config.sops.secrets) {
             LoadCredential = [
               "discord-webhook-url:${config.sops.secrets."discord-webhook-url".path}"
