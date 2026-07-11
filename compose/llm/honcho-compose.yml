@@ -93,8 +93,12 @@ services:
       - LLM_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      # Embeddings: disabled (--embeddings crashes llama-server on Strix Halo)
+      # Embeddings: disabled for new messages, reconciler routes via LiteLLM
       - EMBED_MESSAGES=false
+      - EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
+      - EMBEDDING_MODEL_CONFIG__MODEL=text-embedding-3-small
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
       # Deriver → qwen-35b-a3b via LiteLLM with DeepSeek fallback
       - DERIVER_MODEL_CONFIG__TRANSPORT=openai
       - DERIVER_MODEL_CONFIG__MODEL=qwen-35b-a3b
@@ -178,8 +182,12 @@ services:
       - LLM_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      # Embeddings: disabled (--embeddings crashes llama-server on Strix Halo)
+      # Embeddings: disabled for new messages, reconciler routes via LiteLLM
       - EMBED_MESSAGES=false
+      - EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
+      - EMBEDDING_MODEL_CONFIG__MODEL=text-embedding-3-small
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
       # Deriver → qwen-35b-a3b via LiteLLM with DeepSeek fallback
       - DERIVER_MODEL_CONFIG__TRANSPORT=openai
       - DERIVER_MODEL_CONFIG__MODEL=qwen-35b-a3b
