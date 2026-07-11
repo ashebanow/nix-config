@@ -18,7 +18,7 @@ model_list:
   - model_name: qwen-35b-a3b
     litellm_params:
       model: openai/qwen-35b-a3b
-      api_base: http://100.90.247.10:8081/v1
+      api_base: http://100.90.247.10:8080/v1
       api_key: sk-dummy
       rpm: 100
       timeout: 600
