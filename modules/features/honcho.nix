@@ -59,6 +59,7 @@ _: {
             honchoDbPasswordPath = config.sops.secrets."honcho-db-password".path;
             litellmMasterKeyPath = config.sops.secrets."litellm-master-key".path;
             deepseekKeyPath = config.sops.secrets."deepseek-api-key".path;
+            geminiKeyPath = config.sops.secrets."gemini-api-key".path;
           in
           {
             description = "Honcho memory layer compose stack";
@@ -78,6 +79,7 @@ _: {
                 "honcho-db-password:${honchoDbPasswordPath}"
                 "litellm-master-key:${litellmMasterKeyPath}"
                 "deepseek-api-key:${deepseekKeyPath}"
+                "gemini-api-key:${geminiKeyPath}"
               ];
               ExecStart = pkgs.writeShellScript "honcho-compose-start" ''
                 set -e
@@ -86,6 +88,7 @@ _: {
                 export HONCHO_DB_PASSWORD="$(cat $CREDENTIALS_DIRECTORY/honcho-db-password)"
                 export LITELLM_MASTER_KEY="$(cat $CREDENTIALS_DIRECTORY/litellm-master-key)"
                 export DEEPSEEK_API_KEY="$(cat $CREDENTIALS_DIRECTORY/deepseek-api-key)"
+                export GEMINI_API_KEY="$(cat $CREDENTIALS_DIRECTORY/gemini-api-key)"
                 # podman-compose reads env vars from .env file
                 cat > /etc/honcho/.env << EOF
 LITELLM_MASTER_KEY=$LITELLM_MASTER_KEY

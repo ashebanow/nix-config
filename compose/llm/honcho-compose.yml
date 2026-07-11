@@ -93,7 +93,11 @@ services:
       - LLM_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      # Embeddings: disabled for new messages, reconciler routes via LiteLLM
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LLM_GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Embeddings → Gemini text-embedding-004
+      - EMBEDDING_MODEL_CONFIG__TRANSPORT=gemini
+      - EMBEDDING_MODEL_CONFIG__MODEL=text-embedding-004
       - EMBED_MESSAGES=false
       - EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
       - EMBEDDING_MODEL_CONFIG__MODEL=text-embedding-3-small
@@ -182,7 +186,11 @@ services:
       - LLM_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      # Embeddings: disabled for new messages, reconciler routes via LiteLLM
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LLM_GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Embeddings → Gemini text-embedding-004
+      - EMBEDDING_MODEL_CONFIG__TRANSPORT=gemini
+      - EMBEDDING_MODEL_CONFIG__MODEL=text-embedding-004
       - EMBED_MESSAGES=false
       - EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
       - EMBEDDING_MODEL_CONFIG__MODEL=text-embedding-3-small
