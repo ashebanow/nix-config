@@ -54,16 +54,16 @@ _post_message() {
 
 # ── wait for deriver to process ──────────────────────────────
 _wait_for_sync() {
-  local msg_id="$1"
   local max_wait=300  # seconds (deriver jitter + model loading can be slow)
   local waited=0
   while (( waited < max_wait )); do
     local state
+    # Documents use their own IDs, not message public_ids. Check for recent
+    # synced document for the health-check monitor observer.
     state=$(podman exec honcho-db psql -U honcho -d honcho -tAc \
-      "SELECT d.sync_state FROM documents d
-       JOIN messages m ON d.id = m.public_id
-       WHERE m.public_id = '$msg_id'
-       LIMIT 1" 2>/dev/null || echo "not_found")
+      "SELECT sync_state FROM documents
+       WHERE observer = '$PEER'
+       ORDER BY created_at DESC LIMIT 1" 2>/dev/null || echo "not_found")
     case "$state" in
       synced) return 0 ;;
       failed) return 1 ;;
@@ -92,11 +92,11 @@ _ensure
 MESSAGE_ID=$(_post_message)
 _log "Posted message $MESSAGE_ID, waiting for deriver..."
 
-if _wait_for_sync "$MESSAGE_ID"; then
-  _log "PASS: document $MESSAGE_ID synced successfully"
+if _wait_for_sync; then
+  _log "PASS: monitor document synced successfully"
   echo 0 > "$CONSECUTIVE_FAILURES_FILE"
 else
-  _log "FAIL: document $MESSAGE_ID did not sync within 120s"
+  _log "FAIL: monitor document did not sync within 300s"
 
   # Track consecutive failures
   failures=$(cat "$CONSECUTIVE_FAILURES_FILE" 2>/dev/null || echo 0)
