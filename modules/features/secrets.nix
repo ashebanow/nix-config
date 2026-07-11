@@ -1,4 +1,11 @@
-# Secrets module — SOPS-nix setup for declarative secret management.
+# Secrets module — SOPS-nix bootstrap for declarative secret management.
+# Individual secret declarations live in their owning feature modules:
+#   access.nix → tailscale-auth-key
+#   llm.nix    → litellm-*, openwebui-*, API keys (deepseek, anthropic, minimax, exa)
+#   honcho.nix → honcho-*
+#
+# Devshell-only secrets (gemini-api-key, bws-access-token) are fetched
+# from Bitwarden Secrets Manager and do not need sops.secrets declarations.
 _: {
   my.modules.nixos.secrets =
     {
@@ -13,48 +20,6 @@ _: {
           defaultSopsFile = ../../secrets/secrets.yaml;
           age = {
             generateKey = true;
-          };
-          secrets = {
-            "tailscale-auth-key" = {
-              mode = "0640";
-              group = "root";
-            };
-            "litellm-tailscale-auth-key" = {
-              mode = "0640";
-              group = "root";
-            };
-            "openwebui-tailscale-auth-key" = {
-              mode = "0640";
-              group = "root";
-            };
-            "litellm-master-key" = {
-              mode = "0640";
-              group = "root";
-            };
-            "litellm-db-password" = {
-              mode = "0640";
-              group = "root";
-            };
-            "deepseek-api-key" = {
-              mode = "0600";
-              group = "root";
-            };
-            "exa-api-key" = {
-              mode = "0600";
-              group = "root";
-            };
-            "gemini-api-key" = {
-              mode = "0600";
-              group = "root";
-            };
-            "anthropic-api-key" = {
-              mode = "0600";
-              group = "root";
-            };
-            "minimax-api-key" = {
-              mode = "0600";
-              group = "root";
-            };
           };
         };
       };

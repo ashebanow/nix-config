@@ -117,6 +117,42 @@ _: {
     in
     {
       config = lib.mkIf cfg.llm {
+        # SOPS secrets for LLM services
+        sops.secrets = {
+          "litellm-tailscale-auth-key" = {
+            mode = "0640";
+            group = "root";
+          };
+          "openwebui-tailscale-auth-key" = {
+            mode = "0640";
+            group = "root";
+          };
+          "litellm-master-key" = {
+            mode = "0640";
+            group = "root";
+          };
+          "litellm-db-password" = {
+            mode = "0640";
+            group = "root";
+          };
+          "deepseek-api-key" = {
+            mode = "0600";
+            group = "root";
+          };
+          "exa-api-key" = {
+            mode = "0600";
+            group = "root";
+          };
+          "anthropic-api-key" = {
+            mode = "0600";
+            group = "root";
+          };
+          "minimax-api-key" = {
+            mode = "0600";
+            group = "root";
+          };
+        };
+
         # Model storage (used as HF cache for unpromoted models)
         # hfCacheDir must be owned by the podman user so rootless containers can write to it
         systemd.tmpfiles.rules = [

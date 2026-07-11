@@ -6,6 +6,12 @@ _: {
     ...
   }: {
     config = lib.mkIf config.my.access {
+      # SOPS secrets for access module
+      sops.secrets."tailscale-auth-key" = {
+        mode = "0640";
+        group = "root";
+      };
+
       # Tailscale — uses built-in autoconnect via authKeyFile + extraUpFlags
       services.tailscale = {
         enable = true;

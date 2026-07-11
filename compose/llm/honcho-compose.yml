@@ -1,0 +1,203 @@
+# Honcho memory layer with Tailscale sidecar.
+# After `podman-compose up -d`, Honcho is available at:
+#   https://honcho.fluffy-walleye.ts.net
+#
+# TLS is handled by tailscale serve.
+# Honcho uses LiteLLM proxy (qwen-35b-a3b) as primary LLM with
+# DeepSeek direct as deriver fallback + embeddings provider.
+#
+# Database (postgres + pgvector) and Redis are internal to the
+# compose network — no external ports exposed.
+
+services:
+  postgres:
+    image: docker.io/pgvector/pgvector:pg15
+    container_name: honcho-db
+    environment:
+      - POSTGRES_DB=honcho
+      - POSTGRES_USER=honcho
+      - POSTGRES_PASSWORD=${HONCHO_DB_PASSWORD}
+    volumes:
+      - honcho-pg-data:/var/lib/postgresql/data
+    command: ["postgres", "-c", "max_connections=200"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U honcho -d honcho"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: docker.io/library/redis:8.2
+    container_name: honcho-redis
+    volumes:
+      - honcho-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  tailscale:
+    image: docker.io/tailscale/tailscale:latest
+    container_name: honcho-ts
+    hostname: honcho
+    environment:
+      - TS_AUTHKEY=${HONCHO_TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+    volumes:
+      - honcho-ts-state:/var/lib/tailscale
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+    command: |
+      sh -c "
+      tailscaled --tun=tailscale0 --state=/var/lib/tailscale/tailscaled.state &
+      sleep 2
+      tailscale up --auth-key=${HONCHO_TS_AUTHKEY} --hostname=honcho --accept-dns || {
+        echo 'ERROR: tailscale up failed (check HONCHO_TS_AUTHKEY)' >&2
+        exit 1
+      }
+      sleep 2
+      tailscale serve reset 2>/dev/null || true
+      tailscale serve --bg http://localhost:8000
+      wait
+      "
+
+  api:
+    image: ghcr.io/plastic-labs/honcho:v3.0.11
+    container_name: honcho-api
+    entrypoint: ["sh", "docker/entrypoint.sh"]
+    network_mode: "service:tailscale"
+    depends_on:
+      tailscale:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Application
+      - LOG_LEVEL=INFO
+      - PERFORMANCE_LOG_FORMAT=compact
+      - AUTH_USE_AUTH=false
+      - CACHE_ENABLED=true
+      # Database
+      - DB_CONNECTION_URI=postgresql+psycopg://honcho:${HONCHO_DB_PASSWORD}@postgres:5432/honcho
+      - CACHE_URL=redis://redis:6379/0?suppress=true
+      # LLM: primary transport (OpenAI-compatible via LiteLLM)
+      - LLM_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      # Embeddings → DeepSeek v4 Flash direct
+      - EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
+      - EMBEDDING_MODEL_CONFIG__MODEL=deepseek-v4-flash
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL=https://api.deepseek.com/v1
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=DEEPSEEK_API_KEY
+      # Deriver → qwen-35b-a3b via LiteLLM with DeepSeek fallback
+      - DERIVER_MODEL_CONFIG__TRANSPORT=openai
+      - DERIVER_MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DERIVER_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DERIVER_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      - DERIVER_MODEL_CONFIG__FALLBACK__TRANSPORT=openai
+      - DERIVER_MODEL_CONFIG__FALLBACK__MODEL=deepseek-v4-flash
+      - DERIVER_MODEL_CONFIG__FALLBACK__OVERRIDES__BASE_URL=https://api.deepseek.com/v1
+      - DERIVER_MODEL_CONFIG__FALLBACK__OVERRIDES__API_KEY_ENV=DEEPSEEK_API_KEY
+      # Summarizer → qwen-35b-a3b via LiteLLM
+      - SUMMARY_MODEL_CONFIG__TRANSPORT=openai
+      - SUMMARY_MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - SUMMARY_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - SUMMARY_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      # Dialectic (all levels) → qwen-35b-a3b via LiteLLM
+      - DIALECTIC_LEVELS__minimal__MODEL_CONFIG__TRANSPORT=openai
+      - DIALECTIC_LEVELS__minimal__MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DIALECTIC_LEVELS__minimal__MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DIALECTIC_LEVELS__minimal__MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      - DIALECTIC_LEVELS__low__MODEL_CONFIG__TRANSPORT=openai
+      - DIALECTIC_LEVELS__low__MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DIALECTIC_LEVELS__low__MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DIALECTIC_LEVELS__low__MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      - DIALECTIC_LEVELS__medium__MODEL_CONFIG__TRANSPORT=openai
+      - DIALECTIC_LEVELS__medium__MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DIALECTIC_LEVELS__medium__MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DIALECTIC_LEVELS__medium__MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      - DIALECTIC_LEVELS__high__MODEL_CONFIG__TRANSPORT=openai
+      - DIALECTIC_LEVELS__high__MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DIALECTIC_LEVELS__high__MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DIALECTIC_LEVELS__high__MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      - DIALECTIC_LEVELS__max__MODEL_CONFIG__TRANSPORT=openai
+      - DIALECTIC_LEVELS__max__MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DIALECTIC_LEVELS__max__MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      # Dream → qwen-35b-a3b via LiteLLM
+      - DREAM_DEDUCTION_MODEL_CONFIG__TRANSPORT=openai
+      - DREAM_DEDUCTION_MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DREAM_DEDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DREAM_DEDUCTION_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      - DREAM_INDUCTION_MODEL_CONFIG__TRANSPORT=openai
+      - DREAM_INDUCTION_MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DREAM_INDUCTION_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DREAM_INDUCTION_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/app/.venv/bin/python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2).read()",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  deriver:
+    image: ghcr.io/plastic-labs/honcho:v3.0.11
+    container_name: honcho-deriver
+    entrypoint: ["/app/.venv/bin/python", "-m", "src.deriver"]
+    network_mode: "service:tailscale"
+    depends_on:
+      api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Application
+      - LOG_LEVEL=INFO
+      - PERFORMANCE_LOG_FORMAT=compact
+      - CACHE_ENABLED=true
+      # Database
+      - DB_CONNECTION_URI=postgresql+psycopg://honcho:${HONCHO_DB_PASSWORD}@postgres:5432/honcho
+      - CACHE_URL=redis://redis:6379/0?suppress=true
+      # LLM: primary transport (OpenAI-compatible via LiteLLM)
+      - LLM_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      # Embeddings → DeepSeek v4 Flash direct
+      - EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
+      - EMBEDDING_MODEL_CONFIG__MODEL=deepseek-v4-flash
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL=https://api.deepseek.com/v1
+      - EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=DEEPSEEK_API_KEY
+      # Deriver → qwen-35b-a3b via LiteLLM with DeepSeek fallback
+      - DERIVER_MODEL_CONFIG__TRANSPORT=openai
+      - DERIVER_MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - DERIVER_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - DERIVER_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      - DERIVER_MODEL_CONFIG__FALLBACK__TRANSPORT=openai
+      - DERIVER_MODEL_CONFIG__FALLBACK__MODEL=deepseek-v4-flash
+      - DERIVER_MODEL_CONFIG__FALLBACK__OVERRIDES__BASE_URL=https://api.deepseek.com/v1
+      - DERIVER_MODEL_CONFIG__FALLBACK__OVERRIDES__API_KEY_ENV=DEEPSEEK_API_KEY
+      # Summarizer → qwen-35b-a3b via LiteLLM
+      - SUMMARY_MODEL_CONFIG__TRANSPORT=openai
+      - SUMMARY_MODEL_CONFIG__MODEL=qwen-35b-a3b
+      - SUMMARY_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
+      - SUMMARY_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+    restart: unless-stopped
+
+volumes:
+  honcho-pg-data:
+  honcho-redis-data:
+  honcho-ts-state:
