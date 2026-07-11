@@ -49,6 +49,7 @@ _: {
         systemd.tmpfiles.rules = [
           "d /etc/honcho 0755 root root -"
           "L+ /etc/honcho/compose.yml - - - - ${../../compose/llm/honcho-compose.yml}"
+          "d /var/lib/honcho 0755 ${cfg.baseUsername} ${cfg.baseUsername} -"
         ];
 
         # Honcho memory layer with Tailscale sidecar (podman-compose).
@@ -108,6 +109,38 @@ EOF
             };
           }
         );
+
+        # Honcho health check — verifies end-to-end: API → deriver → embedding → DB save.
+        # Runs every 15 min. Alerts via Discord webhook after 2 consecutive failures.
+        # Set DISCORD_WEBHOOK_URL in SOPS secrets to enable Discord alerts.
+        systemd.services.honcho-health-check = lib.mkIf cfg.llmServe {
+          description = "Honcho end-to-end health check";
+          after = [ "honcho-compose.service" "podman-qwen-35b-a3b.service" ];
+          requires = [ "honcho-compose.service" ];
+          path = [ pkgs.curl pkgs.python3 pkgs.podman ];
+          serviceConfig = {
+            Type = "oneshot";
+            User = cfg.baseUsername;
+          } // lib.optionalAttrs (builtins.hasAttr "discord-webhook-url" config.sops.secrets) {
+            LoadCredential = [
+              "discord-webhook-url:${config.sops.secrets."discord-webhook-url".path}"
+            ];
+          };
+          script = ''
+            export DISCORD_WEBHOOK_URL="$(cat "$CREDENTIALS_DIRECTORY"/discord-webhook-url 2>/dev/null || true)"
+            ${builtins.readFile ../../scripts/honcho-health-check.sh}
+          '';
+        };
+
+        systemd.timers.honcho-health-check = lib.mkIf cfg.llmServe {
+          description = "Honcho health check timer";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnCalendar = "*:0/15";
+            RandomizedDelaySec = 60;
+            Persistent = true;
+          };
+        };
       };
     };
 }
