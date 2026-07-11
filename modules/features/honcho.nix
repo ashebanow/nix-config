@@ -39,6 +39,10 @@ _: {
             mode = "0640";
             group = "root";
           };
+          "gemini-api-key" = {
+            mode = "0600";
+            group = "root";
+          };
         };
 
         # Symlink compose file into /etc/honcho
@@ -95,6 +99,8 @@ LITELLM_MASTER_KEY=$LITELLM_MASTER_KEY
 DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY
 HONCHO_DB_PASSWORD=$HONCHO_DB_PASSWORD
 HONCHO_TS_AUTHKEY=$HONCHO_TS_AUTHKEY
+GEMINI_API_KEY=$GEMINI_API_KEY
+LLM_GEMINI_API_KEY=$GEMINI_API_KEY
 EOF
                 exec podman-compose -f /etc/honcho/compose.yml up -d
               '';
