@@ -86,6 +86,13 @@ _: {
                 export HONCHO_DB_PASSWORD="$(cat $CREDENTIALS_DIRECTORY/honcho-db-password)"
                 export LITELLM_MASTER_KEY="$(cat $CREDENTIALS_DIRECTORY/litellm-master-key)"
                 export DEEPSEEK_API_KEY="$(cat $CREDENTIALS_DIRECTORY/deepseek-api-key)"
+                # podman-compose resolves ''${VAR}'' from .env, not always from shell env
+                cat > /etc/honcho/.env << EOF
+LITELLM_MASTER_KEY=$LITELLM_MASTER_KEY
+DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY
+HONCHO_DB_PASSWORD=$HONCHO_DB_PASSWORD
+HONCHO_TS_AUTHKEY=$HONCHO_TS_AUTHKEY
+EOF
                 exec podman-compose -f /etc/honcho/compose.yml up -d
               '';
               ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/honcho/compose.yml down";

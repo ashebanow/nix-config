@@ -91,6 +91,8 @@ services:
       - CACHE_URL=redis://redis:6379/0?suppress=true
       # LLM: primary transport (OpenAI-compatible via LiteLLM)
       - LLM_OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       # Embeddings → DeepSeek v4 Flash direct
       - EMBEDDING_MODEL_CONFIG__TRANSPORT=openai
       - EMBEDDING_MODEL_CONFIG__MODEL=deepseek-v4-flash
