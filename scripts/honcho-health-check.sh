@@ -30,15 +30,19 @@ _discord_alert() {
 
 # ── create workspace / peer / session (idempotent) ───────────
 _ensure() {
+  # Delete and recreate for a clean slate each run.
+  # Prevents observation buildup from exceeding embedding token limits.
+  curl -sf -X DELETE "$HONCHO_BASE/v3/workspaces/$WORKSPACE" >/dev/null 2>&1 || true
+  sleep 1
   curl -sf -X POST "$HONCHO_BASE/v3/workspaces" \
     -H "Content-Type: application/json" \
-    -d "{\"name\":\"$WORKSPACE\"}" >/dev/null 2>&1 || true
+    -d "{\"name\":\"$WORKSPACE\"}" >/dev/null
   curl -sf -X POST "$HONCHO_BASE/v3/workspaces/$WORKSPACE/peers" \
     -H "Content-Type: application/json" \
-    -d "{\"name\":\"$PEER\"}" >/dev/null 2>&1 || true
+    -d "{\"name\":\"$PEER\"}" >/dev/null
   curl -sf -X POST "$HONCHO_BASE/v3/workspaces/$WORKSPACE/sessions" \
     -H "Content-Type: application/json" \
-    -d "{\"name\":\"$SESSION\"}" >/dev/null 2>&1 || true
+    -d "{\"name\":\"$SESSION\"}" >/dev/null
 }
 
 # ── post a test message ──────────────────────────────────────
