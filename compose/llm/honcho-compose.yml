@@ -188,6 +188,9 @@ services:
       - EMBEDDING_MODEL_CONFIG__MODEL=text-embedding-3-small
       - EMBEDDING_MODEL_CONFIG__OVERRIDES__BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
       - EMBEDDING_MODEL_CONFIG__OVERRIDES__API_KEY_ENV=LITELLM_MASTER_KEY
+      # Deriver polling: faster startup (default jitter/backoff too slow)
+      - DERIVER_POLLING_STARTUP_JITTER_SECONDS=0
+      - DERIVER_POLLING_BACKOFF_ENABLED=false
       # Deriver → qwen-35b-a3b via LiteLLM with DeepSeek fallback
       - DERIVER_MODEL_CONFIG__TRANSPORT=openai
       - DERIVER_MODEL_CONFIG__MODEL=qwen-35b-a3b
