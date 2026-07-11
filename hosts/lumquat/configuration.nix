@@ -22,7 +22,7 @@
   my.accessFallbackPort = 2222;
   my.monitoring = true;
   my.monitoringPort = 9090;
-  my.zmx = true;
+  my.zmx = false;  # TODO: re-enable after zmx build fix
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
