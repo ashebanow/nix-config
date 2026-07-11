@@ -49,7 +49,6 @@ in rec {
         "q4_0" # Q4 KV cache (~4x reduction vs F16, negligible quality loss)
         "--cache-type-v"
         "q4_0"
-        "--embeddings" # Enable /embedding endpoint for Honcho semantic search
       ];
     };
   };
