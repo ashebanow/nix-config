@@ -86,7 +86,7 @@ _: {
                 export HONCHO_DB_PASSWORD="$(cat $CREDENTIALS_DIRECTORY/honcho-db-password)"
                 export LITELLM_MASTER_KEY="$(cat $CREDENTIALS_DIRECTORY/litellm-master-key)"
                 export DEEPSEEK_API_KEY="$(cat $CREDENTIALS_DIRECTORY/deepseek-api-key)"
-                # podman-compose resolves ''${VAR}'' from .env, not always from shell env
+                # podman-compose reads env vars from .env file
                 cat > /etc/honcho/.env << EOF
 LITELLM_MASTER_KEY=$LITELLM_MASTER_KEY
 DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY
