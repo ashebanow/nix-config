@@ -117,10 +117,11 @@ EOF
           description = "Honcho end-to-end health check";
           after = [ "honcho-compose.service" "podman-qwen-35b-a3b.service" ];
           requires = [ "honcho-compose.service" ];
-          path = [ pkgs.curl pkgs.python3 pkgs.podman ];
+          path = [ pkgs.curl pkgs.podman ];
           serviceConfig = {
             Type = "oneshot";
             User = cfg.baseUsername;
+            RuntimeMaxSec = 420;
           } // lib.optionalAttrs (builtins.hasAttr "discord-webhook-url" config.sops.secrets) {
             LoadCredential = [
               "discord-webhook-url:${config.sops.secrets."discord-webhook-url".path}"
@@ -136,7 +137,7 @@ EOF
           description = "Honcho health check timer";
           wantedBy = [ "timers.target" ];
           timerConfig = {
-            OnCalendar = "*:0/15";
+            OnCalendar = "*:0/30";
             RandomizedDelaySec = 60;
             Persistent = true;
           };

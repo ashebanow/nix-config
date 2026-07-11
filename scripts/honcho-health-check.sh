@@ -49,13 +49,13 @@ _post_message() {
     "$HONCHO_BASE/v3/workspaces/$WORKSPACE/sessions/$SESSION/messages" \
     -H "Content-Type: application/json" \
     -d "{\"messages\":[{\"role\":\"user\",\"content\":\"$msg_text\",\"peer_id\":\"$PEER\"}]}")
-  echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])"
+  echo "$resp" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1
 }
 
 # ── wait for deriver to process ──────────────────────────────
 _wait_for_sync() {
   local msg_id="$1"
-  local max_wait=120  # seconds
+  local max_wait=300  # seconds (deriver jitter + model loading can be slow)
   local waited=0
   while (( waited < max_wait )); do
     local state
@@ -99,7 +99,6 @@ else
   _log "FAIL: document $MESSAGE_ID did not sync within 120s"
 
   # Track consecutive failures
-  local failures
   failures=$(cat "$CONSECUTIVE_FAILURES_FILE" 2>/dev/null || echo 0)
   failures=$((failures + 1))
   echo "$failures" > "$CONSECUTIVE_FAILURES_FILE"
