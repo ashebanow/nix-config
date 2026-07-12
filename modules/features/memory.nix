@@ -65,11 +65,9 @@ _: {
               ];
               ExecStartPre = pkgs.writeShellScript "memory-build-image" ''
                 set -e
-                # Build Mnemosyne image if not already present
-                if ! podman image exists mnemosyne-memory:latest 2>/dev/null; then
-                  echo "Building mnemosyne-memory image..."
-                  podman build -t mnemosyne-memory:latest -f /etc/memory/Dockerfile /etc/memory
-                fi
+                # Always rebuild to pick up Dockerfile changes
+                echo "Building mnemosyne-memory image..."
+                podman build -t mnemosyne-memory:latest -f /etc/memory/Dockerfile /etc/memory
               '';
               ExecStart = pkgs.writeShellScript "memory-compose-start" ''
                 set -e
