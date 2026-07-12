@@ -31,6 +31,10 @@ _: {
             mode = "0640";
             group = "root";
           };
+          "mnemosyne-mcp-token" = {
+            mode = "0640";
+            group = "root";
+          };
         };
 
         # Data directory and backup directory
@@ -46,6 +50,7 @@ _: {
         systemd.services.memory-compose =
           let
             tsAuthKeyPath = config.sops.secrets."mnemo-tailscale-auth-key".path;
+            mcpTokenPath = config.sops.secrets."mnemosyne-mcp-token".path;
           in
           {
             description = "Mnemosyne memory layer compose stack";
@@ -62,6 +67,7 @@ _: {
               ];
               LoadCredential = [
                 "ts-auth-key:${tsAuthKeyPath}"
+                "mcp-token:${mcpTokenPath}"
               ];
               ExecStartPre = pkgs.writeShellScript "memory-build-image" ''
                 set -e
@@ -73,6 +79,12 @@ _: {
                 set -e
                 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
                 export MEMORY_TS_AUTHKEY="$(cat $CREDENTIALS_DIRECTORY/ts-auth-key)"
+                export MNEMOSYNE_MCP_TOKEN="$(cat $CREDENTIALS_DIRECTORY/mcp-token)"
+                # podman-compose reads env vars from .env file
+                cat > /etc/memory/.env << EOF
+MEMORY_TS_AUTHKEY=$MEMORY_TS_AUTHKEY
+MNEMOSYNE_MCP_TOKEN=$MNEMOSYNE_MCP_TOKEN
+EOF
                 exec podman-compose -f /etc/memory/compose.yml up -d
               '';
               ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/memory/compose.yml down";
