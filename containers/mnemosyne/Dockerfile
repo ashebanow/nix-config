@@ -33,4 +33,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -sf http://localhost:8000/health || exit 1
 
-ENTRYPOINT ["mnemosyne", "mcp", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["mnemosyne", "mcp", "--transport", "sse", "--host", "127.0.0.1", "--port", "8000"]
