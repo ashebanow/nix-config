@@ -125,13 +125,7 @@ EOF
               exit 1
             fi
 
-            # 2. SSE endpoint reachable (MCP over SSE transport)
-            if ! curl -sf --max-time 5 -o /dev/null "$BASE/sse" 2>/dev/null; then
-              log "FAIL: SSE endpoint unreachable"
-              exit 1
-            fi
-
-            # 3. Full MCP round-trip: initialize, write, recall
+            # 2+3. SSE reachability + MCP round-trip
             # SSE session must stay alive during POST requests
             SSE_OUT=$(mktemp)
             curl -sfN "$BASE/sse" -H "Authorization: Bearer $MCP_TOKEN" > "$SSE_OUT" 2>/dev/null &
