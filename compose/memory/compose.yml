@@ -34,8 +34,6 @@ services:
       }
       sleep 2
       tailscale serve reset 2>/dev/null || true
-      # Give mnemosyne time to start before configuring serve
-      sleep 10
       tailscale serve --bg http://localhost:8000
       wait
       "
