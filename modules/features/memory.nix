@@ -145,8 +145,8 @@ _: {
             echo 0 > "$FAILURES_FILE"
 
             # Rotate log
-            tail -n 500 "$HEALTH_LOG" > "${HEALTH_LOG}.tmp" 2>/dev/null
-            mv "${HEALTH_LOG}.tmp" "$HEALTH_LOG" 2>/dev/null || true
+            tail -n 500 "$HEALTH_LOG" > "$HEALTH_LOG.tmp" 2>/dev/null
+            mv "$HEALTH_LOG.tmp" "$HEALTH_LOG" 2>/dev/null || true
           '';
         };
 
