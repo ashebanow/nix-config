@@ -92,7 +92,11 @@ EOF
           };
 
         # ── Health check (systemd timer, every 30 min) ────────────
-        systemd.services.memory-health-check = {
+        systemd.services.memory-health-check =
+          let
+            mcpTokenPath = config.sops.secrets."mnemosyne-mcp-token".path;
+          in
+          {
           description = "Mnemosyne end-to-end health check";
           after = [ "memory-compose.service" ];
           requires = [ "memory-compose.service" ];
@@ -100,6 +104,9 @@ EOF
           serviceConfig = {
             Type = "oneshot";
             User = cfg.baseUsername;
+            LoadCredential = [
+              "mcp-token:${mcpTokenPath}"
+            ];
           };
           script = ''
             set -euo pipefail
@@ -108,6 +115,7 @@ EOF
             TIMESTAMP=$(date -u +%s)
             HEALTH_LOG="${dataDir}/health.log"
             FAILURES_FILE="${dataDir}/consecutive_failures"
+            MCP_TOKEN="$(cat $CREDENTIALS_DIRECTORY/mcp-token)"
 
             log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$HEALTH_LOG"; }
 
@@ -117,33 +125,32 @@ EOF
               exit 1
             fi
 
-            # 2. SSE endpoint reachable and MCP functional
-            # SSE is a persistent stream — just verify it responds with 200
+            # 2. SSE endpoint reachable (MCP over SSE transport)
             if ! curl -sf --max-time 5 -o /dev/null "$BASE/sse" 2>/dev/null; then
               log "FAIL: SSE endpoint unreachable"
               exit 1
             fi
 
             # 3. Full MCP round-trip: initialize, write, recall
-            # Use background curl to capture the session endpoint from SSE
+            # SSE session must stay alive during POST requests
             SSE_OUT=$(mktemp)
-            curl -sfN "$BASE/sse" -H 'Accept: text/event-stream' --max-time 8 > "$SSE_OUT" 2>/dev/null &
+            curl -sfN "$BASE/sse" -H "Authorization: Bearer $MCP_TOKEN" > "$SSE_OUT" 2>/dev/null &
             SSE_PID=$!
             sleep 2
 
-            # Extract session ID from SSE endpoint event
-            SESSION_ID=$(grep -o 'sessionId=[^&[:space:]]*' "$SSE_OUT" 2>/dev/null | head -1 | cut -d= -f2)
-            kill $SSE_PID 2>/dev/null || true
-            rm -f "$SSE_OUT"
-
+            SESSION_ID=$(grep -o 'session_id=[^&[:space:]]*' "$SSE_OUT" 2>/dev/null | head -1 | cut -d= -f2)
             if [ -z "$SESSION_ID" ]; then
+              kill $SSE_PID 2>/dev/null || true
+              rm -f "$SSE_OUT"
               log "FAIL: Could not obtain SSE session ID"
               exit 1
             fi
-            MCP="curl -sf -X POST \"$BASE/messages/?sessionId=$SESSION_ID\" -H 'Content-Type: application/json'"
+            AUTH="-H 'Authorization: Bearer $MCP_TOKEN'"
+            MCP="curl -sf -X POST \"$BASE/messages/?session_id=$SESSION_ID\" -H 'Content-Type: application/json' $AUTH"
 
-            # Initialize MCP session
+            # Initialize
             eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"health-check\",\"version\":\"1.0\"}},\"id\":1}'" >/dev/null 2>&1 || {
+              kill $SSE_PID 2>/dev/null || true; rm -f "$SSE_OUT"
               log "FAIL: MCP initialize failed"
               exit 1
             }
@@ -151,6 +158,7 @@ EOF
             # Write test memory
             TEST_CONTENT="health-check-ping-$TIMESTAMP"
             eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1 || {
+              kill $SSE_PID 2>/dev/null || true; rm -f "$SSE_OUT"
               log "FAIL: MCP remember tool failed"
               exit 1
             }
@@ -159,12 +167,15 @@ EOF
             sleep 2
             RESULT=$(eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" 2>/dev/null) || true
 
+            kill $SSE_PID 2>/dev/null || true
+            rm -f "$SSE_OUT"
+
             if ! echo "$RESULT" | grep -q "$TEST_CONTENT"; then
               log "FAIL: Write/recall test failed — result: $(echo "$RESULT" | head -c 200)"
               exit 1
             fi
 
-            log "PASS: integrity OK, SSE+MCP functional, write/recall verified"
+            log "PASS: integrity OK, MCP functional, write/recall verified"
 
             # Reset consecutive failures
             echo 0 > "$FAILURES_FILE"
