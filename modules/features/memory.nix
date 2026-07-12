@@ -84,23 +84,23 @@ _: {
           description = "Mnemosyne end-to-end health check";
           after = [ "memory-compose.service" ];
           requires = [ "memory-compose.service" ];
-          path = [ pkgs.curl pkgs.sqlite ];
+          path = [ pkgs.curl pkgs.sqlite pkgs.podman ];
           serviceConfig = {
             Type = "oneshot";
             User = cfg.baseUsername;
           };
           script = ''
             set -euo pipefail
-            DB="${dataDir}/mnemosyne.db"
+            DB="/data/mnemosyne.db"
             BASE="https://memory.fluffy-walleye.ts.net"
             TIMESTAMP=$(date -u +%s)
-            HEALTH_LOG="${dataDir}/health.log"
-            FAILURES_FILE="${dataDir}/consecutive_failures"
+            HEALTH_LOG="/var/lib/mnemosyne/health.log"
+            FAILURES_FILE="/var/lib/mnemosyne/consecutive_failures"
 
             log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$HEALTH_LOG"; }
 
-            # 1. SQLite integrity
-            if [ ! -f "$DB" ] || ! sqlite3 "$DB" "PRAGMA integrity_check;" 2>/dev/null | grep -q "ok"; then
+            # 1. SQLite integrity (database is inside the container)
+            if ! podman exec memory-app sqlite3 "$DB" "PRAGMA integrity_check;" 2>/dev/null | grep -q "ok"; then
               log "FAIL: SQLite integrity check failed"
               exit 1
             fi
@@ -168,26 +168,24 @@ _: {
         systemd.services.memory-backup = {
           description = "Daily Mnemosyne database backup";
           after = [ "memory-compose.service" ];
-          path = [ pkgs.sqlite ];
+          path = [ pkgs.sqlite pkgs.podman ];
           serviceConfig = {
             Type = "oneshot";
             User = cfg.baseUsername;
           };
           script = ''
             set -euo pipefail
-            DB="${dataDir}/mnemosyne.db"
+            DB="/data/mnemosyne.db"
             BACKUP="${backupDir}/mnemosyne-$(date +%Y%m%d).db"
             RETENTION_DAYS=7
 
-            if [ -f "$DB" ]; then
-              sqlite3 "$DB" ".backup '$BACKUP'"
-              echo "Backup created: $BACKUP ($(stat -c%s "$BACKUP") bytes)"
+            podman exec memory-app sqlite3 "$DB" ".backup '/tmp/mnemosyne-backup.db'"
+            podman cp memory-app:/tmp/mnemosyne-backup.db "$BACKUP"
+            podman exec memory-app rm -f /tmp/mnemosyne-backup.db
+            echo "Backup created: $BACKUP ($(stat -c%s "$BACKUP") bytes)"
 
-              # Rotate old backups
-              find "${backupDir}" -name "mnemosyne-*.db" -mtime +$RETENTION_DAYS -delete 2>/dev/null || true
-            else
-              echo "No database to back up (not yet created)"
-            fi
+            # Rotate old backups
+            find "${backupDir}" -name "mnemosyne-*.db" -mtime +$RETENTION_DAYS -delete 2>/dev/null || true
           '';
         };
 
