@@ -41,7 +41,7 @@ _: {
         systemd.tmpfiles.rules = [
           "d ${dataDir} 0777 ${cfg.baseUsername} ${cfg.baseUsername} -"
           "d ${backupDir} 0777 ${cfg.baseUsername} ${cfg.baseUsername} -"
-          "d /etc/memory 0755 root root -"
+          "d /etc/memory 0777 root root -"
           "L+ /etc/memory/compose.yml - - - - ${../../compose/memory/compose.yml}"
           "L+ /etc/memory/Dockerfile - - - - ${../../containers/mnemosyne/Dockerfile}"
         ];
