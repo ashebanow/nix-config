@@ -115,7 +115,7 @@ _: {
             # 3. Full MCP round-trip: initialize, write, recall
             # Use background curl to capture the session endpoint from SSE
             SSE_OUT=$(mktemp)
-            curl -sfN "$BASE/sse" --max-time 8 > "$SSE_OUT" 2>/dev/null &
+            curl -sfN "$BASE/sse" -H 'Accept: text/event-stream' --max-time 8 > "$SSE_OUT" 2>/dev/null &
             SSE_PID=$!
             sleep 2
 
