@@ -95,24 +95,57 @@ _: {
             set -euo pipefail
             DB="${dataDir}/mnemosyne.db"
             BASE="https://memory.fluffy-walleye.ts.net"
+            TIMESTAMP=$(date -u +%s)
             HEALTH_LOG="${dataDir}/health.log"
             FAILURES_FILE="${dataDir}/consecutive_failures"
 
             log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$HEALTH_LOG"; }
 
             # 1. SQLite integrity
-            if ! sqlite3 "$DB" "PRAGMA integrity_check;" 2>/dev/null | grep -q "ok"; then
+            if [ ! -f "$DB" ] || ! sqlite3 "$DB" "PRAGMA integrity_check;" 2>/dev/null | grep -q "ok"; then
               log "FAIL: SQLite integrity check failed"
               exit 1
             fi
 
-            # 2. SSE endpoint reachable (MCP over SSE transport)
-            if ! curl -sf -o /dev/null "$BASE/sse" 2>/dev/null; then
+            # 2. SSE endpoint reachable and MCP functional
+            # MCP over SSE: GET /sse for stream, POST /messages/ for RPC
+            SSE_RESP=$(curl -sfN "$BASE/sse" --max-time 5 2>/dev/null | head -5)
+            if [ -z "$SSE_RESP" ]; then
               log "FAIL: SSE endpoint unreachable"
               exit 1
             fi
 
-            log "PASS: integrity OK, SSE endpoint responsive"
+            # Extract session ID from endpoint event
+            SESSION_ID=$(echo "$SSE_RESP" | grep -o 'sessionId=[^&[:space:]]*' | head -1 | cut -d= -f2)
+            if [ -z "$SESSION_ID" ]; then
+              log "FAIL: Could not obtain SSE session ID"
+              exit 1
+            fi
+            MCP="curl -sf -X POST \"$BASE/messages/?sessionId=$SESSION_ID\" -H 'Content-Type: application/json'"
+
+            # Initialize MCP session
+            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"health-check\",\"version\":\"1.0\"}},\"id\":1}'" >/dev/null 2>&1 || {
+              log "FAIL: MCP initialize failed"
+              exit 1
+            }
+
+            # Write test memory
+            TEST_CONTENT="health-check-ping-$TIMESTAMP"
+            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1 || {
+              log "FAIL: MCP remember tool failed"
+              exit 1
+            }
+
+            # Recall and verify
+            sleep 2
+            RESULT=$(eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" 2>/dev/null) || true
+
+            if ! echo "$RESULT" | grep -q "$TEST_CONTENT"; then
+              log "FAIL: Write/recall test failed — stored content not found in: $(echo "$RESULT" | head -c 200)"
+              exit 1
+            fi
+
+            log "PASS: integrity OK, SSE+MCP functional, write/recall verified"
 
             # Reset consecutive failures
             echo 0 > "$FAILURES_FILE"
