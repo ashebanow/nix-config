@@ -106,15 +106,24 @@ _: {
             fi
 
             # 2. SSE endpoint reachable and MCP functional
-            # MCP over SSE: GET /sse for stream, POST /messages/ for RPC
-            SSE_RESP=$(curl -sfN "$BASE/sse" --max-time 5 2>/dev/null | head -5)
-            if [ -z "$SSE_RESP" ]; then
+            # SSE is a persistent stream — just verify it responds with 200
+            if ! curl -sf --max-time 5 -o /dev/null "$BASE/sse" 2>/dev/null; then
               log "FAIL: SSE endpoint unreachable"
               exit 1
             fi
 
-            # Extract session ID from endpoint event
-            SESSION_ID=$(echo "$SSE_RESP" | grep -o 'sessionId=[^&[:space:]]*' | head -1 | cut -d= -f2)
+            # 3. Full MCP round-trip: initialize, write, recall
+            # Use background curl to capture the session endpoint from SSE
+            SSE_OUT=$(mktemp)
+            curl -sfN "$BASE/sse" --max-time 8 > "$SSE_OUT" 2>/dev/null &
+            SSE_PID=$!
+            sleep 2
+
+            # Extract session ID from SSE endpoint event
+            SESSION_ID=$(grep -o 'sessionId=[^&[:space:]]*' "$SSE_OUT" 2>/dev/null | head -1 | cut -d= -f2)
+            kill $SSE_PID 2>/dev/null || true
+            rm -f "$SSE_OUT"
+
             if [ -z "$SESSION_ID" ]; then
               log "FAIL: Could not obtain SSE session ID"
               exit 1
@@ -139,7 +148,7 @@ _: {
             RESULT=$(eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" 2>/dev/null) || true
 
             if ! echo "$RESULT" | grep -q "$TEST_CONTENT"; then
-              log "FAIL: Write/recall test failed — stored content not found in: $(echo "$RESULT" | head -c 200)"
+              log "FAIL: Write/recall test failed — result: $(echo "$RESULT" | head -c 200)"
               exit 1
             fi
 
