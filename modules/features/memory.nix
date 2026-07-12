@@ -143,28 +143,43 @@ EOF
             MCP="curl -sf -X POST \"$BASE/messages/?session_id=$SESSION_ID\" -H 'Content-Type: application/json' $AUTH"
 
             # Initialize
-            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"health-check\",\"version\":\"1.0\"}},\"id\":1}'" >/dev/null 2>&1 || {
+            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"health-check\",\"version\":\"1.0\"}},\"id\":1}'" >/dev/null 2>&1
+
+            # Wait for init response on SSE stream before sending tools/call
+            INIT_OK=false
+            for i in $(seq 1 10); do
+              if grep -q '"id":1' "$SSE_OUT" 2>/dev/null; then INIT_OK=true; break; fi
+              sleep 0.5
+            done
+            if ! $INIT_OK; then
               kill $SSE_PID 2>/dev/null || true; rm -f "$SSE_OUT"
-              log "FAIL: MCP initialize failed"
+              log "FAIL: MCP initialize timed out"
               exit 1
-            }
+            fi
 
             # Write test memory
             TEST_CONTENT="health-check-ping-$TIMESTAMP"
             eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1
-            # MCP responses arrive on SSE stream, not POST body
-            sleep 1
+            # Wait for remember response on SSE stream
+            for i in $(seq 1 10); do
+              if grep -q '"id":2' "$SSE_OUT" 2>/dev/null; then break; fi
+              sleep 0.5
+            done
 
             # Recall
             eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" >/dev/null 2>&1
-            sleep 1
+            # Wait for recall response
+            for i in $(seq 1 10); do
+              if grep -q '"id":3' "$SSE_OUT" 2>/dev/null; then break; fi
+              sleep 0.5
+            done
 
             kill $SSE_PID 2>/dev/null || true
             RESULT=$(cat "$SSE_OUT" 2>/dev/null)
             rm -f "$SSE_OUT"
 
             if ! echo "$RESULT" | grep -q "$TEST_CONTENT"; then
-              log "FAIL: Write/recall test failed — result: $(echo "$RESULT" | head -c 300 | tr '\n' ' ')"
+              log "FAIL: Write/recall test failed — SSE stream was $(echo "$RESULT" | wc -c) bytes"
               exit 1
             fi
 
