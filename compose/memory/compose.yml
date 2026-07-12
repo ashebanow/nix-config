@@ -34,6 +34,14 @@ services:
       }
       sleep 2
       tailscale serve reset 2>/dev/null || true
+      # Wait for mnemosyne app to be ready before starting serve
+      for i in $(seq 1 30); do
+        if curl -sf http://localhost:8000/sse -o /dev/null --max-time 2 2>/dev/null; then
+          echo "Mnemosyne ready after $((i*2))s"
+          break
+        fi
+        sleep 2
+      done
       tailscale serve --bg http://localhost:8000
       wait
       "
