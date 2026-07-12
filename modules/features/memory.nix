@@ -151,21 +151,20 @@ EOF
 
             # Write test memory
             TEST_CONTENT="health-check-ping-$TIMESTAMP"
-            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1 || {
-              kill $SSE_PID 2>/dev/null || true; rm -f "$SSE_OUT"
-              log "FAIL: MCP remember tool failed"
-              exit 1
-            }
+            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1
+            # MCP responses arrive on SSE stream, not POST body
+            sleep 1
 
-            # Recall and verify
-            sleep 2
-            RESULT=$(eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" 2>/dev/null) || true
+            # Recall
+            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" >/dev/null 2>&1
+            sleep 1
 
             kill $SSE_PID 2>/dev/null || true
+            RESULT=$(cat "$SSE_OUT" 2>/dev/null)
             rm -f "$SSE_OUT"
 
             if ! echo "$RESULT" | grep -q "$TEST_CONTENT"; then
-              log "FAIL: Write/recall test failed — result: $(echo "$RESULT" | head -c 200)"
+              log "FAIL: Write/recall test failed — result: $(echo "$RESULT" | head -c 300 | tr '\n' ' ')"
               exit 1
             fi
 
