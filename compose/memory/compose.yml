@@ -1,0 +1,68 @@
+# Mnemosyne memory layer with Tailscale sidecar.
+# After `podman-compose up -d`, the MCP endpoint is available at:
+#   https://memory.fluffy-walleye.ts.net/mcp
+#
+# TLS is handled by tailscale serve.
+# Hermes Agent connects to this as a remote MCP server.
+#
+# Data: single SQLite file at /var/lib/mnemosyne/mnemosyne.db
+# Backups: systemd timer writes to /var/lib/mnemosyne/backups/
+
+services:
+  tailscale:
+    image: docker.io/tailscale/tailscale:latest
+    container_name: memory-ts
+    hostname: memory
+    environment:
+      - TS_AUTHKEY=${MEMORY_TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+    volumes:
+      - ts-state:/var/lib/tailscale
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+    command: |
+      sh -c "
+      tailscaled --tun=tailscale0 --state=/var/lib/tailscale/tailscaled.state &
+      sleep 2
+      tailscale up --auth-key=${MEMORY_TS_AUTHKEY} --hostname=memory --accept-dns || {
+        echo 'ERROR: tailscale up failed (check MEMORY_TS_AUTHKEY)' >&2
+        exit 1
+      }
+      sleep 2
+      tailscale serve reset 2>/dev/null || true
+      tailscale serve --bg http://localhost:8000
+      wait
+      "
+
+  mnemosyne:
+    image: mnemosyne-memory:latest
+    container_name: memory-app
+    network_mode: "service:tailscale"
+    depends_on:
+      - tailscale
+    volumes:
+      - mnemosyne-data:/data
+    environment:
+      - MNEMOSYNE_DATA_DIR=/data
+      # Embedding model: local fastembed (bge-small-en-v1.5, 384-dim, ~133MB)
+      - MNEMOSYNE_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+      # LLM consolidation: disabled (Hermes handles LLM, this is storage only)
+      - MNEMOSYNE_LLM_ENABLED=false
+      # Vector compression: int8 (384 bytes/vector, good balance)
+      - MNEMOSYNE_VEC_TYPE=int8
+      # Working memory: 10K max items, 24h TTL for unconsolidated
+      - MNEMOSYNE_WM_MAX_ITEMS=10000
+      - MNEMOSYNE_WM_TTL_HOURS=24
+      # Episodic memory: 50K max entries
+      - MNEMOSYNE_EP_LIMIT=50000
+      # Recency halflife: 1 week
+      - MNEMOSYNE_RECENCY_HALFLIFE=168
+    restart: unless-stopped
+
+volumes:
+  ts-state:
+  mnemosyne-data:

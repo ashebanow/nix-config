@@ -23,6 +23,7 @@
   my.monitoring = true;
   my.monitoringPort = 9090;
   my.zmx = false;  # TODO: re-enable after zmx build fix
+  my.memory = true;
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;

@@ -93,6 +93,13 @@
       description = "Enable zmx session persistence tool.";
     };
 
+    # Memory feature (Mnemosyne)
+    memory = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable Mnemosyne memory layer for AI agents.";
+    };
+
     # CLI tools feature (Home Manager)
     cliTools = lib.mkOption {
       type = lib.types.bool;
