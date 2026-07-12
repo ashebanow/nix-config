@@ -1,6 +1,6 @@
 # Mnemosyne memory layer with Tailscale sidecar.
 # After `podman-compose up -d`, the MCP endpoint is available at:
-#   https://memory.fluffy-walleye.ts.net/mcp
+#   https://memory.fluffy-walleye.ts.net/sse (SSE transport)
 #
 # TLS is handled by tailscale serve.
 # Hermes Agent connects to this as a remote MCP server.

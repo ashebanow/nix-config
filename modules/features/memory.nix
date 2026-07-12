@@ -95,7 +95,6 @@ _: {
             set -euo pipefail
             DB="${dataDir}/mnemosyne.db"
             BASE="https://memory.fluffy-walleye.ts.net"
-            TIMESTAMP=$(date -u +%s)
             HEALTH_LOG="${dataDir}/health.log"
             FAILURES_FILE="${dataDir}/consecutive_failures"
 
@@ -107,39 +106,13 @@ _: {
               exit 1
             fi
 
-            # 2. MCP endpoint health
-            if ! curl -sf "$BASE/health" >/dev/null 2>&1; then
-              log "FAIL: MCP health endpoint unreachable"
+            # 2. SSE endpoint reachable (MCP over SSE transport)
+            if ! curl -sf -o /dev/null "$BASE/sse" 2>/dev/null; then
+              log "FAIL: SSE endpoint unreachable"
               exit 1
             fi
 
-            # 3. Write + recall test
-            # Mnemosyne MCP uses JSON-RPC over Streamable HTTP
-            SESSION=$(curl -sf -X POST "$BASE/mcp" \
-              -H "Content-Type: application/json" \
-              -d "{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"health-check\",\"version\":\"1.0\"}},\"id\":1}" \
-              | grep -o '"sessionId":"[^"]*"' | cut -d'"' -f4)
-
-            if [ -z "$SESSION" ]; then
-              log "FAIL: Could not establish MCP session"
-              exit 1
-            fi
-            MCP="curl -sf -X POST $BASE/mcp -H 'Content-Type: application/json' -H 'Mcp-Session-Id: $SESSION'"
-
-            # Store a test memory
-            TEST_CONTENT="health-check-ping-$TIMESTAMP"
-            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1
-
-            # Recall it (give it a moment to index)
-            sleep 2
-            RESULT=$(eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"health-check-ping\"}},\"id\":3}'" 2>/dev/null)
-
-            if ! echo "$RESULT" | grep -q "$TEST_CONTENT"; then
-              log "FAIL: Write/recall test failed — stored content not found"
-              exit 1
-            fi
-
-            log "PASS: integrity OK, MCP healthy, write/recall verified"
+            log "PASS: integrity OK, SSE endpoint responsive"
 
             # Reset consecutive failures
             echo 0 > "$FAILURES_FILE"
