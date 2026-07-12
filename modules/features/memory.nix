@@ -132,7 +132,7 @@ EOF
             SSE_PID=$!
             sleep 2
 
-            SESSION_ID=$(grep -o 'session_id=[^&[:space:]]*' "$SSE_OUT" 2>/dev/null | head -1 | cut -d= -f2)
+            SESSION_ID=$(grep -o 'session_id=[^&"]*' "$SSE_OUT" 2>/dev/null | head -1 | cut -d= -f2 | tr -d '\r\n ')
             if [ -z "$SESSION_ID" ]; then
               kill $SSE_PID 2>/dev/null || true
               rm -f "$SSE_OUT"
@@ -159,7 +159,7 @@ EOF
 
             # Write test memory
             TEST_CONTENT="health-check-ping-$TIMESTAMP"
-            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1
+            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"mnemosyne_remember\",\"arguments\":{\"content\":\"$TEST_CONTENT\",\"source\":\"health-check\"}},\"id\":2}'" >/dev/null 2>&1
             # Wait for remember response on SSE stream
             for i in $(seq 1 10); do
               if grep -q '"id":2' "$SSE_OUT" 2>/dev/null; then break; fi
@@ -167,7 +167,7 @@ EOF
             done
 
             # Recall
-            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" >/dev/null 2>&1
+            eval "$MCP -d '{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"mnemosyne_recall\",\"arguments\":{\"query\":\"$TEST_CONTENT\"}},\"id\":3}'" >/dev/null 2>&1
             # Wait for recall response
             for i in $(seq 1 10); do
               if grep -q '"id":3' "$SSE_OUT" 2>/dev/null; then break; fi
