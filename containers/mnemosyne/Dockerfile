@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd --create-home --shell /bin/bash mnemosyne
 
 # Install mnemosyne with local embeddings (fastembed + bge-small-en-v1.5, ~800MB RAM)
-RUN pip install --no-cache-dir mnemosyne-memory[embeddings]
+RUN pip install --no-cache-dir mnemosyne-memory[embeddings] starlette uvicorn
 
 # Data directory for SQLite database
 RUN mkdir -p /data && chown mnemosyne:mnemosyne /data
