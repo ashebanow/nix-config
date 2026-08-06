@@ -113,7 +113,9 @@
       Pages = 361309726;
       "Paprika Recipe Manager 3" = 1303222628;
       "Remote Desktop" = 409907375;
-      Slack = 803453959;
+      # Slack dropped from masApps — also declared as a cask above, and
+      # keeping both would conflict during activation. Per default
+      # policy, MAS loses to cask when in doubt.
       "Swift Playground" = 1496833156;
       TestFlight = 899247664;
       Xcode = 497799835;
