@@ -1,0 +1,7 @@
+# Mac App Store apps for bergamot. Installed via
+# scripts/darwin-migration/mas-sync.sh (run directly by you, not via
+# darwin-rebuild — see that script's header for why).
+#
+# Format: <app-id> <name>
+#
+# Empty — no Mac App Store apps installed on this machine.

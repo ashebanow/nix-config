@@ -25,18 +25,23 @@
   my.cliAiTools = true;
   my.cliBuildEssentials = true;
 
-  # Homebrew: casks (GUI apps) and Mac App Store apps only — CLI tools
-  # come from nix above. `brews` is for the small number of formulae
-  # with no nixpkgs equivalent.
+  # Homebrew: casks (GUI apps) only — CLI tools come from nix above.
+  # `brews` is for the small number of formulae with no nixpkgs
+  # equivalent. Mac App Store apps are NOT managed here — nix-darwin's
+  # homebrew.masApps runs `brew bundle` under sudo during activation,
+  # but mas/installd needs the logged-in user's session and fails
+  # under root. See scripts/darwin-migration/mas-sync.sh and
+  # hosts/miraclemax/mas-apps.txt instead (run directly, not via
+  # darwin-rebuild).
   homebrew = {
     enable = true;
     onActivation = {
       autoUpdate = true;
-      # "uninstall" removes stray casks/brews/mas apps not declared
-      # below but leaves app data/preferences alone. Not "zap" — that
-      # also wipes app data, which is a bigger blast radius than we
-      # want as a default. Verify the lists below are complete before
-      # the first real `darwin-rebuild switch`.
+      # "uninstall" removes stray casks/brews not declared below but
+      # leaves app data/preferences alone. Not "zap" — that also wipes
+      # app data, which is a bigger blast radius than we want as a
+      # default. Verify the lists below are complete before the first
+      # real `darwin-rebuild switch`.
       cleanup = "uninstall";
     };
     brews = [
@@ -98,27 +103,5 @@
       "zen"
       "zoom"
     ];
-    masApps = {
-      ColorSlurp = 1287239339;
-      Compressor = 6746516157;
-      Developer = 640199958;
-      "Final Cut Pro" = 1631624924;
-      GarageBand = 682658836;
-      Keynote = 361285480;
-      "Logic Pro" = 1615087040;
-      MainStage = 6746637089;
-      Motion = 6746637149;
-      mymind = 1532801185;
-      Numbers = 361304891;
-      Pages = 361309726;
-      "Paprika Recipe Manager 3" = 1303222628;
-      "Remote Desktop" = 409907375;
-      # Slack dropped from masApps — also declared as a cask above, and
-      # keeping both would conflict during activation. Per default
-      # policy, MAS loses to cask when in doubt.
-      "Swift Playground" = 1496833156;
-      TestFlight = 899247664;
-      Xcode = 497799835;
-    };
   };
 }

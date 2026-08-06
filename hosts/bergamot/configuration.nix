@@ -25,9 +25,14 @@
   my.cliAiTools = true;
   my.cliBuildEssentials = true;
 
-  # Homebrew: casks (GUI apps) and Mac App Store apps only — CLI tools
-  # come from nix above. `brews` is for the small number of formulae
-  # with no nixpkgs equivalent.
+  # Homebrew: casks (GUI apps) only — CLI tools come from nix above.
+  # `brews` is for the small number of formulae with no nixpkgs
+  # equivalent. Mac App Store apps are NOT managed here — nix-darwin's
+  # homebrew.masApps runs `brew bundle` under sudo during activation,
+  # but mas/installd needs the logged-in user's session and fails
+  # under root. See scripts/darwin-migration/mas-sync.sh and
+  # hosts/bergamot/mas-apps.txt instead (run directly, not via
+  # darwin-rebuild).
   homebrew = {
     enable = true;
     onActivation = {
@@ -66,7 +71,5 @@
       "zed"
       "zoom"
     ];
-    # No Mac App Store apps on this machine.
-    masApps = {};
   };
 }
