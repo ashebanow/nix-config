@@ -32,19 +32,41 @@
     enable = true;
     onActivation = {
       autoUpdate = true;
-      # Do NOT set cleanup = "zap"/"uninstall" until casks/masApps below
-      # are fully populated and verified — with empty lists, aggressive
-      # cleanup would uninstall every cask/app currently on this machine
-      # on first activation.
-      cleanup = "none";
+      # "uninstall" removes stray casks/brews not declared below but
+      # leaves app data/preferences alone. Not "zap" — that also wipes
+      # app data, which is a bigger blast radius than we want as a
+      # default. Verify the lists below are complete before the first
+      # real `darwin-rebuild switch`.
+      cleanup = "uninstall";
     };
     brews = [
       "alerter" # vjeantet/tap/alerter — mac notification tool, no nix package
     ];
-    # TODO: populate once you provide `brew list --cask` output for this
-    # machine (add to the same mac-packages/ directory).
-    casks = [];
-    # TODO: populate once you provide `mas list` output for this machine.
+    casks = [
+      "antigravity-cli"
+      "bitwarden"
+      "claude"
+      "cmux"
+      "discord"
+      "dolphin"
+      "firefox"
+      "ghostty"
+      "google-chrome"
+      "kitty"
+      "logseq"
+      "parsec"
+      "pinta"
+      "resilio-sync"
+      "signal"
+      "slack"
+      "tailscale-app"
+      "visual-studio-code"
+      "vlc"
+      "warp"
+      "zed"
+      "zoom"
+    ];
+    # No Mac App Store apps on this machine.
     masApps = {};
   };
 }
