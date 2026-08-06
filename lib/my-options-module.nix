@@ -106,5 +106,54 @@
       default = false;
       description = "Enable modern CLI tools.";
     };
+
+    # Topical CLI package modules (Home Manager, Darwin hosts).
+    # Each is a curated package list gated by its own toggle — hosts
+    # opt into the topics they want. No generic "extras" catch-all.
+    cliSystemTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable system monitoring/diagnostics CLI tools (btop, htop, glances, ...).";
+    };
+    cliProductivityTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable everyday shell/productivity CLI tools (fzf, zoxide, starship, ...).";
+    };
+    cliVcsTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable git and git-adjacent CLI tools (gh, lazygit, git-lfs, ...).";
+    };
+    cliSecurityTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable secrets/crypto/vuln-scanning CLI tools (age, sops, gitleaks, ...).";
+    };
+    cliNetworkTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable networking/remote-access/download CLI tools (aria2, tailscale, caddy, ...).";
+    };
+    cliContainerTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable container/Docker ecosystem CLI tools (docker, colima, lazydocker, ...).";
+    };
+    cliMacOnlyTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable macOS-specific CLI tools (dockutil, xcodes, pinentry_mac).";
+    };
+    cliAiTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable AI-agent CLI tools (opencode, crush, ...).";
+    };
+    cliBuildEssentials = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable global build toolchain needed to rebuild other packages from source (gcc, make, llvm, direnv, uv, nodejs). Most dev tooling stays devenv-only; this is the deliberate global exception.";
+    };
   };
 }

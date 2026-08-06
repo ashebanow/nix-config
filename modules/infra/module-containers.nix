@@ -9,6 +9,11 @@
       default = {};
       description = "NixOS module fragments keyed by feature name";
     };
+    darwin = lib.mkOption {
+      type = lib.types.lazyAttrsOf lib.types.deferredModule;
+      default = {};
+      description = "nix-darwin module fragments keyed by feature name";
+    };
     home-manager = lib.mkOption {
       type = lib.types.lazyAttrsOf lib.types.deferredModule;
       default = {};

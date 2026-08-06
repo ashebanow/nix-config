@@ -18,6 +18,25 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # macOS system configuration (Darwin hosts)
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Declarative Homebrew installation management (Darwin hosts) —
+    # taps pinned via flake inputs so nix-homebrew can manage the
+    # Homebrew installation itself, not just run `brew bundle`.
+    nix-homebrew.url = "github:zhaofengli/nix-homebrew";
+    homebrew-core = {
+      url = "github:homebrew/homebrew-core";
+      flake = false;
+    };
+    homebrew-cask = {
+      url = "github:homebrew/homebrew-cask";
+      flake = false;
+    };
+
     # Secrets management
     sops-nix = {
       url = "github:Mic92/sops-nix";
@@ -44,6 +63,7 @@
         ./modules/infra/module-containers.nix
         ./modules/infra/devshell.nix
         ./modules/infra/nixos-builder.nix
+        ./modules/infra/darwin-builder.nix
       ];
 
       systems = ["x86_64-linux" "aarch64-darwin"];
