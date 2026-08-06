@@ -11,10 +11,14 @@ _: {
       services.cockpit = {
         enable = true;
         port = config.my.monitoringPort;
+        # services.cockpit.plugins wires each package's passthru.cockpitPath
+        # into the cockpit systemd service so it's actually discovered —
+        # unlike just putting the package in environment.systemPackages.
+        plugins = [
+          pkgs.cockpit-files
+          pkgs.cockpit-podman
+        ];
       };
-
-      # Cockpit podman integration
-      environment.systemPackages = [pkgs.cockpit-podman];
 
       # Restrict Cockpit to local/Tailscale only
       networking.firewall = lib.mkIf config.my.access {
