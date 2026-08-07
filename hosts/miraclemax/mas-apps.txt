@@ -8,17 +8,17 @@
 # (see hosts/miraclemax/configuration.nix); keeping both would conflict.
 
 1287239339 ColorSlurp
-6746516157 Compressor
+# 6746516157 Compressor
 640199958 Developer
-1631624924 Final Cut Pro
-682658836 GarageBand
-361285480 Keynote
-1615087040 Logic Pro
-6746637089 MainStage
-6746637149 Motion
+# 1631624924 Final Cut Pro
+# 682658836 GarageBand
+# 361285480 Keynote
+# 1615087040 Logic Pro
+# 6746637089 MainStage
+# 6746637149 Motion
 1532801185 mymind
-361304891 Numbers
-361309726 Pages
+# 361304891 Numbers
+# 361309726 Pages
 1303222628 Paprika Recipe Manager 3
 409907375 Remote Desktop
 1496833156 Swift Playground
