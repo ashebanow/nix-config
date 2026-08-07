@@ -26,7 +26,11 @@ KNOWN_HOSTS=("bergamot" "miraclemax")
 resolve_host() {
     local requested="${1:-}"
     local actual
-    actual="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
+    # hostname -s reads the actual configured HostName and needs no
+    # special privileges. scutil --get LocalHostName is the Bonjour/
+    # mDNS name (often just the factory "MacBook-Pro" default even when
+    # HostName has been customized) — deliberately not used here.
+    actual="$(hostname -s)"
 
     if [[ -n "$requested" ]]; then
         for h in "${KNOWN_HOSTS[@]}"; do
