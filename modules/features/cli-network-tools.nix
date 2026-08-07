@@ -16,7 +16,6 @@ _: {
         lazyssh
         # mole excluded — nixpkgs marks it broken currently; kept on
         # homebrew.brews in the host configs instead.
-        tailscale
         tailscale-gui
         # talosctl
         wishlist

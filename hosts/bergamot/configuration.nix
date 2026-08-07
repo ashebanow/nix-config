@@ -51,6 +51,7 @@
     # moved to gui-* modules.
     casks = [
       "arto" # no nixpkgs package found
+      "bitwarden" # nixpkgs version uses dangerous version of electron
       "claude" # Claude desktop app — no nixpkgs package found
       "devtoys" # no nixpkgs package found
       "disk-diet" # no nixpkgs package found

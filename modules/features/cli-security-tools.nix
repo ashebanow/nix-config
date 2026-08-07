@@ -10,7 +10,6 @@ _: {
       home.packages = with pkgs; [
         age
         bitwarden-cli
-        bitwarden-desktop
         bws # bitwarden-secrets-manager (unfree — needs nixpkgs.config.allowUnfree)
         _1password-cli
         cfssl
