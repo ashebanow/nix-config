@@ -13,6 +13,8 @@ _: {
         ghostty-bin
         kitty
         warp-terminal
+        tmux
+        zmx
       ];
     };
   };

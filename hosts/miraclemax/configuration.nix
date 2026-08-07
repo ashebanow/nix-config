@@ -48,31 +48,23 @@
     # font-monaspice-nerd-font dropped entirely — looks like a typo/
     # duplicate of font-monaspace-nerd-font (which did migrate).
     casks = [
-      "arc" # removed from nixpkgs as unmaintained
       "arto" # no nixpkgs package found
-      "bitwarden" # nixpkgs' bitwarden-desktop pulls in an EOL/insecure Electron — not worth the tradeoff
       "claude" # Claude desktop app — no nixpkgs package found
       "devtoys" # no nixpkgs package found
       "disk-diet" # no nixpkgs package found
-      "dolphin" # nixpkgs' dolphin-emu needs to build sfml from source, which crashes the linker on real hardware
+      # "dolphin" # nixpkgs' dolphin-emu needs to build sfml from source, which crashes the linker on real hardware
       "firefox" # low priority to migrate, keeping on cask for now
-      "google-drive" # proprietary, no nixpkgs package
+      # "google-drive" # proprietary, no nixpkgs package
       "logseq" # nixpkgs package pulls in an EOL/insecure Electron — not worth the tradeoff
       "microsoft-auto-update" # proprietary Microsoft tooling
       "microsoft-office" # proprietary, licensed software
-      "pinta" # nixpkgs' pinta needs libadwaita built from source, which crashes the linker on real hardware
+      # "pinta" # nixpkgs' pinta needs libadwaita built from source, which crashes the linker on real hardware
       "postico" # no nixpkgs package found
+      "resilio-sync" # nixpkgs' resilio-sync is Linux-only
       "retrobatch" # no nixpkgs package found
       "sf-symbols" # Apple developer tool, proprietary
       "steam" # nixpkgs' steam is architecturally a Linux thing, not meaningful via nix on macOS
-      # "tailscale" (plain, no "-app" suffix) is unusual as a cask token
-      # — worth double-checking this isn't a stray formula-vs-cask mixup
-      # from list generation. tailscale-app is the known GUI cask; the
-      # CLI is already provided by the nix cli-network-tools module.
-      "tailscale"
-      "tailscale-app"
-      "tg-pro" # no nixpkgs package found
-      "zen" # Zen Browser — no nixpkgs package found
+      # "tg-pro" # no nixpkgs package found
     ];
   };
 }

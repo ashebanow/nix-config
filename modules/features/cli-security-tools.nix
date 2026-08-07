@@ -9,6 +9,7 @@ _: {
     config = lib.mkIf config.my.cliSecurityTools {
       home.packages = with pkgs; [
         age
+        bitwarden
         bitwarden-cli
         bws # bitwarden-secrets-manager (unfree — needs nixpkgs.config.allowUnfree)
         _1password-cli

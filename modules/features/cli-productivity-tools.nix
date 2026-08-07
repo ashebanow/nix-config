@@ -8,10 +8,9 @@ _: {
   }: {
     config = lib.mkIf config.my.cliProductivityTools {
       home.packages = with pkgs; [
-        atuin
+        # atuin
         bat
         bc
-        cava
         curl
         eza
         fd
@@ -27,7 +26,6 @@ _: {
         neovim
         presenterm
         pv
-        qalculate-gtk
         rsync
         rtk
         starship
@@ -40,7 +38,7 @@ _: {
         vim
         wget
         yq
-        zellij
+        zennotes-desktop
         zip
         zoxide
       ];

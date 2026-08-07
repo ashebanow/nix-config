@@ -50,15 +50,23 @@
     # kitty/pinta/signal/slack/visual-studio-code/vlc/warp/zed all
     # moved to gui-* modules.
     casks = [
-      "bitwarden" # nixpkgs' bitwarden-desktop pulls in an EOL/insecure Electron — not worth the tradeoff
+      "arto" # no nixpkgs package found
       "claude" # Claude desktop app — no nixpkgs package found
-      "dolphin" # nixpkgs' dolphin-emu needs to build sfml from source, which crashes the linker on real hardware
+      "devtoys" # no nixpkgs package found
+      "disk-diet" # no nixpkgs package found
+      # "dolphin" # nixpkgs' dolphin-emu needs to build sfml from source, which crashes the linker on real hardware
       "firefox" # low priority to migrate, keeping on cask for now
+      # "google-drive" # proprietary, no nixpkgs package
       "logseq" # nixpkgs package pulls in an EOL/insecure Electron — not worth the tradeoff
-      "parsec" # nixpkgs' parsec-bin is Linux-only
-      "pinta" # nixpkgs' pinta needs libadwaita built from source, which crashes the linker on real hardware
+      "microsoft-auto-update" # proprietary Microsoft tooling
+      "microsoft-office" # proprietary, licensed software
+      # "pinta" # nixpkgs' pinta needs libadwaita built from source, which crashes the linker on real hardware
+      "postico" # no nixpkgs package found
       "resilio-sync" # nixpkgs' resilio-sync is Linux-only
-      "tailscale-app" # GUI menu bar app has no nix equivalent (CLI is nix-provided via cli-network-tools)
+      "retrobatch" # no nixpkgs package found
+      "sf-symbols" # Apple developer tool, proprietary
+      "steam" # nixpkgs' steam is architecturally a Linux thing, not meaningful via nix on macOS
+      # "tg-pro" # no nixpkgs package found
     ];
   };
 }

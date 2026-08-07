@@ -8,6 +8,7 @@ _: {
   }: {
     config = lib.mkIf config.my.guiMediaApps {
       home.packages = with pkgs; [
+        cava
         vlc-bin
         # dolphin-emu (GameCube/Wii emulator, matches the "dolphin" cask
         # token) and pinta both dropped — both need to build a GTK4/
