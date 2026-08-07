@@ -35,15 +35,22 @@
           {determinateNix.enable = true;}
           nix-homebrew.darwinModules.nix-homebrew
           {
+            # PHASE 1 (current): migrating an existing imperative Homebrew
+            # install. nix-homebrew's own README gives two different
+            # recipes for "new installation" (declarative taps +
+            # mutableTaps = false) vs "existing installation"
+            # (autoMigrate = true alone) — combining both in one
+            # activation makes the migration step and the declarative-tap
+            # symlinking step fight over the same Library/Taps directory
+            # ("An existing .../Library/Taps is in the way"). Once a
+            # `darwin-rebuild switch` completes cleanly with just
+            # autoMigrate, PHASE 2 is to re-add taps/mutableTaps below
+            # (see git history) and switch again.
             nix-homebrew = {
               enable = true;
               enableRosetta = true;
+              autoMigrate = true;
               user = username;
-              taps = {
-                "homebrew/homebrew-core" = homebrew-core;
-                "homebrew/homebrew-cask" = homebrew-cask;
-              };
-              mutableTaps = false;
             };
           }
           mac-app-util.darwinModules.default
