@@ -61,6 +61,14 @@
                   }
                   ../../lib/my-options-module.nix
                   mac-app-util.homeManagerModules.default
+                  # config.my.* is a separate options instance inside this
+                  # submodule — it does NOT inherit values set only at the
+                  # darwin/system scope by hosts/${hostName}/configuration.nix.
+                  # capabilities.nix carries just the my.cliXxx/guiXxx flags
+                  # so both scopes agree; configuration.nix itself can't be
+                  # imported here since it also sets darwin-only options
+                  # (homebrew.*, system.stateVersion) HM doesn't know about.
+                  ../../hosts/${hostName}/capabilities.nix
                 ]
                 ++ deferredHmModules;
             };

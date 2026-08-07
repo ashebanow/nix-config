@@ -14,7 +14,8 @@ _: {
         copyparty
         inetutils
         lazyssh
-        mole
+        # mole excluded — nixpkgs marks it broken currently; kept on
+        # homebrew.brews in the host configs instead.
         tailscale
         talosctl
         wishlist

@@ -1,8 +1,12 @@
-# Miraclemax host configuration — capability flags.
+# Miraclemax host configuration — darwin-only settings.
 # Mac host: nix-darwin + Home Manager, restricted to declarative
 # package/app lists only (see modules/infra/darwin-builder.nix for the
-# scope rule). chezmoi still owns all dotfiles/config files.
+# scope rule). chezmoi still owns all dotfiles/config files. Capability
+# flags (my.cliXxx/guiXxx) live in ./capabilities.nix, not here — see
+# that file for why.
 {lib, ...}: {
+  imports = [./capabilities.nix];
+
   my.hostName = "miraclemax";
 
   # nix-darwin state version. Set once, don't change without reading
@@ -13,29 +17,6 @@
 
   # bws (bitwarden-secrets-manager) is marked unfree in nixpkgs.
   nixpkgs.config.allowUnfree = true;
-
-  # Capability flags — enable topical CLI package modules.
-  my.cliSystemTools = true;
-  my.cliProductivityTools = true;
-  my.cliVcsTools = true;
-  my.cliSecurityTools = true;
-  my.cliNetworkTools = true;
-  my.cliContainerTools = true;
-  my.cliMacOnlyTools = true;
-  my.cliAiTools = true;
-  my.cliBuildEssentials = true;
-
-  # Capability flags — enable topical GUI app modules. Priority order
-  # for macOS apps is nix > Homebrew cask > Mac App Store; these used
-  # to be casks (see homebrew.casks below for what's left because it
-  # has no real nixpkgs darwin package).
-  my.guiTerminals = true;
-  my.guiCommunication = true;
-  my.guiCoreApps = true;
-  my.guiDevApps = true;
-  my.guiMediaApps = true;
-  my.guiProductivityApps = true;
-  my.guiFonts = true;
 
   # Homebrew: casks (GUI apps) only — CLI tools come from nix above.
   # `brews` is for the small number of formulae with no nixpkgs
@@ -58,6 +39,8 @@
     };
     brews = [
       "alerter" # vjeantet/tap/alerter — mac notification tool, no nix package
+      "mole" # nixpkgs marks this broken currently
+      "oxker" # nixpkgs build fails a macOS-specific snapshot test
     ];
     # Everything else migrated to nix (see the gui-* modules above, and
     # _1password-cli in cli-security-tools.nix) — these are what's left
@@ -67,14 +50,17 @@
     casks = [
       "arc" # removed from nixpkgs as unmaintained
       "arto" # no nixpkgs package found
+      "bitwarden" # nixpkgs' bitwarden-desktop pulls in an EOL/insecure Electron — not worth the tradeoff
       "claude" # Claude desktop app — no nixpkgs package found
       "devtoys" # no nixpkgs package found
       "disk-diet" # no nixpkgs package found
+      "dolphin" # nixpkgs' dolphin-emu needs to build sfml from source, which crashes the linker on real hardware
       "firefox" # low priority to migrate, keeping on cask for now
       "google-drive" # proprietary, no nixpkgs package
       "logseq" # nixpkgs package pulls in an EOL/insecure Electron — not worth the tradeoff
       "microsoft-auto-update" # proprietary Microsoft tooling
       "microsoft-office" # proprietary, licensed software
+      "pinta" # nixpkgs' pinta needs libadwaita built from source, which crashes the linker on real hardware
       "postico" # no nixpkgs package found
       "retrobatch" # no nixpkgs package found
       "sf-symbols" # Apple developer tool, proprietary

@@ -22,7 +22,7 @@ _: {
         gum
         jq
         jsongrep
-        mpv-with-scripts
+        mpv
         nano
         neovim
         presenterm

@@ -17,7 +17,10 @@ _: {
         kind
         lazydocker
         overmind
-        oxker
+        # oxker excluded — nixpkgs' build runs a snapshot test that
+        # asserts an "Alt" key-label string but gets "Option" on macOS
+        # (platform-specific rendering the test snapshot wasn't updated
+        # for), so the build fails. Kept on homebrew.brews instead.
       ];
     };
   };

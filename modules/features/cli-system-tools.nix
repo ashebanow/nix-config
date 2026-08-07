@@ -12,7 +12,7 @@ _: {
         binsider
         btop
         ctop
-        du-dust
+        dust # nixpkgs renamed du-dust -> dust
         duf
         fastfetch
         figlet
