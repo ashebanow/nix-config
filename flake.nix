@@ -37,6 +37,12 @@
       flake = false;
     };
 
+    # Registers nix/home-manager-installed .app bundles with Spotlight
+    # and Launchpad — without this, GUI apps installed via home.packages
+    # are technically present but undiscoverable (Spotlight doesn't
+    # index the symlinks Nix creates).
+    mac-app-util.url = "github:hraban/mac-app-util";
+
     # Secrets management
     sops-nix = {
       url = "github:Mic92/sops-nix";

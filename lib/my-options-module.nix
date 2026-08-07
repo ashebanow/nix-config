@@ -155,5 +155,46 @@
       default = false;
       description = "Enable global build toolchain needed to rebuild other packages from source (gcc, make, llvm, direnv, uv, nodejs). Most dev tooling stays devenv-only; this is the deliberate global exception.";
     };
+
+    # GUI app modules (Home Manager, Darwin hosts). Priority order for
+    # macOS apps is nix > Homebrew cask > Mac App Store — these are apps
+    # that used to be Homebrew casks but have a real, darwin-buildable
+    # nixpkgs package. Requires mac-app-util (wired in darwin-builder.nix)
+    # for Spotlight/Launchpad to actually see them.
+    guiTerminals = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable terminal emulator GUI apps (kitty, ghostty-bin, warp-terminal).";
+    };
+    guiCommunication = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable communication GUI apps (discord, signal-desktop, slack, zoom-us).";
+    };
+    guiCoreApps = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable core GUI apps common to every host (google-chrome, bitwarden-desktop).";
+    };
+    guiDevApps = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable development GUI apps (vscode, zed-editor).";
+    };
+    guiMediaApps = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable media GUI apps (pinta, vlc-bin, dolphin-emu).";
+    };
+    guiProductivityApps = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable productivity/utility GUI apps (raycast, stats, monitorcontrol, betterdisplay, soundsource, mist, postman, utm, temurin-bin).";
+    };
+    guiFonts = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable GUI fonts (nerd-fonts, fira-mono, jetbrains-mono, powerline-symbols).";
+    };
   };
 }

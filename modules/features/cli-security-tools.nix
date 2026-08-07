@@ -11,6 +11,7 @@ _: {
         age
         bitwarden-cli
         bws # bitwarden-secrets-manager (unfree — needs nixpkgs.config.allowUnfree)
+        _1password-cli
         cfssl
         cosign
         gitleaks

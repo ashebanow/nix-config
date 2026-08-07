@@ -25,6 +25,18 @@
   my.cliAiTools = true;
   my.cliBuildEssentials = true;
 
+  # Capability flags — enable topical GUI app modules. Priority order
+  # for macOS apps is nix > Homebrew cask > Mac App Store; these used
+  # to be casks (see homebrew.casks below for what's left because it
+  # has no real nixpkgs darwin package).
+  my.guiTerminals = true;
+  my.guiCommunication = true;
+  my.guiCoreApps = true;
+  my.guiDevApps = true;
+  my.guiMediaApps = true;
+  my.guiProductivityApps = true;
+  my.guiFonts = true;
+
   # Homebrew: casks (GUI apps) only — CLI tools come from nix above.
   # `brews` is for the small number of formulae with no nixpkgs
   # equivalent. Mac App Store apps are NOT managed here — nix-darwin's
@@ -47,61 +59,34 @@
     brews = [
       "alerter" # vjeantet/tap/alerter — mac notification tool, no nix package
     ];
+    # Everything else migrated to nix (see the gui-* modules above, and
+    # _1password-cli in cli-security-tools.nix) — these are what's left
+    # because nixpkgs has no real darwin package for them.
+    # font-monaspice-nerd-font dropped entirely — looks like a typo/
+    # duplicate of font-monaspace-nerd-font (which did migrate).
     casks = [
-      "1password-cli"
-      "arc"
-      "arto"
-      "betterdisplay"
-      "bitwarden"
-      "claude"
-      "devtoys"
-      "discord"
-      "disk-diet"
-      "dolphin"
-      "firefox"
-      "font-fira-mono"
-      "font-jetbrains-mono"
-      "font-meslo-lg-nerd-font"
-      "font-monaspace-nerd-font"
-      "font-monaspice-nerd-font"
-      "font-powerline-symbols"
-      "font-sauce-code-pro-nerd-font"
-      "font-symbols-only-nerd-font"
-      "ghostty"
-      "google-chrome"
-      "google-drive"
-      "logseq"
-      "microsoft-auto-update"
-      "microsoft-office"
-      "mist"
-      "monitorcontrol"
-      "parsec"
-      "pinta"
-      "postico"
-      "postman"
-      "raycast"
-      "retrobatch"
-      "sf-symbols"
-      "signal"
-      "slack"
-      "soundsource"
-      "stats"
-      "steam"
+      "arc" # removed from nixpkgs as unmaintained
+      "arto" # no nixpkgs package found
+      "claude" # Claude desktop app — no nixpkgs package found
+      "devtoys" # no nixpkgs package found
+      "disk-diet" # no nixpkgs package found
+      "firefox" # low priority to migrate, keeping on cask for now
+      "google-drive" # proprietary, no nixpkgs package
+      "logseq" # nixpkgs package pulls in an EOL/insecure Electron — not worth the tradeoff
+      "microsoft-auto-update" # proprietary Microsoft tooling
+      "microsoft-office" # proprietary, licensed software
+      "postico" # no nixpkgs package found
+      "retrobatch" # no nixpkgs package found
+      "sf-symbols" # Apple developer tool, proprietary
+      "steam" # nixpkgs' steam is architecturally a Linux thing, not meaningful via nix on macOS
       # "tailscale" (plain, no "-app" suffix) is unusual as a cask token
       # — worth double-checking this isn't a stray formula-vs-cask mixup
       # from list generation. tailscale-app is the known GUI cask; the
       # CLI is already provided by the nix cli-network-tools module.
       "tailscale"
       "tailscale-app"
-      "temurin"
-      "tg-pro"
-      "utm"
-      "visual-studio-code"
-      "vlc"
-      "warp"
-      "zed"
-      "zen"
-      "zoom"
+      "tg-pro" # no nixpkgs package found
+      "zen" # Zen Browser — no nixpkgs package found
     ];
   };
 }

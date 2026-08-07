@@ -14,7 +14,7 @@
   lib,
   ...
 }: let
-  inherit (inputs) nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask determinate;
+  inherit (inputs) nix-darwin home-manager nix-homebrew homebrew-core homebrew-cask determinate mac-app-util;
   system = "aarch64-darwin";
 
   deferredDarwinModules = builtins.attrValues config.my.modules.darwin;
@@ -46,6 +46,7 @@
               mutableTaps = false;
             };
           }
+          mac-app-util.darwinModules.default
           home-manager.darwinModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -59,6 +60,7 @@
                     home.stateVersion = "26.05";
                   }
                   ../../lib/my-options-module.nix
+                  mac-app-util.homeManagerModules.default
                 ]
                 ++ deferredHmModules;
             };
