@@ -51,6 +51,12 @@
               enableRosetta = true;
               autoMigrate = true;
               user = username;
+              # Third-party taps need explicit trust before Homebrew will
+              # load formulae from them (docs.brew.sh/Tap-Trust). Declared
+              # here instead of running `brew trust` by hand so it doesn't
+              # silently drift out of sync with homebrew.brews below.
+              # vjeantet/tap: alerter (in homebrew.brews on both hosts).
+              trust.taps = ["vjeantet/tap"];
             };
           }
           mac-app-util.darwinModules.default
