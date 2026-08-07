@@ -8,6 +8,10 @@ _: {
   }: {
     config = lib.mkIf config.my.guiDevApps {
       home.packages = with pkgs; [
+        charm
+        crush
+        deja
+        temurin-bin
         vscode
         zed-editor
       ];

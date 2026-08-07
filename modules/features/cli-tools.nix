@@ -10,7 +10,6 @@ _: {
       home.packages = with pkgs; [
         bat
         bottom
-        colmena
         curl
         dig
         direnv
@@ -25,8 +24,6 @@ _: {
         ripgrep
         wget
         zoxide
-        sops
-        uv
       ];
     };
   };

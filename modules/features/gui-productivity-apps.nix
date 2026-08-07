@@ -8,15 +8,7 @@ _: {
   }: {
     config = lib.mkIf config.my.guiProductivityApps {
       home.packages = with pkgs; [
-        betterdisplay
-        mist
-        monitorcontrol
-        postman
         raycast
-        soundsource
-        stats
-        temurin-bin
-        utm
       ];
     };
   };

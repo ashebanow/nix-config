@@ -89,7 +89,6 @@ mole mole
 tailscale tailscale
 talosctl talosctl
 wishlist wishlist
-colima colima
 dive dive
 docker docker
 docker-buildx docker-buildx

@@ -21,9 +21,6 @@ _: {
         rbw
         sops
         trivy
-        # dev-cockpit (github:caioricciuti/dev-cockpit via mise) has no nix
-        # package and isn't a Homebrew formula either — needs a manual
-        # install or a custom derivation, tracked separately.
       ];
     };
   };

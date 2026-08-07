@@ -10,14 +10,14 @@ _: {
       home.packages = with pkgs; [
         aria2
         autossh
-        caddy
+        # caddy
         copyparty
         inetutils
         lazyssh
         # mole excluded — nixpkgs marks it broken currently; kept on
         # homebrew.brews in the host configs instead.
         tailscale
-        talosctl
+        # talosctl
         wishlist
       ];
     };

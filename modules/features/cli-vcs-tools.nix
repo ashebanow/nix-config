@@ -14,8 +14,6 @@ _: {
         gitnr
         hunk
         lazygit
-        lazyjj
-        mercurial
         svu
         worktrunk
       ];

@@ -39,7 +39,6 @@ _: {
         unzip
         vim
         wget
-        yazi
         yq
         zellij
         zip

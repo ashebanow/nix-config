@@ -8,7 +8,6 @@ _: {
   }: {
     config = lib.mkIf config.my.cliContainerTools {
       home.packages = with pkgs; [
-        colima
         dive
         docker
         docker-buildx
@@ -16,11 +15,12 @@ _: {
         docker-credential-helpers
         kind
         lazydocker
-        overmind
+        # overmind
         # oxker excluded — nixpkgs' build runs a snapshot test that
         # asserts an "Alt" key-label string but gets "Option" on macOS
         # (platform-specific rendering the test snapshot wasn't updated
         # for), so the build fails. Kept on homebrew.brews instead.
+        utm
       ];
     };
   };

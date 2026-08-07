@@ -9,10 +9,11 @@ _: {
     config = lib.mkIf config.my.cliSystemTools {
       home.packages = with pkgs; [
         bandwhich
+        betterdisplay
         binsider
         btop
+        colmena
         ctop
-        dust # nixpkgs renamed du-dust -> dust
         duf
         fastfetch
         figlet
@@ -21,8 +22,11 @@ _: {
         hyperfine
         htop
         inxi
+        mist
+        monitorcontrol
         nvtopPackages.full
         procs
+        soundsource
         tokei
       ];
     };

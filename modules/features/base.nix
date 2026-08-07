@@ -77,10 +77,12 @@ _: {
         btop
         curl
         delta
+        eza
         ghostty.terminfo
         git
         htop
         iputils
+        nh
         sudo
         vim
         wget
