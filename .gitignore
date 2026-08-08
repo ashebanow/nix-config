@@ -4,3 +4,5 @@ result
 
 # Age private keys — never commit
 secrets/keys/
+
+.pi/tasks/
