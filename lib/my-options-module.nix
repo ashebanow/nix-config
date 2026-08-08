@@ -63,6 +63,16 @@
       default = false;
       description = "Act as a Tailscale exit node.";
     };
+    accessEnableSubnetRouting = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Advertise local subnets via Tailscale subnet routes.";
+    };
+    accessSubnetRoutes = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "CIDR ranges to advertise when accessEnableSubnetRouting is enabled (e.g. [ \"192.168.1.0/24\" ]).";
+    };
     accessEnableFallbackSSH = lib.mkOption {
       type = lib.types.bool;
       default = true;
