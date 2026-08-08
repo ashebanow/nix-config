@@ -12,7 +12,7 @@ _: {
         herdr
         llmfit
         opencode
-        pi-coding-agent
+        # pi-coding-agent
       ];
     };
   };

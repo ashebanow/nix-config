@@ -23,8 +23,10 @@ _: {
         hyperfine
         htop
         inxi
+        just
         mist
         monitorcontrol
+        nh
         nvtopPackages.full
         procs
         soundsource
