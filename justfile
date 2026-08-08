@@ -1,20 +1,98 @@
-# Build commands for lumquat NixOS configuration
+#!/usr/bin/env just --justfile
 
-# Default recipe
+# Build commands for the lumquat NixOS configuration.
+# Build/switch recipes use `nh` when available, falling back to
+# nixos-rebuild, then raw nix — matching the chezmoi justfile's
+# behavior for the darwin hosts.
+
+# Default recipe to show available commands
 default: help
 
-# Build the lumquat configuration
+# ===== BUILD / SWITCH =====
+
+# Build the lumquat configuration (nh os build when available)
 build:
-    nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v nh >/dev/null 2>&1; then
+        nh os build .#lumquat
+    elif command -v nixos-rebuild >/dev/null 2>&1; then
+        nixos-rebuild build --flake .#lumquat
+    else
+        nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
+    fi
 
-# Build from bergamot using lumquat as a remote builder.
-# Uses the builder configured in /etc/nix/nix.conf.
-build-remote:
-    nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
+# Build from a machine that uses lumquat as a remote builder
+# (configured in /etc/nix/nix.conf). Same recipe as build — nix/nh
+# pick up the remote builder from the daemon config.
+build-remote: build
 
-# Build Home Manager for podman user
+# Build Home Manager for the podman user
 build-hm:
-    nix build .#homeConfigurations.podman.activationPackage
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v nh >/dev/null 2>&1; then
+        nh home build . --configuration podman
+    else
+        nix build .#homeConfigurations.podman.activationPackage
+    fi
+
+# Preview what a switch would change, without applying it. Builds the
+# config (no sudo needed) and diffs the closure against the active
+# generation — only meaningful when run on lumquat itself.
+dry-run:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v nh >/dev/null 2>&1; then
+        nh os build .#lumquat
+    elif command -v nixos-rebuild >/dev/null 2>&1; then
+        nixos-rebuild build --flake .#lumquat
+    else
+        nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
+    fi
+    echo
+    if [[ -e /run/current-system ]] && [[ "$(hostname -s)" == "lumquat" ]]; then
+        echo "=== Changes vs. the currently active generation ==="
+        nix store diff-closures /run/current-system ./result
+    else
+        echo "=== No active generation to diff against (not run on lumquat, or never switched) ==="
+    fi
+
+# Build and activate on the current system, and make it the boot default.
+# Must run on lumquat itself; from another machine use `deploy` instead.
+switch:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "$(hostname -s)" != "lumquat" ]]; then
+        echo "error: switch must run on lumquat (this is $(hostname -s)); from another machine use 'just deploy' instead" >&2
+        exit 1
+    fi
+    if command -v nh >/dev/null 2>&1; then
+        nh os switch .#lumquat
+    elif command -v nixos-rebuild >/dev/null 2>&1; then
+        sudo nixos-rebuild switch --flake .#lumquat
+    else
+        nix run nixpkgs#nixos-rebuild -- switch --flake .#lumquat
+    fi
+
+# Build and activate on the current system WITHOUT making it the boot
+# default — a true test of a new generation. Must run on lumquat.
+test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "$(hostname -s)" != "lumquat" ]]; then
+        echo "error: test must run on lumquat (this is $(hostname -s))" >&2
+        exit 1
+    fi
+    if command -v nh >/dev/null 2>&1; then
+        nh os test .#lumquat
+    elif command -v nixos-rebuild >/dev/null 2>&1; then
+        sudo nixos-rebuild test --flake .#lumquat
+    else
+        nix run nixpkgs#nixos-rebuild -- test --flake .#lumquat
+    fi
+
+# ===== FLAKE =====
 
 # Check the configuration
 check:
@@ -24,10 +102,6 @@ check:
 show:
     nix flake show
 
-# Build and activate on current system (for testing)
-test:
-    sudo nixos-rebuild switch --flake .#lumquat
-
 # Update flake inputs
 update:
     nix flake update
@@ -36,7 +110,14 @@ update:
 fmt:
     nix develop .# -c alejandra .
 
-# ── Secrets (SOPS) ────────────────────────────────────────────
+# Run the configuration in a VM (build first, then boot it)
+vm:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix build .#nixosConfigurations.lumquat.config.system.build.vm
+    ./result/bin/run-lumquat-vm
+
+# ===== SECRETS (SOPS) =====
 
 # One-time: generate age key from SSH identity (run on each dev machine)
 setup-age:
@@ -63,9 +144,7 @@ secrets-show:
 secrets-rekey:
     sops updatekeys secrets/secrets.yaml
 
-# Run VM with the configuration
-vm:
-    nix run .#nixosConfigurations.lumquat.config.system.build.vm -- eval "$(nix --print-build-logs run .#nixosConfigurations.lumquat.config.system.build.toplevel --run 'cat' 2>/dev/null || echo 'echo "Build first"')"
+# ===== DEPLOY (from a dev machine, via colmena) =====
 
 # Deploy to lumquat (requires colmena setup)
 deploy HOST="lumquat":
@@ -75,13 +154,15 @@ deploy HOST="lumquat":
 deploy-all:
     colmena deploy
 
-# Build the zmx binary (standalone, from the zmx repo)
-build-zmx:
-    nix build ~/Development/nix/zmx#zmx
-
 # Health check on lumquat
 health HOST="lumquat":
     colmena exec --on {{HOST}} -- sudo systemctl status tailscaled podman cockpit
+
+# ===== MISC =====
+
+# Build the zmx binary (standalone, from the zmx repo)
+build-zmx:
+    nix build ~/Development/nix/zmx#zmx
 
 # Show available recipes
 help:
