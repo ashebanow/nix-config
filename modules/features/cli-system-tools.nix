@@ -12,6 +12,7 @@ _: {
         betterdisplay
         binsider
         btop
+        chezmoi
         colmena
         ctop
         duf

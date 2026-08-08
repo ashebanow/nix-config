@@ -56,7 +56,10 @@
               # here instead of running `brew trust` by hand so it doesn't
               # silently drift out of sync with homebrew.brews below.
               # vjeantet/tap: alerter (in homebrew.brews on both hosts).
-              trust.taps = ["vjeantet/tap"];
+              trust.taps = [
+                # "arto-app/tap"
+                "vjeantet/tap"
+              ];
             };
           }
           mac-app-util.darwinModules.default

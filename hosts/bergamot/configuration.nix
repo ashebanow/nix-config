@@ -7,7 +7,27 @@
 {lib, ...}: {
   imports = [./capabilities.nix];
 
+  my.base = true;
   my.hostName = "bergamot";
+  my.baseTimezone = "America/Los_Angeles";
+
+  my.cliAiTools = true;
+  my.cliBuildEssentials = true;
+  my.cliContainerTools = true;
+  my.cliMacOnlyTools = true;
+  my.cliNetworkTools = true;
+  my.cliProductivityTools = true;
+  my.cliSecurityTools = true;
+  my.cliSystemTools = true;
+  my.cliTools = true;
+  my.cliVcsTools = true;
+  my.guiCommunication = true;
+  my.guiCoreApps = true;
+  my.guiDevApps = true;
+  my.guiFonts = true;
+  my.guiMediaApps = true;
+  my.guiProductivityApps = true;
+  my.guiTerminals = true;
 
   # nix-darwin state version. Set once, don't change without reading
   # `darwin-rebuild changelog`. Confirm this is still current on first
@@ -50,7 +70,7 @@
     # kitty/pinta/signal/slack/visual-studio-code/vlc/warp/zed all
     # moved to gui-* modules.
     casks = [
-      "arto" # no nixpkgs package found
+      # "arto" # no nixpkgs package found
       "bitwarden" # nixpkgs version uses dangerous version of electron
       "claude" # Claude desktop app — no nixpkgs package found
       "devtoys" # no nixpkgs package found
