@@ -20,6 +20,7 @@ _: {
   my.cliMacOnlyTools = true;
   my.cliAiTools = true;
   my.cliBuildEssentials = true;
+  my.cliTools = true;
 
   # Capability flags — enable topical GUI app modules. Priority order
   # for macOS apps is nix > Homebrew cask > Mac App Store; these used

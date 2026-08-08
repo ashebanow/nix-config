@@ -11,23 +11,7 @@
   my.hostName = "bergamot";
   my.baseTimezone = "America/Los_Angeles";
 
-  my.cliAiTools = true;
-  my.cliBuildEssentials = true;
-  my.cliContainerTools = true;
-  my.cliMacOnlyTools = true;
-  my.cliNetworkTools = true;
-  my.cliProductivityTools = true;
-  my.cliSecurityTools = true;
-  my.cliSystemTools = true;
-  my.cliTools = true;
-  my.cliVcsTools = true;
-  my.guiCommunication = true;
-  my.guiCoreApps = true;
-  my.guiDevApps = true;
-  my.guiFonts = true;
-  my.guiMediaApps = true;
-  my.guiProductivityApps = true;
-  my.guiTerminals = true;
+  my.access = false;  # tailscale etc really set up for servers
 
   # nix-darwin state version. Set once, don't change without reading
   # `darwin-rebuild changelog`. Confirm this is still current on first
