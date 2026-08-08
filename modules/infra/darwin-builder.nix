@@ -20,6 +20,27 @@
   deferredDarwinModules = builtins.attrValues config.my.modules.darwin;
   deferredHmModules = builtins.attrValues config.my.modules.home-manager;
 
+  # Binary caches for the darwin hosts — same set as the NixOS hosts
+  # (modules/infra/nix/caches.nix), minus flakehub and
+  # install.determinate.systems which Determinate Nix's own nix.conf
+  # already carries.
+  darwinCaches = let
+    substituters = [
+      "https://nix-community.cachix.org"
+      "https://cache.numtide.com"
+      "https://cache.nixos.org/"
+      "https://pi.cachix.org"
+    ];
+    keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
+      "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs="
+      "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="
+    ];
+  in {
+    inherit substituters keys;
+  };
+
   # One nix-homebrew + determinate + home-manager block per host, keyed
   # by the mac username that owns the Homebrew prefix and home directory.
   mkDarwinHost = hostName: let
@@ -32,7 +53,36 @@
         [
           ../../lib/my-options-module.nix
           determinate.darwinModules.default
-          {determinateNix.enable = true;}
+          {
+            # Determinate Nixd owns /etc/nix/nix.conf outright (it
+            # regenerates it and already `!include`s nix.custom.conf).
+            # This module makes nix-darwin manage /etc/nix/nix.custom.conf
+            # from determinateNix.customSettings and force-disables
+            # nix-darwin's own nix module — so on these hosts the
+            # flake's nix.settings (modules/infra/nix/) do NOT apply;
+            # customSettings is the only daemon config channel.
+            #
+            # trusted-users: the compiled-in default is root only, and
+            # macOS admin users are in the `admin` group (no `wheel` by
+            # default). Without this, ashebanow can't add substituters
+            # via --option, import unsigned paths, etc. Restores what
+            # the pre-migration chezmoi /etc/nix/nix.custom.conf used to
+            # provide.
+            determinateNix = {
+              enable = true;
+              customSettings = {
+                trusted-users = [
+                  "ashebanow"
+                  "root"
+                  "@wheel"
+                  "@admin"
+                ];
+                inherit (darwinCaches) substituters;
+                "trusted-substituters" = darwinCaches.substituters;
+                "trusted-public-keys" = darwinCaches.keys;
+              };
+            };
+          }
           nix-homebrew.darwinModules.nix-homebrew
           {
             # PHASE 1 (current): migrating an existing imperative Homebrew
