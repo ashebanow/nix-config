@@ -116,35 +116,30 @@ my.llm = {
 
 **Purpose**: Secure remote access via Tailscale.
 
-**Options**:
+**Flags** (flat `my.*` booleans in `lib/my-options-module.nix`, NixOS hosts only):
 
 ```nix
-my.access = {
-  enable = true;
-
-  # Tailscale
-  tailnetName = "lumquat";  # Hostname on tailnet
-  enableSSH = true;         # Tailscale SSH
-  enableExitNode = false;   # Act as exit node
-
-  # SSH fallback (when Tailscale is down)
-  enableFallbackSSH = true;
-  fallbackPort = 2222;     # Non-standard port
-  allowedUsers = ["root"];   # Or specific user
-
-  # Firewall
-  enableFirewall = true;
-  trustedInterfaces = ["tailscale0"];
-}
+my.access = true;                     # enable the access feature (servers)
+my.accessTailnetName = "lumquat";     # hostname on the tailnet
+my.accessEnableSSH = true;            # Tailscale SSH (--ssh)
+my.accessEnableExitNode = false;      # advertise as exit node (--advertise-exit-node)
+my.accessEnableSubnetRouting = false; # advertise subnet routes (--advertise-routes=...)
+my.accessSubnetRoutes = [];           # CIDRs, e.g. ["192.168.1.0/24"]
+my.accessEnableFallbackSSH = true;    # sshd on non-standard port when tailscale is down
+my.accessFallbackPort = 2222;
 ```
 
 **Implementation Notes**:
 
-- Configures `services.tailscale`
-- SSH via Tailscale: `services.tailscale.authKeyFile` (from secrets)
-- Firewall: `checkReversePath = "loose"`, `trustedInterfaces`
-- Fallback SSH: separate sshd on non-standard port, limited to specific key
-- Uses secrets for `tailscale-auth-key`
+- NixOS (`modules/features/access.nix`): `services.tailscale` with the nixpkgs
+  module's built-in `tailscaled-autoconnect` (SOPS `tailscale-auth-key`).
+  `useRoutingFeatures` is `"both"` when exit-node or subnet-routing is enabled,
+  else `"client"` — serving routes never disables client routing features.
+  Firewall: `checkReversePath = "loose"`, `trustedInterfaces = ["tailscale0"]`.
+- macOS hosts: tailscale installed via the official **`.pkg` installer**, not
+  nix or Homebrew — the MAS/Homebrew build is sandboxed and can't do Tailscale
+  SSH, and the nixpkgs package won't start. `my.access` stays `false` on the Macs.
+- Fallback SSH: separate sshd on non-standard port, limited to specific key.
 
 **Dependencies**: `secrets` (for Tailscale auth key)
 

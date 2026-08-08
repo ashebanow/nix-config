@@ -16,7 +16,9 @@ _: {
         lazyssh
         # mole excluded — nixpkgs marks it broken currently; kept on
         # homebrew.brews in the host configs instead.
-        # tailscale — managed via Homebrew on the Macs (nix-darwin hosts)
+        # tailscale — NOT via nix or Homebrew on the Macs: official .pkg
+        # installer (MAS build is sandboxed → no Tailscale SSH; nixpkgs
+        # build won't start on macOS)
         # talosctl
         wishlist
       ];

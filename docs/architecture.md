@@ -40,7 +40,7 @@ Problem: Cross-cutting features split across directories, `specialArgs` chains.
 modules/
   nixos-base.nix      # Timezone, base packages (all NixOS hosts)
   llm-serve.nix       # LLM serving feature (applies to NixOS only)
-  tailscale.nix       # Tailscale feature (applies to NixOS only)
+  access.nix         # Tailscale access + fallback SSH (applies to NixOS only)
   cockpit.nix         # Cockpit feature (applies to NixOS only)
 hosts/
   lumquat/
@@ -84,7 +84,7 @@ nix-config/                   # Bare repo (worktrees for each host)
 │   │   ├── features/         # Dendritic feature modules
 │   │   │   ├── nixos-base.nix         # Timezone, base packages
 │   │   │   ├── llm-serve.nix          # LLM serving (podman + quadlets)
-│   │   │   ├── tailscale.nix            # Tailscale + Aperture
+│   │   │   ├── access.nix             # Tailscale access + fallback SSH
 │   │   │   ├── cockpit.nix             # Cockpit web UI
 │   │   │   ├── podman-base.nix         # Podman/quadlet infrastructure
 │   │   │   ├── sops-nix.nix            # Secrets management
@@ -308,39 +308,60 @@ Container needs `/dev/dri` device access for GPU.
 
 ---
 
-## Tailscale + Aperture Configuration
+## Tailscale Configuration
 
-### Tailscale Setup
+### NixOS Server (lumquat)
+
+Configured in `modules/features/access.nix` (registers as `my.modules.nixos.access`,
+gated on `my.access`):
 
 ```nix
-# modules/features/tailscale.nix
-_: {
-  my.modules.nixos.tailscale = {config, ...}: {
-    services.tailscale = {
-      enable = true;
-      useRoutingFeatures = "server";  # Act as exit node capable
-      authKeyFile = "/run/secrets/tailscale-auth-key";
-    };
-
-    # Open firewall for Tailscale
-    networking.firewall.checkReversePath = "loose";
-    networking.firewall.trustedInterfaces = ["tailscale0"];
-  };
-}
+services.tailscale = {
+  enable = true;
+  authKeyFile = "/run/secrets/tailscale-auth-key";  # SOPS secret
+  # "client" keeps the node able to *use* routing features (exit nodes /
+  # subnet routes from other nodes); serving routes ourselves is additive,
+  # so any exit-node/subnet-routing flag flips this to "both" — never a
+  # plain "server" (that would drop client routing features).
+  useRoutingFeatures =
+    if (config.my.accessEnableExitNode || config.my.accessEnableSubnetRouting)
+    then "both"
+    else "client";
+  extraUpFlags =
+    [ "--hostname=${config.my.accessTailnetName}" ]
+    ++ lib.optionals config.my.accessEnableSSH [ "--ssh" ]
+    ++ lib.optionals config.my.accessEnableExitNode [ "--advertise-exit-node" ]
+    ++ lib.optionals config.my.accessEnableSubnetRouting [
+      "--advertise-routes=${lib.concatStringsSep "," config.my.accessSubnetRoutes}"
+    ];
+};
 ```
+
+- Auth: the nixpkgs module's built-in `tailscaled-autoconnect.service` reads the
+  SOPS-decrypted auth key and runs `tailscale up` with `extraUpFlags`.
+- Routing modes: `"client"` = loose reverse-path filtering (consume exit
+  nodes/subnet routes); `"both"` also enables IP forwarding (serve them).
+- Firewall: `checkReversePath = "loose"`, `trustedInterfaces = ["tailscale0"]` —
+  no direct exposure of LLM ports.
+
+### macOS Clients (bergamot, miraclemax)
+
+Tailscale is **not** installed via nix or Homebrew on the Macs:
+
+- The Homebrew cask ships the **sandboxed Mac App Store build**, which cannot
+  do Tailscale SSH.
+- The nixpkgs `tailscale-gui` package refused to start on macOS.
+- Working setup: the official **standalone `.pkg` installer**
+  (https://tailscale.com/download/mac) — full Tailscale.app + `tailscale` CLI,
+  Tailscale SSH works. `my.access` stays `false` on darwin hosts; the access
+  feature (and its NixOS-only `services.tailscale` wiring) is for servers.
 
 ### LLM Access via Tailscale (No Direct Access)
 
-The requirement: LLMs visible **only** through Tailscale Aperture, not directly exposed.
-
-This means:
-1. LLM containers bind to `127.0.0.1` or `tailscale0` only
-2. Tailscale serves as the reverse proxy/API gateway
-3. Cockpit can be accessed via Tailscale SSH (no separate web exposure)
-
-**Note**: Tailscale Aperture integration needs further investigation:
-- Does Aperture support custom upstream backends (llama.cpp servers)?
-- Will need to configure Tailscale as API gateway in front of local LLM containers
+LLMs visible **only** through Tailscale, not exposed directly: containers bind
+to `127.0.0.1` or `tailscale0`, and Tailscale Serve/SSH fronts them (see
+TS-SERVE.MD for the Serve/Services migration). Cockpit is reachable via
+Tailscale SSH, with no separate web exposure.
 
 ---
 
