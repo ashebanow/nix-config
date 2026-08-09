@@ -4,7 +4,8 @@
 # FlakeHub login. determinate-nixd stores auth state itself over its daemon
 # socket — there is no nix.conf knob for it. This module provisions the
 # FlakeHub token from SOPS and logs nixd in once at boot, re-running whenever
-# the secret rotates.
+# the secret rotates or the nixd binary changes (a version upgrade invalidates
+# the daemon's auth state, e.g. 3.21.7 → 3.22.0).
 #
 # Gated on the same capability flags as modules/features/secrets.nix (sops is
 # only configured when my.access or my.llm is set) and on determinate being
@@ -41,9 +42,16 @@
         Restart = "on-failure";
         RestartSec = "1h";
       };
-      # Re-run when sops-nix rewrites the secret (token rotation), so the
-      # cache keeps authenticating after a swap without a redeploy.
-      restartTriggers = [ config.sops.secrets.flakehub-token.path ];
+      # Re-run when sops-nix rewrites the secret (token rotation) or when the
+      # nixd / nix packages change (version upgrade), so the cache keeps
+      # authenticating without manual steps. restartTriggers fires when any
+      # listed path's mtime is newer than the last start — a rebuilt store path
+      # always has a fresh mtime, an unchanged one does not.
+      restartTriggers = [
+        config.sops.secrets.flakehub-token.path
+        config.nix.package
+        inputs.determinate.packages.${pkgs.stdenv.system}.default
+      ];
     };
   };
 }
