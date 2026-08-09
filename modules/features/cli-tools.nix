@@ -10,6 +10,9 @@ _: {
       home.packages = with pkgs; [
         bat
         bottom
+        # GNU coreutils with all features enabled — provides `timeout`
+        # (and full-featured ls/cp/etc.) on the podman user's PATH.
+        coreutils-full
         curl
         dig
         direnv

@@ -28,6 +28,12 @@
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
 
+  # Headless server — no need for the HTML manual / options docs.
+  # Also avoids nixpkgs' make-options-doc `options.json` derivation, which
+  # triggers the "store path without a proper context" warning on every
+  # build (Nix >= 2.31; tracked upstream as NixOS/nixpkgs#485682).
+  documentation.enable = false;
+
   # CPU governor is set centrally in base.nix (schedutil).
   # Override here only if lumquat needs a different governor:
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
