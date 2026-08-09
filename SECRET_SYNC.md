@@ -29,6 +29,8 @@ SOPS remains as a **read-only bootstrap token store** — never write to it via 
 │                                                                 │
 │  secrets/secrets.yaml (SOPS)                                    │
 │  ├─ tailscale-auth-key      → /run/secrets/  → tailscale        │
+│  ├─ flakehub-token          → /run/secrets/  → determinate-nixd │
+│  │                            (flakehub cache auth, flakehub.nix) │
 │  ├─ deepseek-api-key        → /run/secrets/  → litellm container│
 │  ├─ anthropic-api-key       → /run/secrets/  → litellm container│
 │  ├─ minimax-api-key         → /run/secrets/  → litellm container│
@@ -80,6 +82,13 @@ Copied from `private_dot_zshenv.tmpl` in the dotfiles repo.
 | `ANTHROPIC_API_KEY` | `28893b82-be1f-407c-aa2d-b4770134fcc1` |
 | `EXA_API_KEY` | `52eba787-8cb2-41b7-87b1-b4770134b198` |
 | `ZED_GITHUB_PERSONAL_ACCESS_TOKEN` | `2bc9244b-acf0-4620-8e29-b4770132e6f9` |
+| `FLAKEHUB_TOKEN` | `0c678df8-84e4-4a1b-90db-b4a101071ee3` |
+
+> `FLAKEHUB_TOKEN` — BWS key `flakehub_bergamot_token`. A FlakeHub token from
+> [flakehub.com/user/settings?editview=tokens](https://flakehub.com/user/settings?editview=tokens).
+> Consumed by `determinate-nixd auth login token` (see `home/private_dot_zshenv.tmpl`
+> in the dotfiles repo) so `cache.flakehub.com` and private flakes authenticate.
+> nixd stores it via its daemon socket — no static netrc entries needed.
 
 ## Manual Step: Prepare secrets.yaml
 
@@ -224,6 +233,7 @@ _bws_load_secrets() {
     echo "export ANTHROPIC_API_KEY=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 28893b82-be1f-407c-aa2d-b4770134fcc1 2>/dev/null || true)\""
     echo "export EXA_API_KEY=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 52eba787-8cb2-41b7-87b1-b4770134b198 2>/dev/null || true)\""
     echo "export ZED_GITHUB_PERSONAL_ACCESS_TOKEN=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 2bc9244b-acf0-4620-8e29-b4770132e6f9 2>/dev/null || true)\""
+    echo "export FLAKEHUB_TOKEN=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 0c678df8-84e4-4a1b-90db-b4a101071ee3 2>/dev/null || true)\""
   } > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
   chmod 600 "$CACHE_FILE"
 
