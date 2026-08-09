@@ -1,9 +1,11 @@
-.direnv/
-
-result
-
 # Age private keys — never commit
 secrets/keys/
+
+# Pi Agent
+.pi/tasks/
+
+.direnv/
+result
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
@@ -603,12 +605,5 @@ xcuserdata/
 !*.xcworkspace/contents.xcworkspacedata
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
-
-# Pi Agent
-.pi/tasks/
-
-.direnv/
-
-secrets/keys/*.age
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go
