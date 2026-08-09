@@ -1,17 +1,18 @@
 # zmx — session persistence and workflow tool for terminal sessions.
 # Registered as a NixOS module gated by my.zmx capability flag.
-# inputs is passed via specialArgs from nixos-builder.nix.
+# Uses the nixpkgs-packaged zmx (pinned release tag, vendored zig deps)
+# rather than the upstream flake input — the upstream flake's zig pin
+# lags its code and fails to build in the sandbox.
 _: {
   my.modules.nixos.zmx = {
     lib,
     config,
     pkgs,
-    inputs,
     ...
   }: {
     config = lib.mkIf config.my.zmx {
       environment.systemPackages = [
-        inputs.zmx.packages.${pkgs.stdenv.hostPlatform.system}.zmx
+        pkgs.zmx
       ];
     };
   };

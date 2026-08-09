@@ -51,9 +51,6 @@
 
     # NixOS hardware quirks
     nixos-hardware.url = "github:nixos/nixos-hardware";
-
-    # zmx — session persistence for terminal processes
-    zmx.url = "github:neurosnap/zmx";
   };
 
   outputs = inputs @ {flake-parts, ...}: let
