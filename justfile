@@ -40,11 +40,11 @@ build-hm:
 # Preview what a switch would change, without applying it. Builds the
 # config (no sudo needed) and diffs the closure against the active
 # generation — only meaningful when run on lumquat itself.
-dry-run:
+dry-run *FILES:
     #!/usr/bin/env bash
     set -euo pipefail
     if command -v nh >/dev/null 2>&1; then
-        nh os build .#lumquat
+        nh os build {{ FLAGS }} .#lumquat
     elif command -v nixos-rebuild >/dev/null 2>&1; then
         nixos-rebuild build --flake .#lumquat
     else
@@ -60,7 +60,7 @@ dry-run:
 
 # Build and activate on the current system, and make it the boot default.
 # Must run on lumquat itself; from another machine use `deploy` instead.
-switch:
+switch *FLAGS:
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ "$(hostname -s)" != "lumquat" ]]; then
@@ -68,7 +68,7 @@ switch:
         exit 1
     fi
     if command -v nh >/dev/null 2>&1; then
-        nh os switch .#lumquat
+        nh os switch {{ FLAGS }} .#lumquat
     elif command -v nixos-rebuild >/dev/null 2>&1; then
         sudo nixos-rebuild switch --flake .#lumquat
     else
