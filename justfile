@@ -92,19 +92,23 @@ test:
         nix run nixpkgs#nixos-rebuild -- test --flake .#lumquat
     fi
 
-# ===== FLAKE =====
-
-# Check the configuration
-check:
-    nix flake check
-
-# Show the configuration
 show:
     nix flake show
 
-# Update flake inputs
 update:
     nix flake update
+
+clean:
+    #!/usr/bin/env bash
+    if command -v nh >/dev/null 2>&1; then
+        nh clean all
+    elif command -v nixos-rebuild >/dev/null 2>&1; then
+        sudo nix-env --delete-generations 14d
+        nix store gc
+    else
+        sudo nix run nixpkgs#nix-env -- delete-generations 14d
+        nix store gc
+    fi
 
 # Format all Nix files
 fmt:
