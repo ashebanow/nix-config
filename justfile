@@ -44,7 +44,7 @@ dry-run *FILES:
     #!/usr/bin/env bash
     set -euo pipefail
     if command -v nh >/dev/null 2>&1; then
-        nh os build {{ FLAGS }} .#lumquat
+        nh os build {{ FILES }} .#lumquat
     elif command -v nixos-rebuild >/dev/null 2>&1; then
         nixos-rebuild build --flake .#lumquat
     else
@@ -169,7 +169,7 @@ health HOST="lumquat":
 # Needs BWS_ACCESS_TOKEN in the shell (e.g. from a `bws`/Bitwarden login).
 # Uses the [profiles.admin] route in compose/kaneo/secretspec.toml — the
 # operator's token, deliberately NOT a file on disk.
-kaneo-admin cmd="podman exec -i kaneo-db env PGPASSWORD=\$POSTGRES_PASSWORD psql -U kaneo -d kaneo":
+kaneo-admin cmd='podman exec -i kaneo-db env PGPASSWORD=$POSTGRES_PASSWORD psql -U kaneo -d kaneo':
     #!/usr/bin/env bash
     set -euo pipefail
     if [ -z "${BWS_ACCESS_TOKEN:-}" ]; then
