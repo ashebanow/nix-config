@@ -67,6 +67,11 @@ _: {
           "L+ /etc/kaneo/tailscale-serve - - - - ${composeDir}/ts-serve"
         ];
 
+        # bws available interactively on the host too (admin/psql routes).
+        environment.systemPackages = [
+          pkgs.bws
+        ];
+
         # Populate podman secrets BEFORE the rootless user manager starts the
         # quadlet units. Env vars exist only inside this short-lived process;
         # nothing is written as a .env. Not a timer: --replace only affects
@@ -80,6 +85,7 @@ _: {
           path = [
             pkgs.podman
             pkgs.secretspec
+            pkgs.bws # secretspec 0.17+ invokes the official bws CLI
           ];
           serviceConfig = {
             Type = "oneshot";
