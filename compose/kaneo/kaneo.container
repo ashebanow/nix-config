@@ -4,11 +4,14 @@ After=kaneo-tailscale.container
 Requires=kaneo-tailscale.container
 
 [Container]
+# podman 5.8 would otherwise name this systemd-kaneo; set an explicit name
+# so the app is addressable as `kaneo` (podman exec kaneo ...).
+ContainerName=kaneo
+Image=ghcr.io/usekaneo/kaneo:2.17.1
 # Image pinned — do NOT set AutoUpdate=registry. Upstream ships most days and
 # migrations auto-run on startup, so tag drift would mean unplanned schema
 # migrations. Update intentionally (issue #1 update-review trigger).
 # Digest (audit): sha256:ebcc4ba410b7dea74f6a28459e3bff65b87b99eaefa67dce8dd60ae44b00c460
-Image=ghcr.io/usekaneo/kaneo:2.17.1
 # Shares the sidecar's namespace: no published ports; reachable via tailscale
 # funnel at https://kaneo.fluffy-walleye.ts.net, and can resolve kaneo-db.
 Network=kaneo-tailscale.container

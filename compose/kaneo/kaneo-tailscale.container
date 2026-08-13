@@ -5,6 +5,8 @@ Requires=kaneo.network.service
 
 [Container]
 Image=docker.io/tailscale/tailscale:latest
+# Explicit name so it's addressable as `kaneo-ts` and podman DNS stays stable.
+ContainerName=kaneo-ts
 Network=kaneo.network
 # Rootless: keep the default TS_USERSPACE (userspace networking). Do NOT add
 # AddDevice=/dev/net/tun or AddCapability= — those exist only for kernel
