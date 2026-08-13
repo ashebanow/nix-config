@@ -24,6 +24,7 @@
   my.monitoringPort = 9090;
   my.zmx = true;
   my.memory = true;
+  my.kaneo = true;  # quadlet units + secretspec/BWS secrets (compose/kaneo)
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;

@@ -110,6 +110,13 @@
       description = "Enable Mnemosyne memory layer for AI agents.";
     };
 
+    # Kaneo feature
+    kaneo = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable the Kaneo project-management app (quadlet units + secretspec/BWS secrets).";
+    };
+
     # CLI tools feature (Home Manager)
     cliTools = lib.mkOption {
       type = lib.types.bool;

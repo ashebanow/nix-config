@@ -1,0 +1,21 @@
+[Unit]
+Description=Kaneo PostgreSQL
+After=kaneo.network.service
+Requires=kaneo.network.service
+
+[Container]
+Image=docker.io/library/postgres:16-alpine
+Network=kaneo.network
+# No PublishPort — database is tailnet-internal only.
+# DB/USER/PASSWORD all come from BWS via podman secrets (populate-secrets.sh).
+Secret=kaneo-postgres-db,type=env,target=POSTGRES_DB
+Secret=kaneo-postgres-user,type=env,target=POSTGRES_USER
+Secret=kaneo-postgres-password,type=env,target=POSTGRES_PASSWORD
+Volume=kaneo-pgdata.volume:/var/lib/postgresql/data
+HealthCmd=/usr/local/bin/pg_isready -U kaneo -d kaneo
+HealthInterval=10s
+HealthTimeout=5s
+HealthRetries=5
+
+[Service]
+Restart=always

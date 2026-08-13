@@ -1,0 +1,52 @@
+[Unit]
+Description=Kaneo app (web+api, upstream image)
+After=kaneo-tailscale.container
+Requires=kaneo-tailscale.container
+
+[Container]
+# Image pinned — do NOT set AutoUpdate=registry. Upstream ships most days and
+# migrations auto-run on startup, so tag drift would mean unplanned schema
+# migrations. Update intentionally (issue #1 update-review trigger).
+# Digest (audit): sha256:ebcc4ba410b7dea74f6a28459e3bff65b87b99eaefa67dce8dd60ae44b00c460
+Image=ghcr.io/usekaneo/kaneo:2.17.1
+# Shares the sidecar's namespace: no published ports; reachable via tailscale
+# funnel at https://kaneo.fluffy-walleye.ts.net, and can resolve kaneo-db.
+Network=kaneo-tailscale.container
+# --- Static deployment policy flags (intentionally NOT in BWS) ---
+Environment=DISABLE_REGISTRATION=true
+Environment=DISABLE_GUEST_ACCESS=true
+Environment=KANEO_CLOUD=true
+# Environment=DISABLE_LOGIN_FORM=true   # ⚠️ set ONLY after the #8 bootstrap
+# --- Everything node/environment-specific comes from BWS via podman secrets ---
+# (populate-secrets.sh maps env vars -> podman secrets; same names as the
+# refs in secretspec.toml). Moving the production node = update BWS, no edits
+# here. GITHUB_APP_NAME is optional; add a kaneo-github-app-name secret if wanted.
+Secret=kaneo-postgres-db,type=env,target=POSTGRES_DB
+Secret=kaneo-postgres-host,type=env,target=POSTGRES_HOST
+Secret=kaneo-postgres-password,type=env,target=POSTGRES_PASSWORD
+Secret=kaneo-postgres-user,type=env,target=POSTGRES_USER
+Secret=kaneo-auth-secret,type=env,target=AUTH_SECRET
+Secret=kaneo-github-app-id,type=env,target=GITHUB_APP_ID
+Secret=kaneo-github-app-webhook,type=env,target=GITHUB_WEBHOOK_SECRET
+Secret=kaneo-github-app-private-key,type=env,target=GITHUB_PRIVATE_KEY
+Secret=kaneo-github-app-client-id,type=env,target=GITHUB_OAUTH_CLIENT_ID
+Secret=kaneo-github-app-client-secret,type=env,target=GITHUB_OAUTH_CLIENT_SECRET
+Secret=kaneo-client-url,type=env,target=KANEO_CLIENT_URL
+Secret=kaneo-api-url,type=env,target=KANEO_API_URL
+Secret=kaneo-cors-origins,type=env,target=CORS_ORIGINS
+Secret=kaneo-smtp-from,type=env,target=SMTP_FROM
+Secret=kaneo-smtp-host,type=env,target=SMTP_HOST
+Secret=kaneo-smtp-ignore-tls,type=env,target=SMTP_IGNORE_TLS
+Secret=kaneo-smtp-password,type=env,target=SMTP_PASSWORD
+Secret=kaneo-smtp-port,type=env,target=SMTP_PORT
+Secret=kaneo-smtp-require-tls,type=env,target=SMTP_REQUIRE_TLS
+Secret=kaneo-smtp-secure,type=env,target=SMTP_SECURE
+Secret=kaneo-smtp-user,type=env,target=SMTP_USER
+HealthCmd=/usr/bin/wget --no-verbose --tries=1 --spider http://127.0.0.1:5173/api/health
+HealthInterval=30s
+HealthTimeout=5s
+HealthStartPeriod=60s
+HealthRetries=3
+
+[Service]
+Restart=always

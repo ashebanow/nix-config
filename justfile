@@ -162,6 +162,25 @@ deploy-all:
 health HOST="lumquat":
     colmena exec --on {{HOST}} -- sudo systemctl status tailscaled podman cockpit
 
+# ===== KANEO =====
+
+# Kaneo admin shell: resolve the production stack's secrets from BWS and run
+# a command against it (psql, migrations, ad-hoc queries).
+# Needs BWS_ACCESS_TOKEN in the shell (e.g. from a `bws`/Bitwarden login).
+# Uses the [profiles.admin] route in compose/kaneo/secretspec.toml — the
+# operator's token, deliberately NOT a file on disk.
+kaneo-admin cmd="podman exec -i kaneo-db env PGPASSWORD=\$POSTGRES_PASSWORD psql -U kaneo -d kaneo":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "${BWS_ACCESS_TOKEN:-}" ]; then
+        echo "BWS_ACCESS_TOKEN is not set — source it first (bws login)" >&2
+        exit 1
+    fi
+    SECRETSPEC_FILE=compose/kaneo/secretspec.toml
+    SECRETSPEC_PROFILE=admin
+    SECRETSPEC_PROVIDER=bws
+    secretspec run -- {{cmd}}
+
 # ===== MISC =====
 
 # Build the zmx binary (standalone, from the zmx repo)
