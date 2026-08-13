@@ -30,6 +30,20 @@ _: {
       quadletDir = "${userHome}/.config/containers/systemd";
       composeDir = ../../compose/kaneo;
       secretspecToml = "/etc/kaneo/secretspec.toml";
+      # podman 5.8 quadlet emits a dangling `kaneo.network.service` dependency
+      # (file name + .service) alongside the real `kaneo-network.service` unit.
+      # Shim so both resolve to the same network creation unit.
+      networkShim = pkgs.writeText "kaneo.network.service" ''
+        [Unit]
+        Description=Kaneo podman network (shim for podman quadlet naming)
+        Requires=kaneo-network.service
+        After=kaneo-network.service
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=${pkgs.coreutils}/bin/true
+      '';
       populateScript = pkgs.writeShellScript "kaneo-populate-secrets" ''
         export XDG_RUNTIME_DIR="/run/user/$(id -u)"
         exec ${pkgs.secretspec}/bin/secretspec run -P production -- \
@@ -60,6 +74,8 @@ _: {
           "L+ ${quadletDir}/kaneo-tailscale.container - - - - ${composeDir}/kaneo-tailscale.container"
           "L+ ${quadletDir}/kaneo-db.container - - - - ${composeDir}/kaneo-db.container"
           "L+ ${quadletDir}/kaneo.container - - - - ${composeDir}/kaneo.container"
+          # Shim unit: resolves the quadlet-generated `kaneo.network.service` dep.
+          "L+ ${userHome}/.config/systemd/user/kaneo.network.service - - - - ${networkShim}"
           "d /etc/kaneo 0755 root root -"
           "L+ /etc/kaneo/secretspec.toml - - - - ${composeDir}/secretspec.toml"
           # TS_SERVE_CONFIG: symlink the containing DIRECTORY, not the file —
