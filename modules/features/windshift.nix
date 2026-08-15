@@ -38,6 +38,34 @@ _: {
         exec ${pkgs.secretspec}/bin/secretspec run -P production -- \
           ${pkgs.bash}/bin/bash ${composeDir}/populate-secrets.sh
       '';
+      # Quadlet user units generated from compose/windshift/*.container — kept
+      # in sync with the tmpfiles rules below via readDir, so the reload script
+      # can't drift from the actual quadlet files.
+      containerServices = lib.pipe composeDir [
+        builtins.readDir
+        lib.attrNames
+        (lib.filter (f: lib.hasSuffix ".container" f))
+        (map (f: lib.removeSuffix ".container" f + ".service"))
+      ];
+      # Regenerate the rootless quadlet units and apply them to the running
+      # containers. Runs from a system service as the podman user; the user
+      # manager must be reachable first (linger is enabled in base.nix, but at
+      # boot it may still be starting).
+      reloadScript = pkgs.writeShellScript "windshift-quadlet-reload" ''
+        set -euo pipefail
+        export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+        for _ in $(seq 1 30); do
+          if systemctl --user show-environment >/dev/null 2>&1; then
+            break
+          fi
+          sleep 1
+        done
+        # Re-run the podman-system-generator against the (re)swapped tmpfiles
+        # symlinks, then restart the container units so new/changed definitions
+        # (env, args, image) actually take effect.
+        systemctl --user daemon-reload
+        systemctl --user restart ${lib.concatStringsSep " " containerServices}
+      '';
     in
     {
       config = lib.mkIf config.my.windshift {
@@ -102,6 +130,47 @@ _: {
               "access_token:${config.sops.secrets."bws-access-token".path}"
             ];
             ExecStart = populateScript;
+          };
+        };
+
+        # Regenerate the quadlet user units after every switch that changes the
+        # compose files, and start/restart the affected containers.
+        #
+        # Why this exists: NixOS's own switch flow reloads user instances
+        # (`systemctl --user daemon-reload`) BEFORE re-running tmpfiles
+        # (sysinit-reactivation.target -> systemd-tmpfiles-resetup swaps the
+        # symlinks), so the quadlet generator always sees the OLD symlinks and
+        # nothing re-runs it afterwards. This unit rides the same native
+        # mechanism NixOS uses for systemd-tmpfiles-resetup: restartTriggers
+        # makes it a 'changed' unit on every switch where the compose files
+        # changed, and the sysinit-reactivation ordering runs it AFTER the
+        # symlink swap. wantedBy covers the boot path (containers also start
+        # here, since quadlet units have no [Install] section and would
+        # otherwise never start at boot).
+        systemd.services.windshift-quadlet-reload = {
+          description = "Regenerate Windshift quadlet user units and restart containers";
+          wantedBy = [ "multi-user.target" ];
+          requiredBy = [ "sysinit-reactivation.target" ];
+          after = [
+            "windshift-secrets-populate.service"
+            "systemd-tmpfiles-setup.service"
+            "systemd-tmpfiles-resetup.service"
+          ];
+          before = [ "sysinit-reactivation.target" ];
+          # Same trigger semantics as systemd-tmpfiles-resetup: fires exactly
+          # when the compose dir (referenced by the tmpfiles rules) changes.
+          restartTriggers = [ composeDir ];
+          unitConfig.DefaultDependencies = false;
+          path = [
+            pkgs.systemd
+            pkgs.coreutils
+          ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            User = podmanUser;
+            Group = podmanUser;
+            ExecStart = reloadScript;
           };
         };
       };
