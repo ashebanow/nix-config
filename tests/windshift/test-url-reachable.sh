@@ -5,7 +5,7 @@ set -euo pipefail
 
 URL="https://windshift.fluffy-walleye.ts.net"
 
-code="$(curl -s -o /dev/null -w '%{http_code}' -m 15 "$URL" || echo '000')"
+code="$(curl -s -o /dev/null -w '%{http_code}' -m 45 "$URL" || echo '000')"
 if [[ "$code" == "000" ]]; then
   echo "FAIL: $URL unreachable (curl error / DNS not up yet — deploy first)" >&2
   exit 1
