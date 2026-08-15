@@ -7,9 +7,13 @@ Requires=windshift-tailscale.container
 # podman 5.8 would otherwise name this systemd-windshift; set an explicit name
 # so the app is addressable as `windshift` (podman exec windshift ...).
 ContainerName=windshift
-Image=ghcr.io/windshiftapp/windshift:v0.4.2
+Image=ghcr.io/windshiftapp/windshift:v0.8.4
 # Image pinned — do NOT set AutoUpdate=registry. Trial deployment; bump
 # intentionally after validating the new tag.
+# v0.4.2 -> v0.8.4: the built-in MCP server (internal/mcp) landed 2026-06-23;
+# v0.4.2 (2026-03-31) predates it, so MCP requires >= v0.8.x. v0.8.4 is the
+# vendor-documented production pin (windshift.sh/download); images are
+# multi-arch on ghcr.io (probe with manifest-list Accept types).
 # Shares the sidecar's namespace: no published ports; reachable via tailscale
 # funnel at https://windshift.fluffy-walleye.ts.net, and can resolve
 # windshift-db on the shared network.
