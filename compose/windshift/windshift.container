@@ -17,6 +17,8 @@ Network=windshift-tailscale.container
 # --- Static deployment policy flags (intentionally NOT in BWS) ---
 Environment=USE_PROXY=true
 Environment=ATTACHMENT_PATH=/data/attachments
+# Enable the built-in MCP server at /mcp (bearer-token auth; used by pi's stdio shim).
+Environment=MCP_ENABLED=true
 # --- Everything node/environment-specific comes from BWS via podman secrets ---
 # (populate-secrets.sh maps env vars -> podman secrets; same names as the
 # refs in secretspec.toml). Moving the production node = update BWS, no edits
