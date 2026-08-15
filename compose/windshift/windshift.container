@@ -23,6 +23,12 @@ Environment=USE_PROXY=true
 Environment=ATTACHMENT_PATH=/data/attachments
 # Enable the built-in MCP server at /mcp (bearer-token auth; used by pi's stdio shim).
 Environment=MCP_ENABLED=true
+# MCP SDK v1.4.1 DNS-rebinding guard rejects non-loopback Hosts on loopback
+# listeners — exactly our tailscale-funnel -> 127.0.0.1:8080 topology (the
+# funnel terminates at the sidecar's loopback with host windshift.fluffy-walleye.ts.net).
+# The protection targets local-only services hit by malicious web pages; here the
+# endpoint is tailnet-only (funnel auth + app-level CSRF/host checks still apply).
+Environment=MCPGODEBUG=disablelocalhostprotection=1
 # --- Everything node/environment-specific comes from BWS via podman secrets ---
 # (populate-secrets.sh maps env vars -> podman secrets; same names as the
 # refs in secretspec.toml). Moving the production node = update BWS, no edits
