@@ -1,0 +1,32 @@
+[Unit]
+Description=Windshift app (web+api, upstream image)
+After=windshift-tailscale.container
+Requires=windshift-tailscale.container
+
+[Container]
+# podman 5.8 would otherwise name this systemd-windshift; set an explicit name
+# so the app is addressable as `windshift` (podman exec windshift ...).
+ContainerName=windshift
+Image=ghcr.io/windshiftapp/windshift:v0.4.2
+# Image pinned — do NOT set AutoUpdate=registry. Trial deployment; bump
+# intentionally after validating the new tag.
+# Shares the sidecar's namespace: no published ports; reachable via tailscale
+# funnel at https://windshift.fluffy-walleye.ts.net, and can resolve
+# windshift-db on the shared network.
+Network=windshift-tailscale.container
+# --- Static deployment policy flags (intentionally NOT in BWS) ---
+Environment=USE_PROXY=true
+Environment=ATTACHMENT_PATH=/data/attachments
+# --- Everything node/environment-specific comes from BWS via podman secrets ---
+# (populate-secrets.sh maps env vars -> podman secrets; same names as the
+# refs in secretspec.toml). Moving the production node = update BWS, no edits
+# here. POSTGRES_CONNECTION_STRING is composed by populate-secrets.sh from the
+# windshift-postgres-* parts.
+Secret=windshift-sso-secret,type=env,target=SSO_SECRET
+Secret=windshift-postgres-connection-string,type=env,target=POSTGRES_CONNECTION_STRING
+Secret=windshift-base-url,type=env,target=BASE_URL
+Secret=windshift-allowed-hosts,type=env,target=ALLOWED_HOSTS
+Volume=windshift-data.volume:/data
+
+[Service]
+Restart=always

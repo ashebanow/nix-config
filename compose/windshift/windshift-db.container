@@ -1,0 +1,24 @@
+[Unit]
+Description=Windshift PostgreSQL
+After=windshift.network.service
+Requires=windshift.network.service
+
+[Container]
+Image=docker.io/library/postgres:17-alpine
+# podman 5.8 would otherwise name this systemd-windshift-db; set the DNS name
+# explicitly so the app's connection string host (windshift-db) resolves.
+ContainerName=windshift-db
+Network=windshift.network
+# No PublishPort — database is tailnet-internal only.
+# DB/USER/PASSWORD all come from BWS via podman secrets (populate-secrets.sh).
+Secret=windshift-postgres-db,type=env,target=POSTGRES_DB
+Secret=windshift-postgres-user,type=env,target=POSTGRES_USER
+Secret=windshift-postgres-password,type=env,target=POSTGRES_PASSWORD
+Volume=windshift-pgdata.volume:/var/lib/postgresql/data
+HealthCmd=/usr/local/bin/pg_isready -U windshift -d windshift
+HealthInterval=10s
+HealthTimeout=5s
+HealthRetries=5
+
+[Service]
+Restart=always

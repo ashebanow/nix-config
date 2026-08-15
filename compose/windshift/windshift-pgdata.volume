@@ -1,0 +1,2 @@
+[Volume]
+# Postgres data — becomes systemd-windshift-pgdata. Survives container recreation.

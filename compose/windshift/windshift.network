@@ -1,0 +1,6 @@
+[Network]
+# Shared network for the tailscale sidecar and postgres.
+# The app (windshift.container) shares the sidecar's namespace
+# (Network=windshift-tailscale.container), so it can resolve windshift-db by
+# name while its listener is reachable from the sidecar's loopback
+# (127.0.0.1:8080).
