@@ -24,7 +24,6 @@
   my.monitoringPort = 9090;
   my.zmx = true;
   my.memory = true;
-  my.kaneo = true;  # quadlet units + secretspec/BWS secrets (compose/kaneo)
   my.windshift = true;  # quadlet units + secretspec/BWS secrets (compose/windshift)
 
   # Non-hardware defaults

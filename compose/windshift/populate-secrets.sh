@@ -9,7 +9,7 @@
 # POSTGRES_CONNECTION_STRING is composed here from the postgres parts (the app
 # expects the full URL; the host is always `windshift-db` on the podman net).
 #
-# Rules (mirror compose/kaneo):
+# Rules:
 #   - Pipe into stdin; never $(...) — command substitution strips trailing
 #     newlines.
 #   - Fail loudly and non-zero on any missing/empty value — a partial

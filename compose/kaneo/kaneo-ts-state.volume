@@ -1,2 +1,0 @@
-[Volume]
-# Tailscale sidecar state — persists the node identity across restarts.

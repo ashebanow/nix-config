@@ -1,2 +1,0 @@
-[Volume]
-# Postgres data — becomes systemd-kaneo-pgdata. Survives container recreation.

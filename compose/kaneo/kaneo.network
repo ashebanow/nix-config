@@ -1,5 +1,0 @@
-[Network]
-# Shared network for the tailscale sidecar and postgres.
-# The app (kaneo.container) shares the sidecar's namespace
-# (Network=kaneo-tailscale.container), so it can resolve kaneo-db by name
-# while its listener is reachable from the sidecar's loopback (127.0.0.1:5173).

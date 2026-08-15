@@ -1,9 +1,8 @@
 # Windshift module — quadlet units + secretspec/BWS secret population.
 #
-# Mirrors modules/features/kaneo.nix: REAL quadlet user units (rootless,
-# ~/.config/containers/systemd/), a tailscale sidecar for funnel-only ingress,
-# and secretspec/BWS for secrets (sops-nix only as the bootstrap-token
-# transport, same transitional story as kaneo).
+# REAL quadlet user units (rootless, ~/.config/containers/systemd/), a
+# tailscale sidecar for funnel-only ingress, and secretspec/BWS for secrets
+# (sops-nix only as the bootstrap-token transport).
 _: {
   my.modules.nixos.windshift =
     {
@@ -69,8 +68,7 @@ _: {
     in
     {
       config = lib.mkIf config.my.windshift {
-        # sops-nix secrets: BWS bootstrap token only (same declaration as the
-        # kaneo module — identical values merge cleanly).
+        # sops-nix secrets: BWS bootstrap token only.
         sops.secrets = {
           "bws-access-token" = {
             mode = "0600";
