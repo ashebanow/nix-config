@@ -77,3 +77,17 @@ Each skill includes:
 - `references/` — Detailed reference documentation
 
 See individual skill documentation for specific patterns and best practices.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub issues in this repo (`ashebanow/nix-config`), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default matt pocock vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: AGENTS.md + docs/ for the dendritic module/capability-flag model. See `docs/agents/domain.md`.
