@@ -181,6 +181,78 @@ kaneo-admin cmd='podman exec -i kaneo-db env PGPASSWORD=$POSTGRES_PASSWORD psql 
     SECRETSPEC_PROVIDER=bws
     secretspec run -- {{cmd}}
 
+# ===== WINDSHIFT =====
+
+# Windshift admin shell: resolve the production postgres secrets from BWS and
+# run a command against the windshift-db container (psql, migrations, ad-hoc
+# queries). Needs BWS_ACCESS_TOKEN in the shell (e.g. from a `bws`/Bitwarden
+# login). Uses the [profiles.production] route in
+# compose/windshift/secretspec.toml — the operator's token, deliberately NOT
+# a file on disk.
+# The command runs via `bash -c`: $POSTGRES_* references expand in the child
+# AFTER secretspec injects the resolved values into its environment, so the
+# secret values never appear in argv or in this recipe's own environment.
+# Custom cmds: use double quotes for SQL literals (a single quote would end
+# the wrapper's quoting).
+windshift-admin cmd='podman exec -i windshift-db env PGPASSWORD=$POSTGRES_PASSWORD psql -U $POSTGRES_USER -d $POSTGRES_DB':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "${BWS_ACCESS_TOKEN:-}" ]; then
+        echo "BWS_ACCESS_TOKEN is not set — source it first (bws login)" >&2
+        exit 1
+    fi
+    SECRETSPEC_FILE=compose/windshift/secretspec.toml
+    SECRETSPEC_PROFILE=production
+    SECRETSPEC_PROVIDER=bws
+    secretspec run -- bash -c '{{cmd}}'
+
+# Start the windshift stack (app + postgres + tailscale sidecar).
+# The containers are rootless quadlet USER units under the `podman` user
+# (~/.config/containers/systemd). Run as root (sudo) or as the podman user
+# (e.g. `ssh lumquat`).
+windshift-start:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Resolve `systemctl --user` for root (sudo -u podman + XDG_RUNTIME_DIR)
+    # vs. the podman user itself (e.g. an ssh session as podman@lumquat).
+    if [[ "$(id -u)" -eq 0 ]]; then
+        SYSTEMCTL=(sudo -u podman env XDG_RUNTIME_DIR="/run/user/$(id -u podman)" systemctl --user)
+    elif [[ "$(id -un)" == "podman" ]]; then
+        SYSTEMCTL=(systemctl --user)
+    else
+        echo "error: run as root or as the podman user (ssh lumquat)" >&2
+        exit 1
+    fi
+    "${SYSTEMCTL[@]}" start windshift.service windshift-db.service windshift-tailscale.service
+
+# Stop the windshift stack (app + postgres + tailscale sidecar).
+windshift-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "$(id -u)" -eq 0 ]]; then
+        SYSTEMCTL=(sudo -u podman env XDG_RUNTIME_DIR="/run/user/$(id -u podman)" systemctl --user)
+    elif [[ "$(id -un)" == "podman" ]]; then
+        SYSTEMCTL=(systemctl --user)
+    else
+        echo "error: run as root or as the podman user (ssh lumquat)" >&2
+        exit 1
+    fi
+    "${SYSTEMCTL[@]}" stop windshift.service windshift-db.service windshift-tailscale.service
+
+# Restart the windshift stack (app + postgres + tailscale sidecar).
+windshift-restart:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ "$(id -u)" -eq 0 ]]; then
+        SYSTEMCTL=(sudo -u podman env XDG_RUNTIME_DIR="/run/user/$(id -u podman)" systemctl --user)
+    elif [[ "$(id -un)" == "podman" ]]; then
+        SYSTEMCTL=(systemctl --user)
+    else
+        echo "error: run as root or as the podman user (ssh lumquat)" >&2
+        exit 1
+    fi
+    "${SYSTEMCTL[@]}" restart windshift.service windshift-db.service windshift-tailscale.service
+
 # ===== MISC =====
 
 # Build the zmx binary (standalone, from the zmx repo)
