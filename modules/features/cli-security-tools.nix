@@ -8,7 +8,6 @@ _: {
   }: {
     config = lib.mkIf config.my.cliSecurityTools {
       home.packages = with pkgs; [
-        age
         bitwarden-cli
         bws # bitwarden-secrets-manager (unfree — needs nixpkgs.config.allowUnfree)
         _1password-cli
@@ -19,7 +18,6 @@ _: {
         lego
         minisign
         rbw
-        sops
         trivy
       ];
     };

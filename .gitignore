@@ -1,3 +1,6 @@
+# Legacy age private keys — never commit (leftover sops keys may still exist on hosts)
+secrets/keys/
+
 # Pi Agent
 .pi/tasks/
 

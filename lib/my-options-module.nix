@@ -157,7 +157,7 @@
     cliSecurityTools = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable secrets/crypto/vuln-scanning CLI tools (age, sops, gitleaks, ...).";
+      description = "Enable secrets/crypto/vuln-scanning CLI tools (gitleaks, cosign, gnupg, ...).";
     };
     cliNetworkTools = lib.mkOption {
       type = lib.types.bool;
