@@ -147,11 +147,12 @@ bootstrap-bws HOST="lumquat":
         # root's authorizedKeys (only the dev machine's key is).
         echo "Installing locally on $(hostname) ..."
         sudo install -d -m 0700 /var/lib/secrets
-        printf '%s\n' "$token" | sudo sh -c 'umask 077 && cat > /var/lib/secrets/bws-access-token'
+        # No trailing newline: bws rejects the token if one is present.
+        printf '%s' "$token" | sudo sh -c 'umask 077 && cat > /var/lib/secrets/bws-access-token'
     else
         # Running on a dev machine — pipe the token over SSH to root@HOST.
         echo "Installing on {{HOST}} over SSH ..."
-        ssh "root@{{HOST}}" 'install -d -m 0700 /var/lib/secrets && umask 077 && cat > /var/lib/secrets/bws-access-token' <<< "$token"
+        printf '%s' "$token" | ssh "root@{{HOST}}" 'install -d -m 0700 /var/lib/secrets && umask 077 && cat > /var/lib/secrets/bws-access-token'
     fi
     echo "Bootstrap token installed at {{HOST}}:/var/lib/secrets/bws-access-token"
 
