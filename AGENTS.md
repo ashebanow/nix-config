@@ -52,7 +52,7 @@ reference documentation, and helper patterns.
 | Nix Debug | `/skill:nix-debug` | Service debugging via SSH |
 | Secrets Audit | `/skill:secrets-audit` | Secrets management auditing |
 | Nix Flake | `/skill:nix-flake` | Flake dependency management |
-| Secrets | `/skill:secrets` | SOPS secrets workflow |
+| Secrets | `/skill:secrets` | BWS + SecretSpec secrets workflow |
 | Dend Arch | `/skill:dend-arch` | Architecture compliance review |
 | Dend Feature | `/skill:dend-feature` | Feature module compliance |
 | Dend Services | `/skill:dend-services` | Services layer review |

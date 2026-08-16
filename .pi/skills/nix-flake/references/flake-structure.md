@@ -18,10 +18,8 @@
       url = "github:zhaofengli/colmena";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Secrets are declared in secretspec.toml and resolved from BWS at runtime
+    # (see SECRET_SYNC.md) — no flake input needed.
     nixos-hardware.url = "github:nixos/nixos-hardware";
   };
 

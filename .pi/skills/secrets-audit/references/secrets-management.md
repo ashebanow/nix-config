@@ -2,69 +2,51 @@
 
 ## Architecture
 
-This project uses **inline SOPS** — secrets are managed directly in the
-NixOS flake, NOT in a separate secrets repository.
+Values live in **Bitwarden Secrets Manager (BWS)** — project **Homelab**.
+Requirements are declared in the repo-root [`secretspec.toml`](../../../secretspec.toml).
+There is no encrypted file in the repo and no sops-nix.
 
 ```
-secrets/
-├── secrets.yaml         # Encrypted secret values
-└── keys/
-    └── lumquat.age      # Age key for this host
+secretspec.toml                          # declarations + scopes
+/var/lib/secrets/bws-access-token        # out-of-band bootstrap (root-only, 0600)
+scripts/populate-host-secrets.sh         # host-scope file materialization
 ```
 
-## SOPS YAML Format
+## Manifest format
 
-```yaml
-tailscale-auth-key: |
-  tskey-auth-k8sABC123...
-llm-serve-env: |
-  API_KEY=secret123
+```toml
+[project]
+name = "nix-config"
+revision = "1.0"
+
+[profiles.production]
+DEEPSEEK_API_KEY = { description = "DeepSeek API key", required = true, ref = { item = "deepseek-api-key" } }
+
+[scopes.litellm]
+secrets = ["DEEPSEEK_API_KEY"]
 ```
 
 ## Adding a New Secret
 
-1. **Create the secret file** (encrypted):
-   ```bash
-   # Edit encrypted secrets
-   sops secrets/secrets.yaml
-   ```
+1. Create the value in BWS (Homelab project), lowercased/dashed name.
+2. Declare it in `secretspec.toml` under `[profiles.production]` with a `ref.item`.
+3. Add it to the relevant `[scopes.<name>].secrets` allowlist.
+4. Consume it via `secretspec run -P production -S <scope> -- …`.
+5. Verify with `just secrets-check`.
 
-2. **Declare in module**:
-   ```nix
-   sops.secrets.my-new-secret = {
-     mode = "0400";
-     key = "data";
-   };
-   ```
+## Scopes
 
-3. **Use at runtime**:
-   ```nix
-   # Via environmentFile
-   environmentFile = [config.sops.secrets.my-new-secret.path];
-
-   # Via template
-   content = "API_KEY=${config.sops.placeholder.my-new-secret}";
-   ```
-
-## Age Key Management
-
-```bash
-# Generate new age key
-ssh-to-age -i ~/.ssh/id_ed25519 > secrets/keys/lumquat.age
-
-# Or generate standalone key
-age-keygen -o secrets/keys/lumquat.age
-```
-
-## Common Secret Names
-
-| Secret | Purpose |
-|--------|---------|
-| `tailscale-auth-key` | Tailscale authentication |
-| `llm-serve-env` | Environment for LLM containers |
+| Scope | Consumer |
+|-------|----------|
+| `host` | `host-secrets-populate.service` |
+| `litellm` | `litellm-compose.service` |
+| `openwebui` | `openwebui-compose.service` |
+| `memory` | `memory-compose.service`, `memory-health-check.service` |
+| `windshift` | `windshift-secrets-populate.service` |
 
 ## Security Notes
 
-- Never commit plaintext secrets
-- Age keys should have restrictive permissions: `600`
-- Secrets at `/run/secrets/` are readable by root only
+- Never commit plaintext secrets.
+- The bootstrap token file is root-only (0600); provision via `just bootstrap-bws`.
+- Prefer `secretspec run` (env injection) over `.env` files or podman-secret readback.
+- File-backed consumers (tailscale, determinate-nixd) are the only secrets written to disk.

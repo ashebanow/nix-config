@@ -19,8 +19,9 @@ Single-context repo: one shared domain model for the whole config (module layout
 ├── AGENTS.md
 ├── hosts/<host>/configuration.nix   ← capability flags per host
 ├── modules/features/<svc>.nix       ← feature modules (mkIf-guarded)
-├── compose/<svc>/                   ← quadlet units, secretspec, ts-serve
-├── secrets/                         ← sops bootstrap token store (read-only)
+├── compose/<svc>/                   ← quadlet units, populate scripts, ts-serve
+├── secretspec.toml                  ← shared BWS secret declarations + scopes
+├── scripts/populate-host-secrets.sh ← host-secret file materialization
 └── docs/                            ← architecture + plans
 ```
 

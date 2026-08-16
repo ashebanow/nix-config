@@ -1,64 +1,52 @@
-# Secrets Workflow
+# Secrets Workflow (BWS + SecretSpec)
 
 ## Adding a Secret: Complete Flow
 
-### Scenario: Add Tailscale auth key
+### Scenario: Add a Tailscale auth key for a new service
 
-1. **Create the secret value** (user does outside of Nix):
-   ```bash
-   # Get auth key from Tailscale admin console
-   # Store temporarily (user's responsibility)
+1. **Create the value in BWS** (user does outside of Nix):
+   - BW web console → Secrets Manager → Homelab → create item
+   - Name it with the convention: env var lowercased, service prefix, dashes
+     (e.g. `my-service-tailscale-auth-key`)
+
+2. **Declare it** in `secretspec.toml`:
+
+   ```toml
+   [profiles.production]
+   MY_SERVICE_TS_AUTHKEY = { description = "Tailscale auth key for my-service", required = true, ref = { item = "my-service-tailscale-auth-key" } }
+
+   [scopes.my-service]
+   secrets = ["MY_SERVICE_TS_AUTHKEY"]
    ```
 
-2. **Edit encrypted file**:
-   ```bash
-   export SOPS_AGE_KEY_FILE=$(cat secrets/keys/lumquat.age)
-   sops secrets/secrets.yaml
-   ```
+3. **Consume it** in the module. For a podman-compose service, wrap the start
+   command in `secretspec run` so the value is injected as an env var:
 
-3. **Add to YAML**:
-   ```yaml
-   tailscale-auth-key: |
-     tskey-auth-k8sABC123XYZ...
-   ```
-
-4. **Declare in module** (`modules/features/tailscale.nix`):
    ```nix
-   sops.secrets.tailscale-auth-key = {
-     mode = "0640";
-     group = "tailscale";
-     key = "data";
-   };
+   ExecStart = pkgs.writeShellScript "my-compose-start" ''
+     set -e
+     export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+     exec ${pkgs.secretspec}/bin/secretspec run -P production -S my-service -- \
+       ${pkgs.podman-compose}/bin/podman-compose -f /etc/my/compose.yml up -d
+   '';
    ```
 
-5. **Use in config**:
-   ```nix
-   services.tailscale = {
-     enable = true;
-     authKeyFile = config.sops.secrets.tailscale-auth-key.path;
-   };
-   ```
+4. **Verify**:
 
-6. **Deploy**:
    ```bash
-   colmena apply --on lumquat --impure
+   just secrets-check   # resolves the full manifest against BWS
    ```
 
-## SOPS Edit Mode
+## Resolving a scope manually (operator)
 
-When editing `secrets.yaml`:
-
-| Key | Action |
-|-----|--------|
-| `Ctrl+O` | Save |
-| `Ctrl+X` | Exit |
-
-The file is automatically re-encrypted on save.
-
-## Validation
-
-After deployment, verify:
 ```bash
-ssh lumquat "ls -la /run/secrets/"
-ssh lumquat "cat /run/secrets/tailscale-auth-key"
+SECRETSPEC_PROVIDER=bws secretspec run -f secretspec.toml -P production -S host -- env
+```
+
+## Bootstrap
+
+The BWS access token is provisioned once, out-of-band:
+
+```bash
+just bootstrap-bws lumquat   # writes /var/lib/secrets/bws-access-token (0600)
 ```

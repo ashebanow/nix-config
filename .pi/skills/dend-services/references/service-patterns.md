@@ -9,7 +9,7 @@ _: {
     services.tailscale = {
       enable = true;
       useRoutingFeatures = "server";
-      authKeyFile = config.sops.secrets.tailscale-auth-key.path;
+      authKeyFile = "/run/secrets/tailscale-auth-key"; # BWS secret (host-secrets-populate)
     };
 
     networking.firewall = {

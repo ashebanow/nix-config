@@ -20,7 +20,7 @@ This flake manages the lumquat NixOS configuration with:
 - `import-tree` — automatic directory importing
 - `home-manager` — user environment management
 - `colmena` — remote deployment
-- `sops-nix` — secrets management
+- `secretspec` + BWS — secrets management (declared in `secretspec.toml`)
 - `nixos-hardware` — hardware quirks
 
 ## Your Responsibilities

@@ -15,7 +15,7 @@ This document describes the architectural decisions and patterns for the lumquat
 | GPU | AMD RDNA 3.5 with GPU passthrough |
 | Monitoring | Cockpit web UI |
 | Remote Access | Tailscale (LLMs routed through Aperture only) |
-| Secrets | sops-nix (inline, no separate repo) |
+| Secrets | Bitwarden Secrets Manager + SecretSpec (single root `secretspec.toml`) |
 | Extensibility | Designed for future servers |
 
 ---
@@ -87,16 +87,13 @@ nix-config/                   # Bare repo (worktrees for each host)
 │   │   │   ├── access.nix             # Tailscale access + fallback SSH
 │   │   │   ├── cockpit.nix             # Cockpit web UI
 │   │   │   ├── podman-base.nix         # Podman/quadlet infrastructure
-│   │   │   ├── sops-nix.nix            # Secrets management
+│   │   │   ├── secrets.nix             # host-secrets-populate + secretspec wiring
 │   │   │   └── colmena.nix             # Colmena host definitions
 │   │   └── hosts/                # Per-host compositions
 │   │       └── lumquat/           # lumquat host directory
 │   │           ├── configuration.nix        # Host composition (imports features)
 │   │           └── hardware-configuration.nix  # Host-specific hardware
-│   ├── secrets/                  # SOPS age keys and secrets
-│   │   ├── keys/
-│   │   │   └── lumquat.age       # lumquat host key
-│   │   └── secrets.nix           # Secret definitions
+│   ├── secretspec.toml             # BWS secret declarations + scopes
 │   └── justfile                 # Convenience tasks
 ```
 
@@ -134,11 +131,9 @@ inputs = {
   # Container runtime
   # Podman is in nixpkgs, quadlets are native NixOS module options
 
-  # Secrets
-  sops-nix = {
-    url = "github:Mic92/sops-nix";
-    inputs.nixpkgs.follows = "nixpkgs";
-  };
+  # Secrets are declared in the repo-root secretspec.toml and resolved from
+  # Bitwarden Secrets Manager at runtime (see SECRET_SYNC.md) — no flake input
+  # needed.
 
   # Monitoring
   # Cockpit is available in nixpkgs
@@ -212,7 +207,7 @@ Hosts import feature modules via the deferredModule system:
       inputs.self.nixosModules.llm-serve
       inputs.self.nixosModules.tailscale
       inputs.self.nixosModules.cockpit
-      inputs.self.nixosModules.sops-nix
+      inputs.self.nixosModules.secrets
       # Host-specific hardware
       ./hardware-configuration.nix
     ];
@@ -318,7 +313,7 @@ gated on `my.access`):
 ```nix
 services.tailscale = {
   enable = true;
-  authKeyFile = "/run/secrets/tailscale-auth-key";  # SOPS secret
+  authKeyFile = "/run/secrets/tailscale-auth-key";  # BWS secret (host-secrets-populate)
   # "client" keeps the node able to *use* routing features (exit nodes /
   # subnet routes from other nodes); serving routes ourselves is additive,
   # so any exit-node/subnet-routing flag flips this to "both" — never a
@@ -338,7 +333,7 @@ services.tailscale = {
 ```
 
 - Auth: the nixpkgs module's built-in `tailscaled-autoconnect.service` reads the
-  SOPS-decrypted auth key and runs `tailscale up` with `extraUpFlags`.
+  BWS-resolved auth key and runs `tailscale up` with `extraUpFlags`.
 - Routing modes: `"client"` = loose reverse-path filtering (consume exit
   nodes/subnet routes); `"both"` also enables IP forwarding (serve them).
 - Firewall: `checkReversePath = "loose"`, `trustedInterfaces = ["tailscale0"]` —
@@ -393,57 +388,37 @@ _: {
 
 ---
 
-## SOPS-nix Configuration (Inline)
+## Secrets (BWS + SecretSpec)
 
-### Secrets Directory Structure
+Secrets live in **Bitwarden Secrets Manager** (project: Homelab) and are declared
+in the repo-root [`secretspec.toml`](../secretspec.toml). There is no encrypted
+file in the repo and no sops-nix module.
+
+### Structure
 
 ```
-secrets/
-├── keys/
-│   └── lumquat.age           # Age key for lumquat host
-└── secrets.nix               # Secret file definitions
+secretspec.toml                  # [profiles.production] + [scopes.*] declarations
+scripts/populate-host-secrets.sh # materializes the 2 file-backed host secrets
+/var/lib/secrets/bws-access-token  # out-of-band BWS bootstrap (root-only, 0600)
 ```
 
-### secrets.nix Example
+### Consumption
 
-```nix
-# secrets/secrets.nix
-{
-  # Tailscale auth key
-  "tailscale-auth-key" = {
-    owner = "root";
-    group = "tailscale";
-    mode = "0640";
-  };
+- **Host secrets** (tailscale, flakehub): `host-secrets-populate.service` resolves
+  the `host` scope and writes `/run/secrets/tailscale-auth-key` and
+  `/run/secrets/flakehub-token` (the only file-backed consumers).
+- **Container secrets** (litellm, openwebui, memory): the compose systemd
+  services run `secretspec run -P production -S <scope> -- podman-compose up -d`,
+  injecting values straight into the process env (no `.env`).
+- **Windshift** (quadlet): `windshift-secrets-populate.service` resolves the
+  `windshift` scope into rootless podman secrets, consumed by quadlet `Secret=`.
 
-  # LLM serving environment
-  "llm-serve-env" = {
-    owner = "root";
-    mode = "0600";
-  };
+### Bootstrap
 
-  # Additional secrets...
-}
-```
-
-### Feature Module with SOPS
-
-```nix
-# modules/features/sops-nix.nix
-_: {
-  my.modules.nixos.sops-nix = _: {
-    imports = [sops-nix.nixosModules.sops];
-
-    sops = {
-      defaultSopsFile = ../secrets/secrets.yaml;
-      age.keyFile = /etc/nix/secrets/lumquat.age;
-      age.generateKey = true;  # Or use existing key
-    };
-
-    # Secrets are available at /run/secrets/<name>
-  };
-}
-```
+The BWS access token is provisioned once, out-of-band, at
+`/var/lib/secrets/bws-access-token` (root-only, 0600) via `just bootstrap-bws`,
+and delivered to services through `LoadCredential` + the
+`systemd-credential://` provider. See `SECRET_SYNC.md` for details.
 
 ---
 
@@ -555,7 +530,7 @@ hardware.graphics.enable = true;
 3. **Create nixos-infra.nix** (system builder)
 4. **Create base feature modules**: nixos-base, podman-base
 5. **Create llm-serve feature** based on Strix Halo toolboxes
-6. **Add Tailscale + Cockpit + SOPS modules**
+6. **Add Tailscale + Cockpit + secrets modules**
 7. **Set up Colmena config**
 8. **Create lumquat host composition**
 9. **Test build and deployment**

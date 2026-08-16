@@ -51,7 +51,7 @@ Before implementing a new feature or significant change, review the architecture
 - [ ] Registers into correct `my.modules.*` container
 - [ ] Uses `lib.mkIf` with capability flag (if conditional)
 - [ ] No hardcoded hostnames
-- [ ] Secrets declared correctly with sops
+- [ ] Secrets declared in `secretspec.toml` and resolved from BWS (scoped correctly)
 - [ ] No circular dependencies
 
 ## Reference

@@ -69,68 +69,40 @@ and `cryptsetup`. This is a one-time manual step not covered by the Nix config.
 
 ## Secrets Setup
 
-### 4. Generate Machine SSH Key for SOPS
+### 4. Bootstrap the BWS Access Token
 
-SOPS uses age encryption. We derive the age key from the machine's SSH host key.
+Secrets live in **Bitwarden Secrets Manager (BWS)** and are declared in the
+repo-root [`secretspec.toml`](secretspec.toml). The only secret that must be
+provisioned out-of-band is the BWS access token itself (a machine-account
+"chezmoi" token for the Homelab project). See [`SECRET_SYNC.md`](SECRET_SYNC.md)
+for the full architecture.
 
-**On lumquat:**
-
-```bash
-# Generate SSH host key if not already present
-ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
-
-# Convert to age key
-nix-shell -p ssh-to-age --run \
-  "ssh-to-age -private-key -i /etc/ssh/ssh_host_ed25519_key > /tmp/lumquat-age-key.txt"
-
-# Display the public age key (you'll need this for .sops.yaml)
-ssh-to-age < /etc/ssh/ssh_host_ed25519_key.pub
-# Output: age1...
-```
-
-### 5. Configure `.sops.yaml`
-
-**On your local machine** (in the lumquat repo):
+**On your local machine**, install the token on lumquat (prompts, never echoes):
 
 ```bash
-# Edit secrets/.sops.yaml to include all recipient keys:
-#
-# creation_rules:
-#   - path_regex: secrets/secrets\.yaml$
-#     age: |
-#       age1...your-personal-key...
-#       age1...lumquat-machine-key...
+just bootstrap-bws lumquat
 ```
 
-Add both:
-- Your personal age key (from `~/.config/sops/age/keys.txt`)
-- The lumquat machine age key (from step 4 above)
-
-> **Work item**: Generate your personal age key if you don't have one:
-> ```bash
-> mkdir -p ~/.config/sops/age
-> nix-shell -p age --run "age-keygen -o ~/.config/sops/age/keys.txt"
-> ```
-
-### 6. Fill In Secrets
-
-**On your local machine:**
+Or directly:
 
 ```bash
-cd /path/to/lumquat
-
-# Edit secrets/secrets.yaml with real values
-# - tailscale-auth-key: get from https://login.tailscale.com/admin/settings/keys
-#   (Create a reusable auth key, tag it for lumquat)
-
-# Re-encrypt with all recipients
-nix-shell -p sops --run "sops updatekeys secrets/secrets.yaml"
+ssh root@lumquat 'install -d -m 0700 /var/lib/secrets && \
+  install -m 0600 -o root -g root /dev/stdin /var/lib/secrets/bws-access-token' \
+  < <(printf '%s' '0.abc123...')
 ```
 
-Verify:
+The token is created in the BW web console: **Secrets Manager → Homelab →
+Machine Accounts → chezmoi → Access Tokens**.
+
+### 5. Verify Secret Resolution
+
 ```bash
-nix-shell -p sops --run "sops -d secrets/secrets.yaml"
+# From your local machine (requires BWS_ACCESS_TOKEN in env)
+just secrets-check
 ```
+
+This resolves every secret in the shared manifest against BWS and reports any
+missing items.
 
 ---
 
@@ -234,12 +206,14 @@ ssh podman@lumquat   # via Tailscale SSH
 ssh -p 2222 root@lumquat  # fallback SSH
 ```
 
-### 12. Verify SOPS Decryption
+### 12. Verify Secrets
 
 ```bash
 # On lumquat
 cat /run/secrets/tailscale-auth-key
-# Should show your auth key
+# Should show your auth key (populated from BWS at boot)
+
+systemctl status host-secrets-populate
 ```
 
 ---
@@ -290,17 +264,18 @@ After promotion, they live at `/nix/store/...` (immutable, read-only).
 
 ### 14. Back Up Machine Keys
 
-**Critical:** Back up lumquat's SSH host keys and age identity so you can
-decrypt SOPS secrets and rebuild the machine.
+**Critical:** Back up lumquat's SSH host keys so you can re-establish SSH access
+and rebuild the machine.
 
 ```bash
 # On lumquat, back these up to a safe location:
 /etc/ssh/ssh_host_ed25519_key
 /etc/ssh/ssh_host_ed25519_key.pub
-
-# Converted age key (from step 4)
-/tmp/lumquat-age-key.txt  → save this somewhere safe
 ```
+
+Secrets themselves live in BWS (the Homelab project), so there is no local
+encrypted secret file to back up — only the BWS bootstrap token, which can be
+re-issued from the BW web console at any time.
 
 > **Work item**: Add automated key backup (e.g., to 1Password or a secure git
 > repo). Currently manual.
@@ -327,7 +302,7 @@ These items are planned but not yet implemented:
 | **Colmena deployment** | High | Replace manual `nixos-rebuild` with `colmena deploy` |
 | **DeepSeek v4 container** | Medium | Add second container when model is released |
 | **`system.stateVersion`** | Low | Add explicit state version to base config |
-| **Automated key backup** | Medium | Backup SSH/age keys to secure storage |
+| **Automated key backup** | Medium | Backup SSH host keys to secure storage |
 | **Monitoring dashboards** | Low | Grafana/Prometheus for GPU and LLM metrics |
 | **Firewall consolidation** | Low | Move all firewall rules to a single location |
 | **Colmena health checks** | Low | Set up `colmena exec` health checks |

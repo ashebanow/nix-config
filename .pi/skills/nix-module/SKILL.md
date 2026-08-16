@@ -17,7 +17,7 @@ infrastructure repository using the dendritic pattern.
 - `modules/features/` — Deferred feature modules (flake-parts level)
 - `modules/hosts/` — Per-host compositions
 - `lib/` — Shared helper functions and options
-- `secrets/` — SOPS secrets (inline, no separate repo)
+- `secretspec.toml` — BWS secret declarations + scopes (repo root)
 - `flake.nix` — Entry point with auto-import via import-tree
 
 ## Dendritic Pattern
@@ -57,15 +57,12 @@ config = lib.mkIf config.my.hasDesktop {
 };
 ```
 
-### SOPS Secrets
+### Secrets (BWS + SecretSpec)
 
-```nix
-sops.secrets.my-secret = {
-  sopsFile = config.secrets.host.my-service.my-secret;
-  mode = "0400";
-  key = "data";
-};
-```
+Secrets are declared in `secretspec.toml` and resolved from BWS at runtime via
+`secretspec run`. Prefer env injection (no `.env`, no podman-secret readback);
+file-backed consumers (tailscale, determinate-nixd) go through
+`host-secrets-populate.service`. See `SECRET_SYNC.md`.
 
 ## Your Responsibilities
 
@@ -77,7 +74,7 @@ sops.secrets.my-secret = {
 
 ## Guidelines
 
-- Never hardcode secrets — use `sops` or `config.sops.secrets`
+- Never hardcode secrets — use BWS + SecretSpec (`secretspec run` / `ref.item`)
 - Prefer `lib.mkIf config.something.enable` guards over unconditional config
 - Keep modules focused — one concern per module file
 - Use `with lib;` sparingly — prefer qualified access for clarity
