@@ -127,12 +127,25 @@ vm:
 # file. The token is from the "chezmoi" machine account in the BW Secrets
 # Manager Homelab project (see SECRET_SYNC.md). Never committed anywhere.
 # Usage: just bootstrap-bws [HOST]   (default: lumquat)
+# Works from a dev machine (SSH to root@HOST) or on the host itself (local
+# passwordless sudo for the podman user).
 bootstrap-bws HOST="lumquat":
     #!/usr/bin/env bash
     set -euo pipefail
     read -rsp "BWS access token (chezmoi machine account): " token; echo
     [[ -n "$token" ]] || { echo "error: empty token" >&2; exit 1; }
-    ssh "root@{{HOST}}" "install -d -m 0700 /var/lib/secrets && install -m 0600 -o root -g root /dev/stdin /var/lib/secrets/bws-access-token" <<< "$token"
+    if [[ "$(hostname)" == "{{HOST}}" || "$(hostname -s)" == "{{HOST}}" ]]; then
+        # Running ON the target host — install locally with sudo. Never SSH
+        # back to ourselves: root SSH is disabled and podman's key isn't in
+        # root's authorizedKeys (only the dev machine's key is).
+        echo "Installing locally on $(hostname) ..."
+        sudo install -d -m 0700 /var/lib/secrets
+        printf '%s\n' "$token" | sudo sh -c 'umask 077 && cat > /var/lib/secrets/bws-access-token'
+    else
+        # Running on a dev machine — pipe the token over SSH to root@HOST.
+        echo "Installing on {{HOST}} over SSH ..."
+        ssh "root@{{HOST}}" 'install -d -m 0700 /var/lib/secrets && umask 077 && cat > /var/lib/secrets/bws-access-token' <<< "$token"
+    fi
     echo "Bootstrap token installed at {{HOST}}:/var/lib/secrets/bws-access-token"
 
 # Verify every secret in the shared manifest resolves against BWS.
