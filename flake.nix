@@ -43,12 +43,6 @@
     # index the symlinks Nix creates).
     mac-app-util.url = "github:hraban/mac-app-util";
 
-    # Secrets management
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # NixOS hardware quirks
     nixos-hardware.url = "github:nixos/nixos-hardware";
   };

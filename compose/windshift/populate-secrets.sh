@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Populates podman secrets for the Windshift quadlet units.
 #
-# Invoked as:  secretspec run -P production -- populate-secrets.sh
-# (from the windshift-secrets.service oneshot). secretspec injects every secret
-# from the production profile as an env var; this script maps them to podman
-# secret names — the same names the units' `Secret=<name>` lines reference.
+# Invoked as:  secretspec run -P production -S windshift -- populate-secrets.sh
+# (from the windshift-secrets.service oneshot). secretspec injects the windshift
+# scope of the shared repo-root manifest as env vars; this script maps them to
+# podman secret names — the same names the units' `Secret=<name>` lines reference.
 #
 # POSTGRES_CONNECTION_STRING is composed here from the postgres parts (the app
 # expects the full URL; the host is always `windshift-db` on the podman net).
@@ -37,7 +37,7 @@ create windshift-sso-secret SSO_SECRET
 create windshift-postgres-db POSTGRES_DB
 create windshift-postgres-user POSTGRES_USER
 create windshift-postgres-password POSTGRES_PASSWORD
-create windshift-tailscale-auth-key TS_AUTHKEY
+create windshift-tailscale-auth-key WINDSHIFT_TS_AUTHKEY
 create windshift-base-url BASE_URL
 create windshift-allowed-hosts ALLOWED_HOSTS
 

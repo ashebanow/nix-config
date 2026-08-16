@@ -6,13 +6,10 @@ _: {
     ...
   }: {
     config = lib.mkIf config.my.access {
-      # SOPS secrets for access module
-      sops.secrets."tailscale-auth-key" = {
-        mode = "0640";
-        group = "root";
-      };
-
       # Tailscale — uses built-in autoconnect via authKeyFile + extraUpFlags.
+      # The auth key file is written by host-secrets-populate.service
+      # (modules/features/secrets.nix), which resolves it from BWS via secretspec
+      # before tailscaled-autoconnect reads it.
       # useRoutingFeatures: "client" keeps the node able to *use* routing
       # features (exit nodes / subnet routes from other nodes); serving any of
       # them ourselves (exit node, subnet router) is additive, so flip to

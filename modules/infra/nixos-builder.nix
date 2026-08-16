@@ -6,7 +6,7 @@
   lib,
   ...
 }: let
-  inherit (inputs) sops-nix nixos-hardware home-manager determinate;
+  inherit (inputs) nixos-hardware home-manager determinate;
   system = "x86_64-linux";
 
   # Collect deferred modules registered by feature modules
@@ -16,7 +16,6 @@
   # Base NixOS modules included in every host
   baseModules = [
     ../../lib/my-options-module.nix
-    sops-nix.nixosModules.sops
     nixos-hardware.nixosModules.common-cpu-amd
     home-manager.nixosModules.home-manager
     determinate.nixosModules.default

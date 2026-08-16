@@ -117,6 +117,18 @@
       description = "Enable the Windshift work-management app (quadlet units + secretspec/BWS secrets).";
     };
 
+    # Secrets (secretspec + BWS) — shared paths used by every secret consumer.
+    secretspecManifest = lib.mkOption {
+      type = lib.types.str;
+      default = "/etc/secretspec.toml";
+      description = "Absolute path to the shared secretspec.toml (symlinked from the repo root).";
+    };
+    bwsAccessTokenFile = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/secrets/bws-access-token";
+      description = "Root-only BWS bootstrap access token file (provisioned out-of-band; never in the store or git).";
+    };
+
     # CLI tools feature (Home Manager)
     cliTools = lib.mkOption {
       type = lib.types.bool;

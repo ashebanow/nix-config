@@ -121,32 +121,24 @@ vm:
     nix build .#nixosConfigurations.lumquat.config.system.build.vm
     ./result/bin/run-lumquat-vm
 
-# ===== SECRETS (SOPS) =====
+# ===== SECRETS (BWS + secretspec) =====
 
-# One-time: generate age key from SSH identity (run on each dev machine)
-setup-age:
+# One-time bootstrap: install the BWS access token on a host as a root-only
+# file. The token is from the "chezmoi" machine account in the BW Secrets
+# Manager Homelab project (see SECRET_SYNC.md). Never committed anywhere.
+# Usage: just bootstrap-bws [HOST]   (default: lumquat)
+bootstrap-bws HOST="lumquat":
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p ~/.config/sops/age
-    if [ ! -f ~/.config/sops/age/keys.txt ]; then
-        nix run nixpkgs#ssh-to-age -- -i ~/.ssh/id_ed25519 -private-key > ~/.config/sops/age/keys.txt
-        chmod 600 ~/.config/sops/age/keys.txt
-        echo "Age key written to ~/.config/sops/age/keys.txt"
-    else
-        echo "Age key already exists at ~/.config/sops/age/keys.txt"
-    fi
+    read -rsp "BWS access token (chezmoi machine account): " token; echo
+    [[ -n "$token" ]] || { echo "error: empty token" >&2; exit 1; }
+    ssh "root@{{HOST}}" "install -d -m 0700 /var/lib/secrets && install -m 0600 -o root -g root /dev/stdin /var/lib/secrets/bws-access-token" <<< "$token"
+    echo "Bootstrap token installed at {{HOST}}:/var/lib/secrets/bws-access-token"
 
-# Edit secrets (decrypt, edit, re-encrypt)
-secrets-edit:
-    sops secrets/secrets.yaml
-
-# Show decrypted secrets (read-only)
-secrets-show:
-    sops -d secrets/secrets.yaml
-
-# Re-encrypt after changing .sops.yaml recipients
-secrets-rekey:
-    sops updatekeys secrets/secrets.yaml
+# Verify every secret in the shared manifest resolves against BWS.
+# Requires BWS_ACCESS_TOKEN in the environment.
+secrets-check:
+    secretspec check -f secretspec.toml -P production --no-prompt
 
 # ===== DEPLOY (from a dev machine, via colmena) =====
 
@@ -167,9 +159,8 @@ health HOST="lumquat":
 # Windshift admin shell: resolve the production postgres secrets from BWS and
 # run a command against the windshift-db container (psql, migrations, ad-hoc
 # queries). Needs BWS_ACCESS_TOKEN in the shell (e.g. from a `bws`/Bitwarden
-# login). Uses the [profiles.production] route in
-# compose/windshift/secretspec.toml — the operator's token, deliberately NOT
-# a file on disk.
+# login). Uses the [profiles.production] route in the repo-root
+# secretspec.toml — the operator's token, deliberately NOT a file on disk.
 # The command runs via `bash -c`: $POSTGRES_* references expand in the child
 # AFTER secretspec injects the resolved values into its environment, so the
 # secret values never appear in argv or in this recipe's own environment.
@@ -182,7 +173,7 @@ windshift-admin cmd='podman exec -i windshift-db env PGPASSWORD=$POSTGRES_PASSWO
         echo "BWS_ACCESS_TOKEN is not set — source it first (bws login)" >&2
         exit 1
     fi
-    SECRETSPEC_FILE=compose/windshift/secretspec.toml
+    SECRETSPEC_FILE=secretspec.toml
     SECRETSPEC_PROFILE=production
     SECRETSPEC_PROVIDER=bws
     secretspec run -- bash -c '{{cmd}}'
