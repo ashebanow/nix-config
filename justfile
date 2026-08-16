@@ -134,6 +134,13 @@ bootstrap-bws HOST="lumquat":
     set -euo pipefail
     read -rsp "BWS access token (chezmoi machine account): " token; echo
     [[ -n "$token" ]] || { echo "error: empty token" >&2; exit 1; }
+    # BWS access tokens look like: 0.<base64url-key>.<base64url-mac> (~90 chars).
+    # Validate before writing so a wrong paste fails here, not at boot.
+    [[ "$token" =~ ^0\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] || {
+        echo "error: that does not look like a BWS access token (expected 0.<key>.<mac>)" >&2
+        echo "       get it from: BW console → Secrets Manager → Homelab → Machine Accounts → chezmoi → Access Tokens" >&2
+        exit 1
+    }
     if [[ "$(hostname)" == "{{HOST}}" || "$(hostname -s)" == "{{HOST}}" ]]; then
         # Running ON the target host — install locally with sudo. Never SSH
         # back to ourselves: root SSH is disabled and podman's key isn't in
