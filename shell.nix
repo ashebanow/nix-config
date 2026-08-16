@@ -14,6 +14,7 @@ pkgs.mkShell {
     nixd
     nixfmt
     pi-coding-agent
+    secretspec
     uv
   ];
 

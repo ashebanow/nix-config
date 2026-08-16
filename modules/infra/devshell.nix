@@ -25,6 +25,7 @@ _: {
         nixd
         nixfmt
         pi-coding-agent
+        secretspec
         uv
       ];
 
