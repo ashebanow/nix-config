@@ -172,6 +172,7 @@ _: {
         wants = ["network-online.target"];
         wantedBy = ["multi-user.target"];
         path = [
+          pkgs.podman
           pkgs.podman-compose
           pkgs.secretspec
           pkgs.bws
@@ -207,6 +208,7 @@ _: {
         wants = ["network-online.target"];
         wantedBy = ["multi-user.target"];
         path = [
+          pkgs.podman
           pkgs.podman-compose
           pkgs.secretspec
           pkgs.bws
