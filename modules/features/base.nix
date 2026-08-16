@@ -75,6 +75,7 @@ _: {
       # Base system packages
       environment.systemPackages = with pkgs; [
         btop
+        bws # bitwarden-secrets-manager (unfree) — operator shell + just recipes
         curl
         delta
         eza
@@ -83,6 +84,7 @@ _: {
         htop
         iputils
         nh
+        secretspec # operator shell + just recipes (secrets-check, windshift-admin)
         sudo
         vim
         wget
