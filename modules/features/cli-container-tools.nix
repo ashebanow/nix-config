@@ -15,6 +15,8 @@ _: {
         docker-credential-helpers
         kind
         lazydocker
+        podman
+        podman-compose
         # overmind
         # oxker excluded — nixpkgs' build runs a snapshot test that
         # asserts an "Alt" key-label string but gets "Option" on macOS
