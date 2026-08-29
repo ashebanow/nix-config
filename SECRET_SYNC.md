@@ -143,7 +143,7 @@ prior `bws login`.
 | BWS item key | Used by |
 |--------------|---------|
 | `lumquat-tailscale-auth-key` | host `tailscale` (node auth) |
-| `flakehub_bergamot_token` | `determinate-nixd` cache auth |
+| `NIX_FLAKEHUB_CACHE_TOKEN` | `determinate-nixd` cache auth |
 | `litellm-tailscale-auth-key` | litellm tailscale sidecar |
 | `LiteLLM Master Key` | litellm + openwebui |
 | `litellm-db-password` | litellm postgres |
@@ -154,6 +154,8 @@ prior `bws login`.
 | `mnemo-tailscale-auth-key` | mnemosyne tailscale sidecar |
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |
 
-> The `LiteLLM Master Key` / `OpenWebUI TS Auth Key` / `anthropic-api-key-pi` /
-> `flakehub_bergamot_token` names predate this migration; they are referenced
-> as-is to avoid re-pointing the dev-shell and dotfiles UUIDs.
+> The `LiteLLM Master Key` / `OpenWebUI TS Auth Key` / `anthropic-api-key-pi`
+> names predate this migration; they are referenced as-is to avoid re-pointing
+> the dev-shell and dotfiles UUIDs. `FLAKEHUB_TOKEN` was re-pointed from the
+> legacy `flakehub_bergamot_token` item to `NIX_FLAKEHUB_CACHE_TOKEN` (the
+> token formerly lived in the operator's personal Bitwarden vault).

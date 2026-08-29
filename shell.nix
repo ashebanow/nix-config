@@ -62,7 +62,7 @@ pkgs.mkShell {
         echo "export ANTHROPIC_API_KEY=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 28893b82-be1f-407c-aa2d-b4770134fcc1 2>/dev/null || true)\""
         echo "export EXA_API_KEY=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 52eba787-8cb2-41b7-87b1-b4770134b198 2>/dev/null || true)\""
         echo "export ZED_GITHUB_PERSONAL_ACCESS_TOKEN=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 2bc9244b-acf0-4620-8e29-b4770132e6f9 2>/dev/null || true)\""
-        echo "export FLAKEHUB_TOKEN=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 0c678df8-84e4-4a1b-90db-b4a101071ee3 2>/dev/null || true)\""
+        echo "export FLAKEHUB_TOKEN=\"$(BWS_ACCESS_TOKEN=\"$_bws_token\" bws secret get 8052c406-7295-4449-af40-b4b5013bea48 2>/dev/null || true)\""
       } > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
       chmod 600 "$CACHE_FILE"
 
