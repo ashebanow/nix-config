@@ -39,7 +39,7 @@ Problem: Cross-cutting features split across directories, `specialArgs` chains.
 ```
 modules/
   nixos-base.nix      # Timezone, base packages (all NixOS hosts)
-  llm-serve.nix       # LLM serving feature (applies to NixOS only)
+  llm.nix             # LLM serving feature (applies to NixOS only)
   access.nix         # Tailscale access + fallback SSH (applies to NixOS only)
   cockpit.nix         # Cockpit feature (applies to NixOS only)
 hosts/
@@ -83,7 +83,7 @@ nix-config/                   # Bare repo (worktrees for each host)
 │   │   │   └── pkgs.nix               # Package factory
 │   │   ├── features/         # Dendritic feature modules
 │   │   │   ├── nixos-base.nix         # Timezone, base packages
-│   │   │   ├── llm-serve.nix          # LLM serving (podman + quadlets)
+│   │   │   ├── llm.nix               # LLM serving (podman + quadlets)
 │   │   │   ├── access.nix             # Tailscale access + fallback SSH
 │   │   │   ├── cockpit.nix             # Cockpit web UI
 │   │   │   ├── podman-base.nix         # Podman/quadlet infrastructure
@@ -177,13 +177,14 @@ The core dendritic mechanism is the `deferredModule` type in flake-parts. From `
 Each feature module exports deferred modules:
 
 ```nix
-# modules/features/llm-serve.nix
+# modules/features/llm.nix
 _: {
-  my.modules.nixos.llm-serve = {config, pkgs, ...}: {
+  my.modules.nixos.llm = {config, pkgs, ...}: {
     # This module fragment will be composed into NixOS configurations
-    virtualisation.podman = {
-      enable = true;
-      # ... podman config for LLM containers
+    virtualisation.oci-containers = {
+      backend = "podman";
+      # ... llama.cpp containers from lib/models.nix (see "Quadlet
+      # Configuration for LLM Containers" below)
     };
   };
 }
@@ -191,29 +192,27 @@ _: {
 
 ### Host Composition
 
-Hosts import feature modules via the deferredModule system:
+Hosts enable features via capability flags in `hosts/lumquat/configuration.nix`;
+deferred modules are collected automatically by `modules/infra/nixos-builder.nix`:
 
 ```nix
-# modules/hosts/lumquat.nix
-{inputs, ...}: {
-  configurations.nixos.lumquat = {
-    system = "x86_64-linux";
-    modules = [
-      # Infrastructure modules
-      inputs.self.nixosModules.lumquat-infra
-      # Feature modules
-      inputs.self.nixosModules.nixos-base
-      inputs.self.nixosModules.podman-base
-      inputs.self.nixosModules.llm-serve
-      inputs.self.nixosModules.tailscale
-      inputs.self.nixosModules.cockpit
-      inputs.self.nixosModules.secrets
-      # Host-specific hardware
-      ./hardware-configuration.nix
-    ];
-  };
+# hosts/lumquat/configuration.nix
+_: {
+  my.base = true;
+  my.baseUsername = "podman";
+  my.llm = true;        # llama.cpp containers (modules/features/llm.nix)
+  my.llmServe = true;   # LiteLLM proxy + Open WebUI compose stacks
+  my.llmModelStorage = "/var/lib/llm-models";
+  my.access = true;     # Tailscale + SSH
+  my.monitoring = true; # Cockpit
+  my.secrets = true;    # BWS + SecretSpec host secrets
+  my.memory = true;     # Mnemosyne memory layer
 }
 ```
+
+Feature modules register `my.modules.nixos.<name>` (deferredModule);
+`nixos-builder.nix` collects them via `builtins.attrValues config.my.modules.nixos`
+into the single `nixosConfigurations.lumquat` system.
 
 ---
 
@@ -246,51 +245,39 @@ _: {
 
 ### Quadlet Configuration for LLM Containers
 
-Quadlets are systemd unit files for containers. In NixOS, use `virtualisation.podman.containers`:
+LLM containers are declared in `modules/features/llm.nix` via
+`virtualisation.oci-containers` (backend = podman), running rootless under the
+`podman` user. Each model is built through `mkContainer` from the catalog in
+`lib/models.nix`:
 
 ```nix
-# modules/features/llm-serve.nix
+# modules/features/llm.nix (condensed)
 _: {
-  my.modules.nixos.llm-serve = {config, pkgs, ...}: {
-    virtualisation.podman = {
+  my.modules.nixos.llm = {config, pkgs, ...}: {
+    virtualisation.oci-containers = {
+      backend = "podman";
       containers = {
-        # Qwen-27B for coding
-        qwen-27b = {
-          image = "ghcr.io/ggerganov/llama.cpp:server";
-          autoStart = true;
-          environment = {
-            MODEL = "/models/qwen-27b-q4_k_m.gguf";
-            HOST = "0.0.0.0";
-            PORT = "8080";
-          };
-          volumes = [
-            "/var/lib/llm-models:/models:ro"
-          ];
-          # GPU passthrough for AMD RDNA 3.5
-          devices = ["/dev/dri"];
-          environmentFile = ["/run/secrets/llm-serve-env"];
-        };
-
-        # DeepSeek v4 for planning/multimodal
-        deepseek-v4 = {
-          image = "ghcr.io/ggerganov/llama.cpp:server";
-          autoStart = true;
-          environment = {
-            MODEL = "/models/deepseek-v4-q4_k_m.gguf";
-            HOST = "0.0.0.0";
-            PORT = "8081";
-          };
-          volumes = [
-            "/var/lib/llm-models:/models:ro"
-          ];
-          devices = ["/dev/dri"];
-          environmentFile = ["/run/secrets/llm-serve-env"];
+        # Qwen 3.6 35B-A3B (MoE, 3B active) — coding assistant, 256K ctx, MTP
+        qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b {
+          extraOptions = baseOptions ++ [ /* health check */ ];
         };
       };
     };
   };
 }
 ```
+
+- **Image**: `docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0` (ROCm 10.0,
+  gfx1151 SDK; MTP is now in llama.cpp mainline)
+- **Model**: promoted `Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf` (SHA256-verified Nix
+  fetch, mounted read-only at `/models/`)
+- **Serving**: `tailscale-llm-serve.service` publishes
+  `https://lumquat.fluffy-walleye.ts.net/qwen-35b-a3b` → `localhost:8080`;
+  the LiteLLM proxy (`compose/llm/compose.yml`, pinned `litellm:v1.97.0`)
+  routes `qwen-35b-a3b` plus remote providers (deepseek-*, minimax-*, claude-*)
+  at `https://litellm.fluffy-walleye.ts.net`
+- **DeepSeek v4** (planning/multimodal) is a planned future model — see
+  `docs/plan.md`; add it to `lib/models.nix` and `mkContainer` when ready
 
 ### GPU Passthrough for Strix Halo
 
@@ -527,7 +514,7 @@ hardware.graphics.enable = true;
 2. **Set up module-containers.nix** (deferredModule infrastructure)
 3. **Create nixos-infra.nix** (system builder)
 4. **Create base feature modules**: nixos-base, podman-base
-5. **Create llm-serve feature** based on Strix Halo toolboxes
+5. **Create llm feature** based on Strix Halo toolboxes
 6. **Add Tailscale + Cockpit + secrets modules**
 7. **Set up Colmena config**
 8. **Create lumquat host composition**
