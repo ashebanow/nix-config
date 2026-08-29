@@ -14,10 +14,25 @@
 #   Track: https://github.com/BerriAI/litellm/issues (search: streaming body truncation)
 
 model_list:
-  # Local models on llama.cpp
+  # Local models on llama.cpp (both routes point at the same llama-server at
+  # 100.90.247.10:8080 — llama.cpp ignores the model field, so the name is
+  # purely a client-facing alias).
+  #   qwen-35b-a3b — legacy route, kept for back compat
+  #   qwen-latest  — generic alias for whatever model is currently deployed
   - model_name: qwen-35b-a3b
     litellm_params:
       model: openai/qwen-35b-a3b
+      api_base: http://100.90.247.10:8080/v1
+      api_key: sk-dummy
+      rpm: 100
+      timeout: 600
+      stream_timeout: 600
+      context_window: 262144
+      max_input_tokens: 262144
+
+  - model_name: qwen-latest
+    litellm_params:
+      model: openai/qwen-latest
       api_base: http://100.90.247.10:8080/v1
       api_key: sk-dummy
       rpm: 100

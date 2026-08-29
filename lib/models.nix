@@ -17,38 +17,54 @@
 in rec {
   # Promoted models with SHA256 hashes — fetched via pkgs.fetchurl.
   # Nix verifies integrity and caches the result.
-  ggufs = {
-    # Promoted — downloaded via Nix (SHA256 verified).
-    "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL" = {
-      file = "Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
-      url = "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/main/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf";
-      sha256 = "sha256-bGuBZTerrZCyUKCXKzRUZgKNhh3f4xbV8N4xymRA94E=";
-    };
-  };
+  #
+  # Qwen3.8-27B is currently unpromoted (experimental -hf path); once stable,
+  # compute the SHA256 on lumquat and add it here (see promotion workflow in
+  # the header comment).
+  ggufs = {};
 
   # Model metadata — used when model is not yet promoted to ggufs.
   # llama.cpp downloads on demand via -hf flag.
   models = {
-    # Coding assistant — Qwen 3.6 35B MoE (3B active), UD-Q8_K_XL, 256K ctx, MTP
-    # NOTE: UD-Q8_K_XL is the highest quant available for MTP; fits comfortably in 104 GB alone
+    # Coding assistant — Qwen 3.8 27B (dense), UD-Q8_K_XL, 4 slots × 256K, MTP.
+    # Sampling follows the Qwen3.8 recommended THINKING-mode settings
+    # (https://unsloth.ai/docs/models/qwen3.8 + HF README): temperature=1.0,
+    # top_p=0.95, top_k=20, min_p=0.0, presence_penalty=0.0,
+    # repetition_penalty=1.0 (llama.cpp default — not passed).
+    # MTP is trained into the model (HF README: "MTP (Multi-Token Prediction):
+    # trained with multiple steps") — no -MTP variant needed.
+    # 8-bit UD-Q8_K_XL ≈ 31 GB weights (unsloth hardware table);
+    # 1M total context at q4_0 KV fits in ~124 GB VRAM.
     qwen-35b-a3b = {
-      hf = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF:UD-Q8_K_XL";
-      ctxSize = 1572864; # 6 slots × 256K (total context pool)
+      hf = "unsloth/Qwen3.8-27B-GGUF:UD-Q8_K_XL";
+      ctxSize = 1048576; # 4 slots × 256K (total context pool; 256K native per request)
       flashAttn = true;
       ngl = 999;
       port = 8080;
       extraFlags = [
         "-np"
-        "6" # Parallel slots — 2 users × ~3 subagents, ~23-35 GB GTT headroom
-        "--jinja" # Jinja template support
+        "4" # Parallel slots — 256K each, 1M total pool
+        "--jinja" # Jinja template engine (chat template)
         "--spec-type"
-        "draft-mtp" # Multi-Token Prediction (~2x faster)
+        "draft-mtp" # MTP speculative decoding (built-in MTP heads)
         "--spec-draft-n-max"
-        "3" # Draft 3 tokens per step
+        "2" # Draft 2 tokens per step (matches unsloth vLLM example)
         "--cache-type-k"
-        "q4_0" # Q4 KV cache (~4x reduction vs F16, negligible quality loss)
+        "q4_0" # Q4 KV cache (~4x reduction vs F16)
         "--cache-type-v"
         "q4_0"
+        "--temp"
+        "1.0" # Qwen3.8 thinking-mode recommendation
+        "--top-p"
+        "0.95" # Qwen3.8 thinking-mode recommendation
+        "--top-k"
+        "20" # Qwen3.8 thinking-mode recommendation
+        "--min-p"
+        "0.0" # Qwen3.8 thinking-mode recommendation
+        "--presence-penalty"
+        "0.0" # Qwen3.8 thinking-mode recommendation
+        "--reasoning-effort"
+        "medium" # Balance accuracy vs speed (unsloth example)
       ];
     };
   };

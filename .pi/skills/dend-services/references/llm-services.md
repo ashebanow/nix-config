@@ -16,7 +16,7 @@ Image: `docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0`
 
 | Container | Model | Quant | Port | Context pool | Systemd Service |
 |-----------|-------|-------|------|--------------|-----------------|
-| qwen-35b-a3b | Qwen 3.6 35B-A3B (MoE, 3B active) | UD-Q8_K_XL | 8080 | 6 slots × 256K (1.5M total) | `podman-qwen-35b-a3b.service` |
+| qwen-35b-a3b | Qwen 3.8 27B (dense, hybrid thinking) | UD-Q8_K_XL | 8080 | 4 slots × 256K (1M total) | `podman-qwen-35b-a3b.service` |
 
 Model catalog lives in `lib/models.nix` (adapted from Doug Campos'
 [nixifying-local-llms](https://random.qmx.me/posts/2026/01/08/nixifying-local-llms/)):
@@ -56,13 +56,25 @@ Shared llama-server flags (`baseFlags`) — critical for Strix Halo:
 Per-model flags (qwen-35b-a3b, `models.nix`):
 
 ```nix
--np 6                      # 6 parallel slots (2 users × ~3 subagents)
+-np 4                      # 4 parallel slots (256K each, 1M total pool)
 --jinja                    # Jinja template engine
---spec-type draft-mtp      # MTP speculative decoding (~2x faster)
---spec-draft-n-max 3       # draft 3 tokens per step
+--spec-type draft-mtp      # MTP speculative decoding (built-in MTP heads)
+--spec-draft-n-max 2       # draft 2 tokens per step
 --cache-type-k q4_0        # Q4 KV cache (~4x reduction vs F16)
 --cache-type-v q4_0
+--temp 1.0                 # Qwen3.8 thinking-mode sampling (unsloth docs)
+--top-p 0.95
+--top-k 20
+--min-p 0.0
+--presence-penalty 0.0
+--reasoning-effort medium  # balance accuracy vs speed (unsloth example)
 ```
+
+Sampling follows the [Qwen3.8 recommended thinking-mode settings](https://unsloth.ai/docs/models/qwen3.8)
+(`temperature=1.0, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=0.0,
+repetition_penalty=1.0` — the last is llama.cpp's default). The instruct/
+non-thinking set (`temp=0.7, top_p=0.80, presence_penalty=1.5`) is available
+per-request if needed.
 
 The container has a health check (`curl :8080/health`, 30s interval, 60 retries,
 120s start period) so the model is preloaded before first real query.
@@ -72,8 +84,8 @@ The container has a health check (`curl :8080/health`, 30s interval, 60 retries,
 Strix Halo has 128 GB unified memory:
 - ~124 GB exposed to GPU via `amdgpu.gttsize=126976` (see
   `hosts/lumquat/hardware-configuration.nix`)
-- UD-Q8_K_XL fits comfortably in ~104 GB alone
-- `-np 6` leaves ~23–35 GB GTT headroom
+- Qwen3.8-27B UD-Q8_K_XL ≈ 31 GB weights (unsloth hardware table: 8-bit ≈ 31 GB)
+- 1M total context at q4_0 KV fits alongside the weights in VRAM
 - Strix Halo stability params: `amd_iommu=off`, `amdgpu.gttsize`, `ttm.pages_limit`
 - kyuz0 recommends kernel ≥ 6.18.9 (lumquat runs 6.18.46) and warns against
   `linux-firmware-20251125` (breaks ROCm on gfx1151)
@@ -90,9 +102,10 @@ Strix Halo has 128 GB unified memory:
 `litellm-compose.service` (compose file: `compose/llm/compose.yml`, symlinked to
 `/etc/litellm/`) runs a pinned `ghcr.io/berriai/litellm:v1.97.0` image with a
 Tailscale sidecar, served at `https://litellm.fluffy-walleye.ts.net`. It routes
-model names → local llama.cpp backends (qwen-35b-a3b) and remote providers
-(deepseek-*, minimax-*, claude-*). Secrets are injected from BWS via secretspec
-(`litellm` scope) at start; no `.env` files.
+model names → local llama.cpp backends and remote providers (deepseek-*,
+minimax-*, claude-*). Two aliases point at the same llama-server:
+`qwen-35b-a3b` (legacy, back compat) and `qwen-latest` (generic). Secrets are
+injected from BWS via secretspec (`litellm` scope) at start; no `.env` files.
 
 ## Adding a Second Model
 
