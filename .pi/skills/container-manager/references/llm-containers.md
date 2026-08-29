@@ -13,7 +13,7 @@ AMD RDNA 3.5 iGPU.
 
 ```nix
 virtualisation.oci-containers.containers.qwen3-27b = {
-  image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
+  image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0";
   autoStart = true;
   ports = ["8080:8080"];
   volumes = ["/var/lib/llm-models:/models:ro"];

@@ -21,7 +21,7 @@ The NixOS module generates systemd services (`podman-<name>.service`) automatica
 virtualisation.oci-containers = {
   backend = "podman";
   containers.qwen-35b-a3b = {   # Coding assistant, 256K ctx, MTP
-    image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
+    image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0";
     autoStart = true;
     ports = ["8080:8080"];
   };
@@ -32,7 +32,7 @@ virtualisation.oci-containers = {
 
 | Image | Purpose | Registry |
 |-------|---------|----------|
-| docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp | LLM inference (ROCm + MTP) | Docker Hub |
+| docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0 | LLM inference (ROCm 10.0, gfx1151 SDK; MTP in mainline llama.cpp) | Docker Hub |
 
 ## Active Models
 
@@ -50,7 +50,7 @@ See [Model Catalog](references/model-catalog.md) for the promotion workflow.
 
 ## Your Responsibilities
 
-1. Check whether `ghcr.io/ggml-org/llama.cpp:server-rocm` has an updated digest
+1. Check whether `docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0` has an updated digest
 2. Verify GPU passthrough devices (`/dev/dri`, `/dev/kfd`) are correct for AMD RDNA 3.5
 3. Check that container volumes and command arguments are current
 4. Flag any container configuration issues in `modules/features/llm.nix`

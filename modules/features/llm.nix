@@ -1,8 +1,8 @@
 # LLM module — declarative podman containers for llama.cpp inference.
 #
-# Image: kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp
-#   - ROCm 7.2.3 compiled for Strix Halo RDNA 3.5
-#   - MTP (Multi-Token Prediction) via am17an/llama.cpp mtp-clean fork
+# Image: kyuz0/amd-strix-halo-toolboxes:rocm-10.0
+#   - ROCm 10.0 (Fedora 44, AMD-supported gfx1151 SDK) — stable toolbox
+#   - MTP (Multi-Token Prediction) merged into llama.cpp mainline (no -mtp fork)
 #   - https://github.com/kyuz0/amd-strix-halo-toolboxes
 #
 # Model catalog: lib/models.nix (adapted from Doug Campos)
@@ -64,7 +64,7 @@ _: {
       portStr = toString modelCfg.port;
     in
       {
-        image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-7.2.3-mtp";
+        image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0";
         ports = ["${portStr}:8080"];
         autoStart = true;
         extraOptions = baseOptions;

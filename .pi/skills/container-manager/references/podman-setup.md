@@ -24,7 +24,7 @@ LLM containers use the NixOS `virtualisation.oci-containers` module with
 virtualisation.oci-containers = {
   backend = "podman";
   containers.qwen3-27b = {
-    image = "ghcr.io/ggml-org/llama.cpp:server-rocm";
+    image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0";
     autoStart = true;
     ports = ["8080:8080"];
     # ...
