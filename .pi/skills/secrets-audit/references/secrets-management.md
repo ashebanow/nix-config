@@ -42,7 +42,6 @@ secrets = ["DEEPSEEK_API_KEY"]
 | `litellm` | `litellm-compose.service` |
 | `openwebui` | `openwebui-compose.service` |
 | `memory` | `memory-compose.service`, `memory-health-check.service` |
-| `windshift` | `windshift-secrets-populate.service` |
 
 ## Security Notes
 

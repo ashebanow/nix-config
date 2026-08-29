@@ -24,7 +24,6 @@
   my.monitoringPort = 9090;
   my.zmx = true;
   my.memory = true;
-  my.windshift = true;  # quadlet units + secretspec/BWS secrets (compose/windshift)
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;

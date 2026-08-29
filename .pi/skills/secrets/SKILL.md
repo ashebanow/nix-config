@@ -37,7 +37,6 @@ Each consumer resolves only its own scope:
 | `litellm` | `litellm-compose.service` |
 | `openwebui` | `openwebui-compose.service` |
 | `memory` | `memory-compose.service`, `memory-health-check.service` |
-| `windshift` | `windshift-secrets-populate.service` (quadlet podman secrets) |
 
 ## Step-by-Step: Adding a New Secret
 

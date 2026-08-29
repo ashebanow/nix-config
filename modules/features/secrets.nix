@@ -7,7 +7,7 @@
 #   - host-secrets-populate.service (root) — resolves the `host` scope from BWS
 #     and materializes tailscale + flakehub secrets as root-only files.
 #
-# Container/quadlet secrets (litellm, openwebui, memory, windshift) resolve
+# Container/quadlet secrets (litellm, openwebui, memory) resolve
 # their own scopes directly via `secretspec run` in their own feature modules;
 # they do not land in this module.
 _: {

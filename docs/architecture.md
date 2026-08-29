@@ -410,8 +410,6 @@ scripts/populate-host-secrets.sh # materializes the 2 file-backed host secrets
 - **Container secrets** (litellm, openwebui, memory): the compose systemd
   services run `secretspec run -P production -S <scope> -- podman-compose up -d`,
   injecting values straight into the process env (no `.env`).
-- **Windshift** (quadlet): `windshift-secrets-populate.service` resolves the
-  `windshift` scope into rootless podman secrets, consumed by quadlet `Secret=`.
 
 ### Bootstrap
 

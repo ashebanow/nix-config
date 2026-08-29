@@ -110,13 +110,6 @@
       description = "Enable Mnemosyne memory layer for AI agents.";
     };
 
-    # Windshift feature
-    windshift = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Enable the Windshift work-management app (quadlet units + secretspec/BWS secrets).";
-    };
-
     # Secrets (secretspec + BWS) — shared paths used by every secret consumer.
     secretspecManifest = lib.mkOption {
       type = lib.types.str;

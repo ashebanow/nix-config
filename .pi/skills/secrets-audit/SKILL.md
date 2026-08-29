@@ -26,7 +26,7 @@ You are a secrets auditor for a NixOS infrastructure that stores values in
 
 - `secretspec.toml` — declarations + scopes (source of truth for *requirements*)
 - `scripts/populate-host-secrets.sh` — host-scope consumers
-- `modules/features/{secrets,llm,memory,windshift,access}.nix` — consumers
+- `modules/features/{secrets,llm,memory,access}.nix` — consumers
 - `modules/infra/nix/flakehub.nix` — flakehub token consumer
 
 ## Verifying resolution

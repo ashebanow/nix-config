@@ -24,16 +24,16 @@ Nothing in git or the Nix store holds a secret value.
                                 │ secretspec run -P production -S <scope>
                                 │
         ┌───────────────────────┼───────────────────────────────┐
-        │                       │                               │
-        ▼                       ▼                               ▼
-  host-secrets-populate   compose services                windshift-secrets-populate
-  (root, -S host)         (podman user)                  (podman user, -S windshift)
-  writes 2 files:         secretspec run injects         secretspec run → podman
-  /run/secrets/tailscale  env vars straight into         secret create --replace
-  /run/secrets/flakehub   podman-compose (no files)      → quadlet Secret= lines
-        │                       │                               │
-        ▼                       ▼                               ▼
-  tailscale authKeyFile   litellm / openwebui /          windshift quadlet units
+        │                       │
+        ▼                       ▼
+  host-secrets-populate   compose services
+  (root, -S host)         (podman user)
+  writes 2 files:         secretspec run injects
+  /run/secrets/tailscale  env vars straight into
+  /run/secrets/flakehub   podman-compose (no files)
+        │                       │
+        ▼                       ▼
+  tailscale authKeyFile   litellm / openwebui /
   determinate-nixd token  mnemosyne containers
 ```
 
@@ -47,7 +47,6 @@ Each consumer resolves only its own scope of the shared `production` profile:
 | `litellm` | `TS_AUTHKEY`, `LITELLM_MASTER_KEY`, `LITELLM_DB_PASSWORD`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `litellm-compose.service` |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `LITELLM_MASTER_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
-| `windshift` | `WINDSHIFT_TS_AUTHKEY`, `SSO_SECRET`, `POSTGRES_*`, `BASE_URL`, `ALLOWED_HOSTS` | `windshift-secrets-populate.service` |
 
 ### Provider routing
 
@@ -117,13 +116,6 @@ file, no podman-secret readback** — values exist only in the process env.
 
 The periodic `memory-health-check` resolves `MNEMOSYNE_MCP_TOKEN` the same way.
 
-### Windshift (quadlet) — podman secrets
-
-`windshift-secrets-populate.service` resolves the `windshift` scope and maps the
-values to rootless **podman secrets** (`podman secret create --replace`), which
-the quadlet units consume via their `Secret=` lines. This is the quadlet-native
-pattern; see `compose/windshift/populate-secrets.sh`.
-
 ## Dev shell
 
 `shell.nix` / `modules/infra/devshell.nix` load API keys for the **dev machine**
@@ -161,7 +153,6 @@ prior `bws login`.
 | `OpenWebUI TS Auth Key` | openwebui tailscale sidecar |
 | `mnemo-tailscale-auth-key` | mnemosyne tailscale sidecar |
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |
-| `windshift-*` (sso-secret, postgres-*, base-url, allowed-hosts, tailscale-auth-key) | windshift |
 
 > The `LiteLLM Master Key` / `OpenWebUI TS Auth Key` / `anthropic-api-key-pi` /
 > `flakehub_bergamot_token` names predate this migration; they are referenced

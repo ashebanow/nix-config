@@ -84,7 +84,7 @@ _: {
         htop
         iputils
         nh
-        secretspec # operator shell + just recipes (secrets-check, windshift-admin)
+        secretspec # operator shell + just recipes (secrets-check)
         sudo
         vim
         wget
