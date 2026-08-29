@@ -24,7 +24,7 @@
     "ahci"
     "amdgpu"
     "radeon"
-    "r8169"  # Realtek 2.5GbE — needed for initrd networking (future Tang)
+    "r8169" # Realtek 2.5GbE — needed for initrd networking (future Tang)
   ];
   boot.initrd.kernelModules = ["amdgpu"];
   boot.kernelModules = ["kvm-amd"];

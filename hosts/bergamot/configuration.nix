@@ -11,7 +11,7 @@
   my.hostName = "bergamot";
   my.baseTimezone = "America/Los_Angeles";
 
-  my.access = false;  # access feature is NixOS-only (server hosts); Macs run tailscale as clients via the official .pkg installer
+  my.access = false; # access feature is NixOS-only (server hosts); Macs run tailscale as clients via the official .pkg installer
 
   # nix-darwin state version. Set once, don't change without reading
   # `darwin-rebuild changelog`. Confirm this is still current on first
