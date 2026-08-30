@@ -118,11 +118,18 @@ The periodic `memory-health-check` resolves `MNEMOSYNE_MCP_TOKEN` the same way.
 
 ## Dev shell
 
-`shell.nix` / `modules/infra/devshell.nix` load API keys for the **dev machine**
-(e.g. `DEEPSEEK_API_KEY`, `EXA_API_KEY`, `ANTHROPIC_API_KEY`) from BWS into a
-24h-cached env file. There is no sops fallback — the shell hook requires
-`BWS_ACCESS_TOKEN` in the environment (set by `~/.zshenv` via chezmoi) or a
-prior `bws login`.
+The devshell lives in `modules/infra/devshell.nix` (the flake's
+`devShells.default`); the legacy root `shell.nix` was removed. It does **not**
+fetch secrets from BWS — API keys are expected in the environment already:
+
+- **darwin (bergamot, miraclemax)**: `~/.zshenv` (chezmoi) reads the BWS token
+  from the macOS keychain and refreshes `~/.cache/env/bws_env.sh` (8h cache),
+  exporting `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `EXA_API_KEY`,
+  `GEMINI_API_KEY`, `MINIMAX_API_KEY`, `ZED_GITHUB_PERSONAL_ACCESS_TOKEN`,
+  `FLAKEHUB_TOKEN` (item `NIX_FLAKEHUB_CACHE_TOKEN`), and more. `nix develop`
+  inherits these from the parent shell.
+- **NixOS (lumquat)**: secrets reach systemd services via `secretspec` +
+  `LoadCredential` (above); the devshell is not a secret channel there.
 
 ## Adding or rotating a secret
 
