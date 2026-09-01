@@ -13,7 +13,9 @@ _: {
       # Create non-root user for containers
       users.users.${config.my.baseUsername} = {
         isNormalUser = true;
-        shell = pkgs.zsh;
+        # Headless host = bash (BOX-121); zsh stays available via
+        # programs.zsh.enable for interactive use if ever needed.
+        shell = pkgs.bash;
         description = "Container operator";
         extraGroups = ["wheel" "docker" "podman"];
         linger = true; # Required for rootless podman systemd services
