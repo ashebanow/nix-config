@@ -10,12 +10,16 @@
 # .chezmoiignore excludes the personal-secret templates (hermes, git
 # signingkey, gh token), so apply runs token-less — secretspec/BWS is
 # untouched.
-{ lib, pkgs, ... }: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   my.cliTools = true;
 
-  home.packages = [ pkgs.chezmoi ]; # nixpkgs chezmoi 2.72.0
+  home.packages = [pkgs.chezmoi]; # nixpkgs chezmoi 2.72.0
 
-  home.activation.chezmoiApply = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.chezmoiApply = lib.hm.dag.entryAfter ["writeBoundary"] ''
     run test -d "$HOME/.local/share/chezmoi/.git" \
       || run ${pkgs.chezmoi}/bin/chezmoi init https://github.com/ashebanow/dotfiles.git
     run ${pkgs.chezmoi}/bin/chezmoi apply --force
