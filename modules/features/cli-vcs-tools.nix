@@ -8,12 +8,14 @@ _: {
   }: {
     config = lib.mkIf config.my.cliVcsTools {
       home.packages = with pkgs; [
+        difftastic
         gh
         git
         git-lfs
         gitnr
         hunk
         lazygit
+        mergiraf
         svu
         worktrunk
       ];
