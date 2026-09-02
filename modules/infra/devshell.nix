@@ -13,6 +13,12 @@ _: {
     devShells.default = pkgs.mkShell {
       name = "lumquat-dev";
 
+      shellHook = ''
+        # Marks the nix develop subshell for the dotfiles prompt marker
+        # (bashrc.d/020-prompt.sh shows "(nix-dev)"). BOX-129 ride-along.
+        export IS_NIX_DEVELOP=1
+      '';
+
       packages = with pkgs; [
         alejandra
         unfreePkgs.bws
