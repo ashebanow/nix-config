@@ -12,6 +12,7 @@ _: {
         betterdisplay
         binsider
         btop
+        cachix # binary cache management
         chezmoi
         colmena
         ctop
@@ -27,6 +28,8 @@ _: {
         mist
         monitorcontrol
         nh
+        nix-output-monitor # pretty-print nix build output (nom)
+        nvd # diff nix store generations
         nvtopPackages.full
         procs
         soundsource

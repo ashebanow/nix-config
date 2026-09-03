@@ -1,4 +1,6 @@
 # CLI tools module — modern command-line utilities via Home Manager.
+# Note: direnv + nix-direnv live in cli-build-essentials.nix;
+# gh lives in cli-vcs-tools.nix.
 _: {
   my.modules.home-manager.cli-tools = {
     lib,
@@ -15,15 +17,12 @@ _: {
         coreutils-full
         curl
         dig
-        direnv
         eza
         fastfetch
         fd
         fzf
-        gh
         just
         neovim
-        nix-direnv
         ripgrep
         wget
         zoxide

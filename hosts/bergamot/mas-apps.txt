@@ -3,5 +3,8 @@
 # darwin-rebuild — see that script's header for why).
 #
 # Format: <app-id> <name>
-#
-# Empty — no Mac App Store apps installed on this machine.
+
+640199958 Developer
+409907375 Remote Desktop
+899247664 TestFlight
+497799835 Xcode
