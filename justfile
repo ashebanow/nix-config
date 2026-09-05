@@ -2,8 +2,9 @@
 
 # Maintenance recipes for the nix-config flake.
 #
-# The machine-agnostic nix recipes — clean, dry-run, switch, build-hm,
-# nix-flake-check, nix-mas-sync — are imported from the global justfile
+# The machine-agnostic nix recipes — clean, dry-run, switch, test,
+# build-hm, nix-flake-check, nix-mas-sync — are imported from the global
+# justfile
 # that chezmoi installs as ~/.justfile (source: home/dot_justfile.tmpl in
 # the dotfiles repo). That file dispatches on the host kind (nix-darwin
 # vs NixOS) using the current hostname, so the same `just switch` works
@@ -12,50 +13,13 @@
 #
 # Everything below the import is scoped to this repo: flake inspection /
 # formatting (show, update, fmt), and lumquat-targeted operations that
-# you run from a dev machine or from a checkout (build, test, vm, deploy,
-# secrets). These live here rather than in ~/.justfile because they make
-# no sense on non-lumquat machines.
+# you run from a dev machine or from a checkout (vm, secrets).
+# These live here rather than in ~/.justfile because they make no sense
+# on non-lumquat machines.
 
 import "~/.justfile"
 
-# ===== BUILD / SWITCH =====
-
-# Build the lumquat configuration (nh os build when available)
-[group('nix')]
-build:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if command -v nh >/dev/null 2>&1; then
-        nh os build .#lumquat
-    elif command -v nixos-rebuild >/dev/null 2>&1; then
-        nixos-rebuild build --flake .#lumquat
-    else
-        nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
-    fi
-
-# Build from a machine that uses lumquat as a remote builder
-# (configured in /etc/nix/nix.conf). Same recipe as build — nix/nh
-# pick up the remote builder from the daemon config.
-[group('nix')]
-build-remote: build
-
-# Build and activate on the current system WITHOUT making it the boot
-# default — a true test of a new generation. Must run on lumquat.
-[group('nix')]
-test:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [[ "$(hostname -s)" != "lumquat" ]]; then
-        echo "error: test must run on lumquat (this is $(hostname -s))" >&2
-        exit 1
-    fi
-    if command -v nh >/dev/null 2>&1; then
-        nh os test .#lumquat
-    elif command -v nixos-rebuild >/dev/null 2>&1; then
-        sudo nixos-rebuild test --flake .#lumquat
-    else
-        nix run nixpkgs#nixos-rebuild -- test --flake .#lumquat
-    fi
+# ===== FLAKE =====
 
 [group('nix')]
 show:
@@ -70,7 +34,8 @@ update:
 fmt:
     nix develop .# -c alejandra .
 
-# Run the configuration in a VM (build first, then boot it)
+# Run the lumquat configuration in a VM (build first, then boot it) —
+# only NixOS config in this flake, so no need to derive the hostname.
 [group('nix')]
 vm:
     #!/usr/bin/env bash

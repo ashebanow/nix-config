@@ -114,4 +114,4 @@ injected from BWS via secretspec (`litellm` scope) at start; no `.env` files.
    (health-check extraOptions if you want preloading)
 3. Optionally promote it into `ggufs` with a SHA256
 4. Add a litellm model route in `compose/llm/litellm-config.yaml`
-5. `just build` to validate, then `just switch`
+5. `just dry-run` to validate the config on lumquat, then `just switch`
