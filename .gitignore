@@ -611,4 +611,7 @@ xcuserdata/
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
 
+.pi/npm/
+.pi/git/
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,linux,intellij+all,xcode,visualstudiocode,windows,ruby,node,python,rust,go
