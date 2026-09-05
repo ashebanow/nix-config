@@ -1,12 +1,22 @@
 #!/usr/bin/env just --justfile
 
-# Build commands for the lumquat NixOS configuration.
-# Build/switch recipes use `nh` when available, falling back to
-# nixos-rebuild, then raw nix — matching the chezmoi justfile's
-# behavior for the darwin hosts.
+# Maintenance recipes for the nix-config flake.
+#
+# The machine-agnostic nix recipes — clean, dry-run, switch, build-hm,
+# nix-flake-check, nix-mas-sync — are imported from the global justfile
+# that chezmoi installs as ~/.justfile (source: home/dot_justfile.tmpl in
+# the dotfiles repo). That file dispatches on the host kind (nix-darwin
+# vs NixOS) using the current hostname, so the same `just switch` works
+# from anywhere on any machine, and both sets of recipes show up in
+# `just --list` here.
+#
+# Everything below the import is scoped to this repo: flake inspection /
+# formatting (show, update, fmt), and lumquat-targeted operations that
+# you run from a dev machine or from a checkout (build, test, vm, deploy,
+# secrets). These live here rather than in ~/.justfile because they make
+# no sense on non-lumquat machines.
 
-# Default recipe to show available commands
-default: help
+import "~/.justfile"
 
 # ===== BUILD / SWITCH =====
 
@@ -26,54 +36,6 @@ build:
 # (configured in /etc/nix/nix.conf). Same recipe as build — nix/nh
 # pick up the remote builder from the daemon config.
 build-remote: build
-
-# Build Home Manager for the podman user
-build-hm:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if command -v nh >/dev/null 2>&1; then
-        nh home build . --configuration podman
-    else
-        nix build .#homeConfigurations.podman.activationPackage
-    fi
-
-# Preview what a switch would change, without applying it. Builds the
-# config (no sudo needed) and diffs the closure against the active
-# generation — only meaningful when run on lumquat itself.
-dry-run *FILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if command -v nh >/dev/null 2>&1; then
-        nh os build {{ FILES }} .#lumquat
-    elif command -v nixos-rebuild >/dev/null 2>&1; then
-        nixos-rebuild build --flake .#lumquat
-    else
-        nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
-    fi
-    echo
-    if [[ -e /run/current-system ]] && [[ "$(hostname -s)" == "lumquat" ]]; then
-        echo "=== Changes vs. the currently active generation ==="
-        nix store diff-closures /run/current-system ./result
-    else
-        echo "=== No active generation to diff against (not run on lumquat, or never switched) ==="
-    fi
-
-# Build and activate on the current system, and make it the boot default.
-# Must run on lumquat itself; from another machine use `deploy` instead.
-switch *FLAGS:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [[ "$(hostname -s)" != "lumquat" ]]; then
-        echo "error: switch must run on lumquat (this is $(hostname -s)); from another machine use 'just deploy' instead" >&2
-        exit 1
-    fi
-    if command -v nh >/dev/null 2>&1; then
-        nh os switch {{ FLAGS }} .#lumquat
-    elif command -v nixos-rebuild >/dev/null 2>&1; then
-        sudo nixos-rebuild switch --flake .#lumquat
-    else
-        nix run nixpkgs#nixos-rebuild -- switch --flake .#lumquat
-    fi
 
 # Build and activate on the current system WITHOUT making it the boot
 # default — a true test of a new generation. Must run on lumquat.
@@ -97,18 +59,6 @@ show:
 
 update:
     nix flake update
-
-clean:
-    #!/usr/bin/env bash
-    if command -v nh >/dev/null 2>&1; then
-        nh clean all
-    elif command -v nixos-rebuild >/dev/null 2>&1; then
-        sudo nix-env --delete-generations 14d
-        nix store gc
-    else
-        sudo nix run nixpkgs#nix-env -- delete-generations 14d
-        nix store gc
-    fi
 
 # Format all Nix files
 fmt:
