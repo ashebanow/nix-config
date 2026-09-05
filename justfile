@@ -21,6 +21,7 @@ import "~/.justfile"
 # ===== BUILD / SWITCH =====
 
 # Build the lumquat configuration (nh os build when available)
+[group('nix')]
 build:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -35,10 +36,12 @@ build:
 # Build from a machine that uses lumquat as a remote builder
 # (configured in /etc/nix/nix.conf). Same recipe as build — nix/nh
 # pick up the remote builder from the daemon config.
+[group('nix')]
 build-remote: build
 
 # Build and activate on the current system WITHOUT making it the boot
 # default — a true test of a new generation. Must run on lumquat.
+[group('nix')]
 test:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -54,17 +57,21 @@ test:
         nix run nixpkgs#nixos-rebuild -- test --flake .#lumquat
     fi
 
+[group('nix')]
 show:
     nix flake show
 
+[group('nix')]
 update:
     nix flake update
 
 # Format all Nix files
+[group('nix')]
 fmt:
     nix develop .# -c alejandra .
 
 # Run the configuration in a VM (build first, then boot it)
+[group('nix')]
 vm:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -79,6 +86,7 @@ vm:
 # Usage: just bootstrap-bws [HOST]   (default: lumquat)
 # Works from a dev machine (SSH to root@HOST) or on the host itself (local
 # passwordless sudo for the podman user).
+[group('secrets')]
 bootstrap-bws HOST="lumquat":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -108,29 +116,18 @@ bootstrap-bws HOST="lumquat":
 
 # Verify every secret in the shared manifest resolves against BWS.
 # Requires BWS_ACCESS_TOKEN in the environment.
+[group('secrets')]
 secrets-check:
     secretspec check -f secretspec.toml -P production --no-prompt
-
-# ===== DEPLOY (from a dev machine, via colmena) =====
-
-# Deploy to lumquat (requires colmena setup)
-deploy HOST="lumquat":
-    colmena deploy --on {{HOST}}
-
-# Deploy to all hosts (requires colmena setup)
-deploy-all:
-    colmena deploy
-
-# Health check on lumquat
-health HOST="lumquat":
-    colmena exec --on {{HOST}} -- sudo systemctl status tailscaled podman cockpit
 
 # ===== MISC =====
 
 # Build the zmx binary (standalone, from the zmx repo)
+[group('misc')]
 build-zmx:
     nix build ~/Development/nix/zmx#zmx
 
 # Show available recipes
+[group('misc')]
 help:
     @just --list
