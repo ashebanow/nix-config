@@ -13,7 +13,7 @@ This plan details the implementation of the lumquat NixOS configuration followin
 | `access`     | NixOS | Tailscale, firewall, SSH fallback          |
 | `secrets`    | NixOS | SOPS-nix, secret declarations              |
 | `monitoring` | NixOS | Cockpit web UI                             |
-| `cli-tools`  | HM    | CLI tools (eza, bat, delta, aliases)       |
+| `cli-tools`  | HM    | CLI tools (eza, bat, aliases)              |
 
 ---
 
@@ -229,7 +229,6 @@ my.cliTools = {
   tools = {
     eza = true;     # Modern ls
     bat = true;      # Cat with syntax
-    delta = true;    # Git diff viewer
     fd = true;       # Modern find
     ripgrep = true;  # Modern grep
     fzf = true;      # Fuzzy finder
@@ -239,7 +238,6 @@ my.cliTools = {
   aliases = {
     ll = "eza -la";
     cat = "bat";
-    diff = "delta";
   };
 }
 ```

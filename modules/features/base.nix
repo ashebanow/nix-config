@@ -79,7 +79,6 @@ _: {
         btop
         bws # bitwarden-secrets-manager (unfree) — operator shell + just recipes
         curl
-        delta
         eza
         ghostty.terminfo
         git

@@ -62,7 +62,6 @@ gh gh
 git git
 git-lfs git-lfs
 gitnr gitnr
-hunk hunk
 lazygit lazygit
 lazyjj lazyjj
 mercurial mercurial

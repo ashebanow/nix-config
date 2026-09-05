@@ -13,7 +13,6 @@ _: {
         git
         git-lfs
         gitnr
-        hunk
         lazygit
         mergiraf
         svu
