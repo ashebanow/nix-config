@@ -23,7 +23,6 @@ _: {
         alejandra
         unfreePkgs.bws
         unfreePkgs.claude-code
-        colmena
         dig
         gh
         git
@@ -34,6 +33,7 @@ _: {
         pi-coding-agent
         secretspec
         uv
+        worktrunk
       ];
     };
   };
