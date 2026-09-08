@@ -39,7 +39,7 @@
     llmServe = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable Tailscale Serve to publish LLM endpoints via Tailscale Services.";
+      description = "Enable Tailscale Serve to publish LLM endpoints as paths on this node (not Tailscale Services — see TS-SERVE.MD).";
     };
 
     # Access feature

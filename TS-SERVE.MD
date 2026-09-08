@@ -19,6 +19,11 @@
 >
 > Parts 1, 2 and 4 were implemented as written. Revisit Part 3 only if this
 > tailnet gains the services capability.
+>
+> **Operator note:** `tailscale-llm-serve.service` runs `tailscale serve reset`
+> before re-adding its paths, so the live serve table always equals the
+> declaration in `modules/features/llm.nix`. Any path added by hand on lumquat
+> is destroyed on the next rebuild — add it to the module instead.
 
 ## Why
 
