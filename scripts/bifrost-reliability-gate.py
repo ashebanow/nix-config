@@ -47,6 +47,9 @@ def _request(base_url, path, payload, timeout):
             return resp.status, resp.read(), time.monotonic() - start
     except urllib.error.HTTPError as e:
         return e.code, e.read(), time.monotonic() - start
+    except (TimeoutError, urllib.error.URLError) as e:
+        reason = getattr(e, "reason", e)
+        return 0, f"<no response after {timeout}s: {reason}>".encode(), time.monotonic() - start
 
 
 def _stream(base_url, path, payload, timeout):
@@ -167,6 +170,144 @@ def _stream_body_over_12kb(base_url):
             f"(body {body_kb:.0f} KB, got {r['text'][-80:]!r})"
         )
     return True, f"body {body_kb:.0f} KB, {r['chunks']} chunks, {r['elapsed']:.1f}s"
+
+
+@check("prompt-100k-tokens")
+def _prompt_100k_tokens(base_url):
+    """A ~100K-token prompt against the local model. The gateway must forward the
+    whole body and the model must ingest it — a truncated prompt shows up as a far
+    smaller prompt_tokens count, or an outright failure.
+
+    Slow by nature: local prefill on this box is ~160 tok/s, so this check takes
+    ~10-12 minutes. It validates the >100K path; the gateway's per-provider
+    timeout (network_config.default_request_timeout_in_seconds) is sized larger
+    still, for prompts approaching qwen's full 256K context."""
+    # ~10 tokens per pangram; 12000 of them clears 100K with margin.
+    prompt = ("The quick brown fox jumps over the lazy dog. " * 12_000).strip()
+    prompt += "\n\nIn one short sentence, what animal is mentioned above?"
+    status, raw, elapsed = _request(
+        base_url,
+        "/v1/chat/completions",
+        {
+            "model": LOCAL_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 64,
+        },
+        timeout=2700,
+    )
+    body_kb = len(prompt) / 1024
+    if status != 200:
+        return False, f"HTTP {status} (body {body_kb:.0f} KB): {raw[:200]!r}"
+    try:
+        obj = json.loads(raw)
+        prompt_tokens = obj["usage"]["prompt_tokens"]
+        finish = obj["choices"][0]["finish_reason"]
+    except (json.JSONDecodeError, KeyError, IndexError) as e:
+        return False, f"unparseable 200 response: {e} ({raw[:150]!r})"
+    if prompt_tokens < 90_000:
+        return False, f"prompt truncated — only {prompt_tokens} prompt_tokens ingested"
+    return True, f"body {body_kb:.0f} KB, {prompt_tokens} prompt_tokens, finish={finish}, {elapsed:.0f}s"
+
+
+@check("long-sustained-stream")
+def _long_sustained_stream(base_url):
+    """A long generation streamed to completion. LiteLLM would hang mid-stream or
+    tear the connection down; this asserts the stream reaches [DONE] with no
+    silent gap longer than 30 s between chunks."""
+    prompt = (
+        "Write a thorough, self-contained technical explanation of how TCP "
+        "congestion control works: slow start, congestion avoidance, fast "
+        "retransmit/recovery, CUBIC vs Reno, bufferbloat, and ECN. Aim for at "
+        "least 1500 words. Do not stop early."
+    )
+    r = _stream(
+        base_url,
+        "/v1/chat/completions",
+        {
+            "model": LOCAL_MODEL,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 4000,
+        },
+        timeout=2700,
+    )
+    if r["status"] != 200:
+        return False, f"HTTP {r['status']}: {r['error']}"
+    if not r["done"]:
+        return False, f"stream ended without [DONE] after {r['elapsed']:.0f}s / {r['chunks']} chunks"
+    if r["gap"] > 30:
+        return False, f"stalled {r['gap']:.0f}s mid-stream (chunk {r['chunks']}, total {r['elapsed']:.0f}s)"
+    if r["chunks"] < 200 or r["elapsed"] < 60:
+        return False, f"stream too short to be a real test ({r['chunks']} chunks, {r['elapsed']:.0f}s)"
+    return True, f"{r['chunks']} chunks, {len(r['text'])} chars, {r['elapsed']:.0f}s, max gap {r['gap']:.1f}s"
+
+
+def _tool_roundtrip(base_url, model):
+    """Two-turn tool call: force a function call, feed the result back, expect a
+    final text answer that used it. Returns (ok, note)."""
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_weather",
+                "description": "Current weather for a city.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"city": {"type": "string"}},
+                    "required": ["city"],
+                },
+            },
+        }
+    ]
+    msgs = [{"role": "user", "content": "Use the get_weather tool for Paris, then tell me the temperature."}]
+    status, raw, _ = _request(
+        base_url,
+        "/v1/chat/completions",
+        {"model": model, "messages": msgs, "tools": tools, "max_tokens": 512},
+        timeout=120,
+    )
+    if status != 200:
+        return False, f"turn 1 HTTP {status}: {raw[:200]!r}"
+    try:
+        m = json.loads(raw)["choices"][0]["message"]
+        call = m["tool_calls"][0]
+        args = json.loads(call["function"]["arguments"])
+    except (json.JSONDecodeError, KeyError, IndexError) as e:
+        return False, f"turn 1: no usable tool_call ({e}); got {raw[:200]!r}"
+    if call["function"]["name"] != "get_weather" or "paris" not in json.dumps(args).lower():
+        return False, f"turn 1: wrong tool call {call['function']['name']}({args})"
+
+    msgs += [
+        {"role": "assistant", "content": m.get("content"), "tool_calls": m["tool_calls"]},
+        {"role": "tool", "tool_call_id": call["id"], "content": "18°C, partly cloudy"},
+    ]
+    status, raw, _ = _request(
+        base_url,
+        "/v1/chat/completions",
+        {"model": model, "messages": msgs, "tools": tools, "max_tokens": 512},
+        timeout=120,
+    )
+    if status != 200:
+        return False, f"turn 2 HTTP {status}: {raw[:200]!r}"
+    try:
+        final = json.loads(raw)["choices"][0]["message"]["content"] or ""
+    except (json.JSONDecodeError, KeyError, IndexError) as e:
+        return False, f"turn 2: unparseable ({e})"
+    if "18" not in final:
+        return False, f"turn 2: answer did not use the tool result: {final[:120]!r}"
+    return True, f"tool_call → result → {final[:60]!r}"
+
+
+@check("tool-roundtrip-anthropic")
+def _tool_roundtrip_anthropic(base_url):
+    """A tool-calling round trip through the Anthropic provider — native provider
+    type, so bifrost maps tool_use/tool_result correctly."""
+    return _tool_roundtrip(base_url, "anthropic/claude-haiku-4-5")
+
+
+@check("tool-roundtrip-deepseek")
+def _tool_roundtrip_deepseek(base_url):
+    """A tool-calling round trip through the DeepSeek provider."""
+    return _tool_roundtrip(base_url, "deepseek/deepseek-chat")
 
 
 # ----------------------------------------------------------------------- harness
