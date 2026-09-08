@@ -36,6 +36,14 @@ _: {
         after = ["network-online.target"];
         wants = ["network-online.target"];
         wantedBy = ["multi-user.target"];
+        # The unit text never changes when only the symlinked compose/config
+        # content does, so without this a rebuild leaves the old stack running.
+        # A change here re-runs ExecStop (`down`, no -v) + ExecStart; the named
+        # data volume — and the request logs in it — survive (BOX-133).
+        restartTriggers = [
+          "${../../compose/llm/bifrost-compose.yml}"
+          "${../../compose/llm/bifrost-config.json}"
+        ];
         path = [
           pkgs.podman
           pkgs.podman-compose
