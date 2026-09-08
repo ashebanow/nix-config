@@ -1,0 +1,48 @@
+{
+  "client": {
+    "enable_logging": true,
+    "log_retention_days": 30,
+    "enforce_auth_on_inference": false
+  },
+  "source_of_truth": "config.json",
+  "config_store": {
+    "enabled": true,
+    "type": "sqlite",
+    "config": {
+      "path": "/app/data/config.db"
+    }
+  },
+  "logs_store": {
+    "enabled": true,
+    "type": "sqlite",
+    "config": {
+      "path": "/app/data/logs.db"
+    }
+  },
+  "providers": {
+    "qwen": {
+      "keys": [
+        {
+          "name": "qwen-local",
+          "value": "sk-dummy",
+          "models": ["*"],
+          "weight": 1.0,
+          "aliases": {
+            "qwen-latest": "qwen-35b-a3b"
+          }
+        }
+      ],
+      "network_config": {
+        "base_url": "http://100.90.247.10:8080",
+        "default_request_timeout_in_seconds": 600
+      },
+      "custom_provider_config": {
+        "base_provider_type": "openai",
+        "allowed_requests": {
+          "chat_completion": true,
+          "chat_completion_stream": true
+        }
+      }
+    }
+  }
+}

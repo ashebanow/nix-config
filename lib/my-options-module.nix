@@ -41,6 +41,11 @@
       default = false;
       description = "Enable Tailscale Serve to publish LLM endpoints as paths on this node (not Tailscale Services — see TS-SERVE.MD).";
     };
+    bifrostServe = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable the Bifrost LLM gateway compose stack, served at ai.<tailnet> via its own Tailscale sidecar node.";
+    };
 
     # Access feature
     access = lib.mkOption {
