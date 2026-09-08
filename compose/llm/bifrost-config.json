@@ -25,7 +25,7 @@
         {
           "name": "qwen-local",
           "value": "sk-dummy",
-          "models": ["*"],
+          "models": ["qwen-latest", "qwen-35b-a3b"],
           "weight": 1.0,
           "aliases": {
             "qwen-latest": "qwen-35b-a3b"
@@ -50,7 +50,12 @@
         {
           "name": "anthropic",
           "value": "env.ANTHROPIC_API_KEY",
-          "models": ["*"],
+          "models": [
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5",
+            "claude-opus-5",
+            "claude-fable-5-1"
+          ],
           "weight": 1.0
         }
       ]
@@ -60,7 +65,7 @@
         {
           "name": "deepseek",
           "value": "env.DEEPSEEK_API_KEY",
-          "models": ["*"],
+          "models": ["deepseek-v4-pro", "deepseek-v4-flash"],
           "weight": 1.0
         }
       ]
@@ -70,7 +75,7 @@
         {
           "name": "minimax",
           "value": "env.MINIMAX_API_KEY",
-          "models": ["*"],
+          "models": ["MiniMax-M2", "MiniMax-M2.1"],
           "weight": 1.0
         }
       ],
