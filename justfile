@@ -85,6 +85,15 @@ bootstrap-bws HOST="lumquat":
 secrets-check:
     secretspec check -f secretspec.toml -P production --no-prompt
 
+# ===== LLM GATEWAY =====
+
+# Run the bifrost reliability gate — the size/duration conditions that made
+# LiteLLM unusable, plus tool-calling round trips. Pass a base URL to gate a
+# different deployment (default: the served gateway hostname).
+[group('llm')]
+reliability-gate base_url="https://ai.fluffy-walleye.ts.net":
+    python3 scripts/bifrost-reliability-gate.py {{base_url}}
+
 # ===== MISC =====
 
 # Build the zmx binary (standalone, from the zmx repo)
