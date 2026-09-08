@@ -18,15 +18,14 @@
 # Gated behind my.bifrostServe, separate from my.llmServe, so bifrost and
 # LiteLLM can run side by side until the cutover completes.
 #
-# The qwen provider's base_url in bifrost-config.json is
-# http://host.containers.internal:8080, NOT the node's Tailscale IP. The
-# gateway shares the sidecar's netns, which is a separate tailnet node that
-# only reaches lumquat over a DERP relay (no direct path between two nodes
-# on the same host) — and request bodies over ~5 KB get mangled on that
-# relay path, which is the "large body" failure the reliability gate
-# (scripts/bifrost-reliability-gate.py) exists to catch. Going through the
-# pasta host gateway to llama-server's published port avoids Tailscale
-# entirely for that hop.
+# KNOWN ISSUE (BOX-140): the qwen provider's base_url is the node's Tailscale
+# IP, but the gateway shares the sidecar's netns — a separate tailnet node
+# that only reaches lumquat over a DERP relay (two nodes on one host can't
+# hole-punch). Request bodies over ~5 KB get mangled on that relay path
+# (the "large body" failure the reliability gate catches). host.containers.
+# internal would avoid Tailscale but bifrost's SSRF guard hard-blocks
+# link-local (169.254.x); the fix needs an RFC1918 path (shared podman
+# network) plus allow_private_network in the provider network_config.
 _: {
   my.modules.nixos.bifrost = {
     lib,
