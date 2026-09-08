@@ -82,7 +82,7 @@ See individual skill documentation for specific patterns and best practices.
 
 ### Issue tracker
 
-GitHub issues in this repo (`ashebanow/nix-config`), via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Linear (team Boxbow, project Nix-Config; IDs like `BOX-130`), via the `linear-server` MCP. GitHub is code only. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
