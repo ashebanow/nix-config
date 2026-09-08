@@ -2,10 +2,11 @@
 # After `podman-compose up -d`, bifrost is available at:
 #   https://ai.fluffy-walleye.ts.net
 #
-# The gateway shares the sidecar's network namespace, so it binds only inside
-# that namespace — nothing is published on the host, and the only way in is
-# through `tailscale serve`. The hostname is `ai` (function, not brand) so a
-# future gateway swap does not move the endpoint.
+# The gateway shares the sidecar's network namespace and binds 127.0.0.1 only,
+# so nothing is published on the host and nothing is reachable on the tailnet
+# except through `tailscale serve` (which proxies from localhost). The hostname
+# is `ai` (function, not brand) so a future gateway swap does not move the
+# endpoint.
 #
 # Bifrost is Go, not Python: this replaces LiteLLM specifically to escape the
 # streaming-body truncation that forced clients to disable streaming.
@@ -18,7 +19,7 @@
 
 services:
   tailscale:
-    image: docker.io/tailscale/tailscale:latest
+    image: docker.io/tailscale/tailscale:v1.98.4
     container_name: bifrost-ts
     hostname: ai
     environment:
@@ -53,7 +54,9 @@ services:
     depends_on:
       - tailscale
     environment:
-      - APP_HOST=0.0.0.0
+      # Loopback only: tailscale serve (same netns) proxies from localhost, so
+      # binding 0.0.0.0 would also expose the raw port on the tailnet.
+      - APP_HOST=127.0.0.1
       - APP_PORT=8080
       - LOG_LEVEL=info
       - LOG_STYLE=json
