@@ -96,6 +96,16 @@ Strix Halo has 128 GB unified memory:
 - Firewall control via `modules/features/access.nix`; external access via Tailscale
 - `tailscale-llm-serve.service` publishes each model:
   `https://lumquat.fluffy-walleye.ts.net/qwen-35b-a3b` → `http://localhost:8080`
+- It also publishes `/llm`, a generic alias for whichever model is marked
+  `primary = true` in `lib/models.nix`
+- The unit runs `tailscale serve reset` before re-adding its paths, so the live
+  serve table always equals the declaration. `--set-path` is additive and never
+  removes anything, so without the reset the table accumulates paths for models
+  the host no longer runs. A path added by hand on lumquat does not survive a
+  rebuild — add it to the module instead.
+- Tailscale *Services* (`svc:` names, one subdomain per service) are **not**
+  available on this tailnet; see TS-SERVE.MD. Per-service subdomains come from a
+  Tailscale sidecar container per service instead.
 
 ## LiteLLM Proxy
 
@@ -114,4 +124,6 @@ injected from BWS via secretspec (`litellm` scope) at start; no `.env` files.
    (health-check extraOptions if you want preloading)
 3. Optionally promote it into `ggufs` with a SHA256
 4. Add a litellm model route in `compose/llm/litellm-config.yaml`
-5. `just dry-run` to validate the config on lumquat, then `just switch`
+5. If the new model should become the default `/llm` target, move
+   `primary = true` onto it — exactly one model should carry it
+6. `just dry-run` to validate the config on lumquat, then `just switch`

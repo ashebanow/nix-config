@@ -47,6 +47,7 @@ Each consumer resolves only its own scope of the shared `production` profile:
 | `litellm` | `TS_AUTHKEY`, `LITELLM_MASTER_KEY`, `LITELLM_DB_PASSWORD`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `litellm-compose.service` |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `LITELLM_MASTER_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
+| `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `bifrost-compose.service` |
 
 ### Provider routing
 
@@ -160,9 +161,24 @@ fetch secrets from BWS — API keys are expected in the environment already:
 | `OpenWebUI TS Auth Key` | openwebui tailscale sidecar |
 | `mnemo-tailscale-auth-key` | mnemosyne tailscale sidecar |
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |
+| `BIFROST_TS_AUTHKEY` | bifrost tailscale sidecar (the `ai` node) |
 
 > The `LiteLLM Master Key` / `OpenWebUI TS Auth Key` / `anthropic-api-key-pi`
 > names predate this migration; they are referenced as-is to avoid re-pointing
 > the dev-shell and dotfiles UUIDs. `FLAKEHUB_TOKEN` was re-pointed from the
 > legacy `flakehub_bergamot_token` item to `NIX_FLAKEHUB_CACHE_TOKEN` (the
 > token formerly lived in the operator's personal Bitwarden vault).
+
+### Manual steps that git cannot record
+
+Two pieces of the tailnet setup live only in the Tailscale admin console, so
+nothing in this repo will recreate them:
+
+- **Key expiry is disabled per node** for the server-side nodes (`lumquat`, and
+  the sidecar nodes `litellm`, `openwebui`, `memory`, `ai`). The tailnet's
+  `maxKeyDuration` is 180 days; without this, a sidecar silently drops off the
+  tailnet twice a year and the service becomes unreachable with no local error.
+  Check it whenever a new sidecar node joins.
+- **`BIFROST_TS_AUTHKEY` is a reusable auth key**, so the bifrost sidecar
+  re-authenticates cleanly whenever its container is recreated. If it is ever
+  rotated to a single-use key, recreating the container will fail to join.
