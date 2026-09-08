@@ -41,6 +41,7 @@ in rec {
       flashAttn = true;
       ngl = 999;
       port = 8080;
+      primary = true; # target for the generic /llm serve path
       extraFlags = [
         "-np"
         "4" # Parallel slots — 256K each, 1M total pool

@@ -1,5 +1,25 @@
 # Plan: Migrate from Tailscale Aperture to Tailscale Serve/ Services
 
+> **Status (verified 2026-09-07): Part 3 is not implementable on this tailnet.**
+>
+> The nixpkgs `services.tailscale.serve` module emits *only* `svc:`-prefixed
+> Tailscale **Services** config, and Tailscale Services require the
+> `tailscale.com/cap/services` tailnet capability. Lumquat's `CapMap` does not
+> carry it — it holds only `file-sharing`, `is-owner`, `ssh` and `tailnet-lock`.
+> Every `svc:` example below (Part 3, and the `tailscale serve status` output in
+> Step 4) therefore describes a shape this tailnet cannot produce.
+>
+> **What was built instead:** path-based serve on the lumquat node itself
+> (`tailscale serve --bg --set-path=/<model>`), driven by
+> `tailscale-llm-serve.service` in `modules/features/llm.nix`, giving
+> `https://lumquat.fluffy-walleye.ts.net/<model>`. Per-service subdomains
+> (`litellm.`, `openwebui.`, `memory.`, and `ai.` for the bifrost gateway) come
+> from a Tailscale sidecar container per service, each joining the tailnet as its
+> own node.
+>
+> Parts 1, 2 and 4 were implemented as written. Revisit Part 3 only if this
+> tailnet gains the services capability.
+
 ## Why
 
 Tailscale Aperture has been flaky for routing traffic to local LLM endpoints.
