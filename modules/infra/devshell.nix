@@ -22,6 +22,7 @@ _: {
       packages = with pkgs; [
         alejandra
         unfreePkgs.bws
+        unfreePkgs.claude-code
         colmena
         dig
         gh
