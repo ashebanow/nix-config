@@ -18,14 +18,13 @@
 # Gated behind my.bifrostServe, separate from my.llmServe, so bifrost and
 # LiteLLM can run side by side until the cutover completes.
 #
-# KNOWN ISSUE (BOX-140): the qwen provider's base_url is the node's Tailscale
-# IP, but the gateway shares the sidecar's netns — a separate tailnet node
-# that only reaches lumquat over a DERP relay (two nodes on one host can't
-# hole-punch). Request bodies over ~5 KB get mangled on that relay path
-# (the "large body" failure the reliability gate catches). host.containers.
-# internal would avoid Tailscale but bifrost's SSRF guard hard-blocks
-# link-local (169.254.x); the fix needs an RFC1918 path (shared podman
-# network) plus allow_private_network in the provider network_config.
+# The sidecar joins the `llm-internal` bridge (podman-network-llm-internal
+# .service, in llm.nix) and bifrost reaches llama-server at `qwen-35b-a3b:8080`
+# on it — not over the tailnet. Two tailnet nodes on one host can't hole-punch,
+# so that hop is DERP-relayed and truncates request bodies over ~5 KB
+# (BOX-140). host.containers.internal isn't an option: bifrost's SSRF guard
+# hard-blocks link-local (169.254.x). RFC1918 over the bridge + the provider's
+# allow_private_network flag is the fix.
 _: {
   my.modules.nixos.bifrost = {
     lib,
@@ -42,8 +41,9 @@ _: {
 
       systemd.services.bifrost-compose = {
         description = "Bifrost LLM gateway compose stack";
-        after = ["network-online.target"];
+        after = ["network-online.target" "podman-network-llm-internal.service"];
         wants = ["network-online.target"];
+        requires = ["podman-network-llm-internal.service"];
         wantedBy = ["multi-user.target"];
         # The unit text never changes when only the symlinked compose/config
         # content does, so without this a rebuild leaves the old stack running.
