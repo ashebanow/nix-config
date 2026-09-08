@@ -123,6 +123,39 @@ _: {
         "L+ /etc/openwebui/compose.yml - - - - ${../../compose/llm/openwebui-compose.yml}"
       ];
 
+      # Shared host-local podman bridge for container→container traffic on this
+      # box (bifrost → llama-server, later openwebui → bifrost). Same-host
+      # sidecar↔sidecar / sidecar↔host hops over the tailnet get relayed via
+      # DERP (two nodes on one host can't hole-punch), and DERP mangles request
+      # bodies over ~5 KB — see BOX-140. This bridge keeps that traffic on the
+      # box; Tailscale still fronts every external door.
+      #
+      # Created out of band (rootless podman, user ${cfg.baseUsername}) so its
+      # lifecycle isn't tied to any one compose stack; consumers order after it.
+      systemd.services.podman-network-llm-internal = {
+        description = "Create the llm-internal podman network";
+        after = ["network-online.target" "linger-users.service"];
+        wants = ["network-online.target"];
+        wantedBy = ["multi-user.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = "yes";
+          User = cfg.baseUsername;
+          Environment = ["HOME=/home/${cfg.baseUsername}"];
+        };
+        script = ''
+          export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+          ${pkgs.podman}/bin/podman network exists llm-internal \
+            || ${pkgs.podman}/bin/podman network create llm-internal
+        '';
+      };
+
+      # qwen also needs the network to exist before it starts.
+      systemd.services.podman-qwen-35b-a3b = {
+        after = ["podman-network-llm-internal.service"];
+        requires = ["podman-network-llm-internal.service"];
+      };
+
       # Declarative podman containers
       virtualisation.oci-containers = {
         backend = "podman";
@@ -131,9 +164,16 @@ _: {
           qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b {
             # Warm-up: send a dummy request on start so model is preloaded before first real query.
             # Without this, the very first user request triggers prompt cache init which adds latency.
+            #
+            # --network llm-internal: reachable as `qwen-35b-a3b:8080` from other
+            # containers on that bridge (bifrost). The host `8080:8080` publish
+            # is kept for the legacy paths (litellm, tailscale-llm-serve) until
+            # BOX-138 retires them.
             extraOptions =
               baseOptions
               ++ [
+                "--network"
+                "llm-internal"
                 "--health-cmd"
                 "curl -sf http://127.0.0.1:8080/health"
                 "--health-interval"

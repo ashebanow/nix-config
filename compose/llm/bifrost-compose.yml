@@ -16,12 +16,21 @@
 # over the config DB on every restart, so the UI stays browsable without
 # becoming the source of truth. Request logs live in the named volume and
 # survive rebuilds.
+#
+# The sidecar also joins `llm-internal` (an external host-local bridge created
+# by podman-network-llm-internal.service). bifrost-app inherits it via the
+# shared netns and reaches llama-server at `qwen-35b-a3b:8080` on that bridge —
+# not over the tailnet, whose same-host hop is DERP-relayed and truncates large
+# request bodies (BOX-140).
 
 services:
   tailscale:
     image: docker.io/tailscale/tailscale:v1.98.4
     container_name: bifrost-ts
     hostname: ai
+    networks:
+      - default
+      - llm-internal
     environment:
       - TS_AUTHKEY=${BIFROST_TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -37,7 +46,10 @@ services:
       sh -c "
       tailscaled --tun=tailscale0 --state=/var/lib/tailscale/tailscaled.state &
       sleep 2
-      tailscale up --auth-key=${BIFROST_TS_AUTHKEY} --hostname=ai --accept-dns || {
+      # --accept-dns=false: keep podman's own resolver (aardvark) so bifrost can
+      # resolve `qwen-35b-a3b` on the llm-internal bridge. MagicDNS would
+      # overwrite resolv.conf and this stack has no .ts.net upstreams to lose.
+      tailscale up --auth-key=${BIFROST_TS_AUTHKEY} --hostname=ai --accept-dns=false || {
         echo 'ERROR: tailscale up failed (check BIFROST_TS_AUTHKEY)' >&2
         exit 1
       }
@@ -70,6 +82,11 @@ services:
       - bifrost-data:/app/data
       - /etc/bifrost/config.json:/app/data/config.json:ro
     restart: unless-stopped
+
+networks:
+  default:
+  llm-internal:
+    external: true
 
 volumes:
   ts-state:

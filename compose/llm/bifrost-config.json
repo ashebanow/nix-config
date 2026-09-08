@@ -33,7 +33,8 @@
         }
       ],
       "network_config": {
-        "base_url": "http://100.90.247.10:8080",
+        "base_url": "http://qwen-35b-a3b:8080",
+        "allow_private_network": true,
         "default_request_timeout_in_seconds": 600
       },
       "custom_provider_config": {
