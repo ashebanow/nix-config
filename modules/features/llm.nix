@@ -247,6 +247,11 @@ _: {
         after = ["network-online.target"];
         wants = ["network-online.target"];
         wantedBy = ["multi-user.target"];
+        # Without this a rebuild that only changes the symlinked compose content
+        # (e.g. the gateway cutover, BOX-136) leaves the old stack running — the
+        # unit text is unchanged. webui-data is a named volume; a restart is
+        # down/up and does not touch it, so logins survive. (BOX-139.)
+        restartTriggers = ["${../../compose/llm/openwebui-compose.yml}"];
         path = [
           pkgs.podman
           pkgs.podman-compose

@@ -2,8 +2,15 @@
 # After `podman-compose up -d`, the UI is available at:
 #   https://openwebui.fluffy-walleye.ts.net
 #
-# Connects to LiteLLM proxy at https://litellm.fluffy-walleye.ts.net/v1
-# for access to all configured models (local + remote).
+# Connects to the bifrost gateway at https://ai.fluffy-walleye.ts.net/v1 for
+# all models (local qwen + deepseek/anthropic/minimax). The gateway enforces
+# no virtual key, so OPENAI_API_KEY is a dummy. openwebui-ts reaches the `ai`
+# node directly (container↔container hole-punches on-host), so large streaming
+# prompts are unaffected by the DERP issue that hits container→host (BOX-140).
+#
+# WEBUI_SECRET_KEY still derives from the LiteLLM master key — changing it
+# invalidates every logged-in session. It is rehomed when the LiteLLM stack is
+# deleted (BOX-138), not here.
 
 services:
   tailscale:
@@ -42,8 +49,15 @@ services:
     depends_on:
       - tailscale
     environment:
-      - OPENAI_API_BASE_URL=https://litellm.fluffy-walleye.ts.net/v1
-      - OPENAI_API_KEY=${LITELLM_MASTER_KEY}
+      - OPENAI_API_BASE_URL=https://ai.fluffy-walleye.ts.net/v1
+      - OPENAI_API_KEY=sk-openwebui-dummy
+      # Curated model list for connection 0. bifrost's /v1/models only enumerates
+      # native providers (anthropic/deepseek) from its datasheet — never the qwen
+      # or minimax custom providers — so model_ids names them explicitly. The
+      # anthropic/deepseek entries are also trimmed to the latest of each family
+      # (bifrost-config.json trims the same set for other clients).
+      - 'OPENAI_API_CONFIGS={"0":{"enable":true,"prefix_id":"","tags":[],"model_ids":["qwen-latest","minimax/MiniMax-M2","minimax/MiniMax-M2.1","deepseek/deepseek-v4-pro","deepseek/deepseek-v4-flash","anthropic/claude-haiku-4-5-20251001","anthropic/claude-sonnet-5","anthropic/claude-opus-5","anthropic/claude-fable-5-1"]}}'
+      # Unchanged on purpose — see the header. Rehomed in BOX-138.
       - WEBUI_SECRET_KEY=${LITELLM_MASTER_KEY}
     volumes:
       - webui-data:/app/backend/data
