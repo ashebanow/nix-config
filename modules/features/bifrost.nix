@@ -9,9 +9,11 @@
 # is published on the host. Served at https://ai.fluffy-walleye.ts.net —
 # named for its function, so a future gateway swap does not move the endpoint.
 #
-# Secrets are resolved from BWS via secretspec (bifrost scope) at start; values
-# live only in the process environment, never on disk. Compose + config are
-# symlinked to /etc/bifrost via tmpfiles below.
+# Secrets (bifrost scope: BIFROST_TS_AUTHKEY for the sidecar; DEEPSEEK_API_KEY,
+# ANTHROPIC_API_KEY, MINIMAX_API_KEY for the remote providers) are resolved from
+# BWS via secretspec at start. Values live only in the process environment;
+# config.json references the provider keys by name (env.<VAR>), never by value.
+# Compose + config are symlinked to /etc/bifrost via tmpfiles below.
 #
 # Gated behind my.bifrostServe, separate from my.llmServe, so bifrost and
 # LiteLLM can run side by side until the cutover completes.

@@ -60,6 +60,12 @@ services:
       - APP_PORT=8080
       - LOG_LEVEL=info
       - LOG_STYLE=json
+      # Remote-provider keys — resolved from the bifrost secret scope by
+      # secretspec and substituted here by podman-compose. config.json
+      # references them by name (`env.<VAR>`); no value is written to the config.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
     volumes:
       - bifrost-data:/app/data
       - /etc/bifrost/config.json:/app/data/config.json:ro
