@@ -247,14 +247,27 @@ _: {
           RemainAfterExit = true;
         };
         path = [config.services.tailscale.package];
-        script = lib.concatMapStringsSep "\n" (
-          name: let
-            model = modelsLib.models.${name};
-          in ''
-            echo "Configuring Tailscale Serve for ${name} -> http://localhost:${toString model.port}"
-            tailscale serve --bg --set-path=/${name} http://localhost:${toString model.port}
+        script = let
+          modelNames = builtins.attrNames modelsLib.models;
+          # /llm is the generic alias for whatever model is currently primary.
+          primaryModel =
+            lib.findFirst (n: modelsLib.models.${n}.primary or false) null modelNames;
+          servePath = path: port: ''
+            echo "Configuring Tailscale Serve for ${path} -> http://localhost:${toString port}"
+            tailscale serve --bg --set-path=${path} http://localhost:${toString port}
+          '';
+        in
+          # `tailscale serve --set-path` is additive and nothing ever removes a
+          # path, so the live table accumulates entries for models that no longer
+          # exist. Reset first, then re-add, so the serve table equals this
+          # declaration rather than the history of every config we ever applied.
           ''
-        ) (builtins.attrNames modelsLib.models);
+            tailscale serve reset
+          ''
+          + lib.concatMapStringsSep "\n" (n: servePath "/${n}" modelsLib.models.${n}.port) modelNames
+          + lib.optionalString (primaryModel != null) (
+            servePath "/llm" modelsLib.models.${primaryModel}.port
+          );
       };
     };
   };
