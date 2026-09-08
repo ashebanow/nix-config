@@ -161,7 +161,7 @@ fetch secrets from BWS — API keys are expected in the environment already:
 | `OpenWebUI TS Auth Key` | openwebui tailscale sidecar |
 | `mnemo-tailscale-auth-key` | mnemosyne tailscale sidecar |
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |
-| `BIFROST_TS_AUTHKEY` | bifrost tailscale sidecar (the `ai` node) |
+| `bifrost-tailscale-auth-key` | bifrost tailscale sidecar (the `ai` node) |
 
 > The `LiteLLM Master Key` / `OpenWebUI TS Auth Key` / `anthropic-api-key-pi`
 > names predate this migration; they are referenced as-is to avoid re-pointing
