@@ -10,9 +10,9 @@ Nothing in git or the Nix store holds a secret value.
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │ BWS — "Homelab" project (single source of truth)              │
-│   lumquat-tailscale-auth-key, litellm-tailscale-auth-key,     │
-│   litellm-db-password, mnemosyne-mcp-token, deepseek-api-key, │
-│   anthropic-api-key-pi, minimax-api-key, ...                  │
+│   lumquat-tailscale-auth-key, bifrost-tailscale-auth-key,     │
+│   mnemosyne-mcp-token, deepseek-api-key, anthropic-api-key-pi,│
+│   minimax-api-key, ...                                        │
 └───────────────────────────────┬────────────────────────────────┘
                                 │ bws://vault.bitwarden.com@<project>
                                 │
@@ -33,7 +33,7 @@ Nothing in git or the Nix store holds a secret value.
   /run/secrets/flakehub   podman-compose (no files)
         │                       │
         ▼                       ▼
-  tailscale authKeyFile   litellm / openwebui /
+  tailscale authKeyFile   bifrost / openwebui /
   determinate-nixd token  mnemosyne containers
 ```
 
@@ -44,7 +44,6 @@ Each consumer resolves only its own scope of the shared `production` profile:
 | Scope | Secrets | Consumer |
 |-------|---------|----------|
 | `host` | `TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN` | `host-secrets-populate.service` (root) |
-| `litellm` | `TS_AUTHKEY`, `LITELLM_MASTER_KEY`, `LITELLM_DB_PASSWORD`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `litellm-compose.service` |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
 | `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `bifrost-compose.service` |
@@ -107,9 +106,9 @@ writes:
 - `/run/secrets/tailscale-auth-key` (0600) → `services.tailscale.authKeyFile`
 - `/run/secrets/flakehub-token` (0600) → `flakehub-nixd-auth.service --token-file`
 
-### Container secrets (litellm, openwebui, memory) — no files
+### Container secrets (bifrost, openwebui, memory) — no files
 
-The podman-compose systemd services (`litellm-compose`, `openwebui-compose`,
+The podman-compose systemd services (`bifrost-compose`, `openwebui-compose`,
 `memory-compose`) run `secretspec run -P production -S <scope> -- podman-compose
 up -d`. SecretSpec injects the scope's values straight into the process
 environment; podman-compose substitutes them into `compose.yml`. **No `.env`
@@ -136,7 +135,7 @@ fetch secrets from BWS — API keys are expected in the environment already:
 
 1. **Create/update the value in BWS** (Homelab project). Naming convention: env
    var lowercased, service prefix, underscores → dashes
-   (e.g. `litellm-db-password`).
+   (e.g. `bifrost-tailscale-auth-key`).
 2. **Declare it** in `secretspec.toml` under `[profiles.production]`, and add it
    to the relevant `[scopes.<name>].secrets` list.
 3. **Consume it** in the module via `secretspec run` (container service) or the
@@ -152,12 +151,10 @@ fetch secrets from BWS — API keys are expected in the environment already:
 |--------------|---------|
 | `lumquat-tailscale-auth-key` | host `tailscale` (node auth) |
 | `NIX_FLAKEHUB_CACHE_TOKEN` | `determinate-nixd` cache auth |
-| `litellm-tailscale-auth-key` | litellm tailscale sidecar |
-| `LiteLLM Master Key` | litellm + openwebui |
-| `litellm-db-password` | litellm postgres |
-| `deepseek-api-key` | litellm |
-| `anthropic-api-key-pi` | litellm |
-| `minimax-api-key` | litellm |
+| `LiteLLM Master Key` | openwebui session-signing key (`WEBUI_SECRET_KEY`) |
+| `deepseek-api-key` | bifrost |
+| `anthropic-api-key-pi` | bifrost |
+| `minimax-api-key` | bifrost |
 | `OpenWebUI TS Auth Key` | openwebui tailscale sidecar |
 | `mnemo-tailscale-auth-key` | mnemosyne tailscale sidecar |
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |
@@ -165,9 +162,15 @@ fetch secrets from BWS — API keys are expected in the environment already:
 
 > The `LiteLLM Master Key` / `OpenWebUI TS Auth Key` / `anthropic-api-key-pi`
 > names predate this migration; they are referenced as-is to avoid re-pointing
-> the dev-shell and dotfiles UUIDs. `FLAKEHUB_TOKEN` was re-pointed from the
-> legacy `flakehub_bergamot_token` item to `NIX_FLAKEHUB_CACHE_TOKEN` (the
-> token formerly lived in the operator's personal Bitwarden vault).
+> the dev-shell and dotfiles UUIDs. `LiteLLM Master Key` is now Open WebUI's
+> session key alone (the LiteLLM stack was deleted in BOX-138) — rename it in
+> the BWS console at leisure and update the `WEBUI_SECRET_KEY` ref.
+> `FLAKEHUB_TOKEN` was re-pointed from the legacy `flakehub_bergamot_token` item
+> to `NIX_FLAKEHUB_CACHE_TOKEN` (the token formerly lived in the operator's
+> personal Bitwarden vault).
+>
+> **Orphaned by BOX-138** — safe to delete in the BWS console:
+> `litellm-tailscale-auth-key`, `litellm-db-password`.
 
 ### Manual steps that git cannot record
 
@@ -175,10 +178,13 @@ Two pieces of the tailnet setup live only in the Tailscale admin console, so
 nothing in this repo will recreate them:
 
 - **Key expiry is disabled per node** for the server-side nodes (`lumquat`, and
-  the sidecar nodes `litellm`, `openwebui`, `memory`, `ai`). The tailnet's
+  the sidecar nodes `openwebui`, `memory`, `ai`). The tailnet's
   `maxKeyDuration` is 180 days; without this, a sidecar silently drops off the
   tailnet twice a year and the service becomes unreachable with no local error.
   Check it whenever a new sidecar node joins.
 - **`BIFROST_TS_AUTHKEY` is a reusable auth key**, so the bifrost sidecar
   re-authenticates cleanly whenever its container is recreated. If it is ever
   rotated to a single-use key, recreating the container will fail to join.
+- **Retire the `litellm` tailnet node** (BOX-138): after the LiteLLM stack is
+  gone from lumquat, delete the `litellm` node in the Tailscale admin console.
+  Nothing recreates it.

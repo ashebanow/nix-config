@@ -9,21 +9,20 @@
 > Every `svc:` example below (Part 3, and the `tailscale serve status` output in
 > Step 4) therefore describes a shape this tailnet cannot produce.
 >
-> **What was built instead:** path-based serve on the lumquat node itself
-> (`tailscale serve --bg --set-path=/<model>`), driven by
-> `tailscale-llm-serve.service` in `modules/features/llm.nix`, giving
-> `https://lumquat.fluffy-walleye.ts.net/<model>`. Per-service subdomains
-> (`litellm.`, `openwebui.`, `memory.`, and `ai.` for the bifrost gateway) come
-> from a Tailscale sidecar container per service, each joining the tailnet as its
-> own node.
+> **What was built instead:** a Tailscale sidecar container per service, each
+> joining the tailnet as its own node and running `tailscale serve --bg` for
+> its app: `openwebui.`, `memory.`, and `ai.` (the bifrost LLM gateway). Each
+> sidecar's serve config is set in its compose command and reset on start, so
+> the live table equals the declaration — a path added by hand is destroyed on
+> the next stack restart.
 >
 > Parts 1, 2 and 4 were implemented as written. Revisit Part 3 only if this
 > tailnet gains the services capability.
 >
-> **Operator note:** `tailscale-llm-serve.service` runs `tailscale serve reset`
-> before re-adding its paths, so the live serve table always equals the
-> declaration in `modules/features/llm.nix`. Any path added by hand on lumquat
-> is destroyed on the next rebuild — add it to the module instead.
+> **History:** direct path-based serve on the lumquat node
+> (`tailscale-llm-serve.service`, `lumquat.ts.net/<model>`) and the `litellm.`
+> sidecar were removed with the LiteLLM stack (BOX-138). qwen is now reached
+> only through the `ai.` gateway.
 
 ## Why
 

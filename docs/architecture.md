@@ -201,7 +201,8 @@ _: {
   my.base = true;
   my.baseUsername = "podman";
   my.llm = true;        # llama.cpp containers (modules/features/llm.nix)
-  my.llmServe = true;   # LiteLLM proxy + Open WebUI compose stacks
+  my.llmServe = true;   # Open WebUI compose stack
+  my.bifrostServe = true; # Bifrost LLM gateway (modules/features/bifrost.nix)
   my.llmModelStorage = "/var/lib/llm-models";
   my.access = true;     # Tailscale + SSH
   my.monitoring = true; # Cockpit
@@ -271,13 +272,34 @@ _: {
   gfx1151 SDK; MTP is now in llama.cpp mainline)
 - **Model**: promoted `Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf` (SHA256-verified Nix
   fetch, mounted read-only at `/models/`)
-- **Serving**: `tailscale-llm-serve.service` publishes
-  `https://lumquat.fluffy-walleye.ts.net/qwen-35b-a3b` → `localhost:8080`;
-  the LiteLLM proxy (`compose/llm/compose.yml`, pinned `litellm:v1.97.0`)
-  routes `qwen-35b-a3b` plus remote providers (deepseek-*, minimax-*, claude-*)
-  at `https://litellm.fluffy-walleye.ts.net`
-- **DeepSeek v4** (planning/multimodal) is a planned future model — see
-  `docs/plan.md`; add it to `lib/models.nix` and `mkContainer` when ready
+- **Serving**: the qwen container publishes nothing on the host. It is reached
+  only as `qwen-35b-a3b:8080` on the `llm-internal` podman bridge — i.e. only
+  through the bifrost gateway (see *LLM gateway* below). DeepSeek v4
+  (planning/multimodal) is a planned future model — add it to `lib/models.nix`
+  and `mkContainer` when ready.
+
+### LLM Gateway (Bifrost)
+
+`modules/features/bifrost.nix` (gated on `my.bifrostServe`) runs a
+`podman-compose` stack: a `maximhq/bifrost` gateway sharing a Tailscale
+sidecar's netns, served at `https://ai.fluffy-walleye.ts.net`. It replaced the
+LiteLLM proxy.
+
+- **Config**: `compose/llm/bifrost-config.json`, bind-mounted read-only from the
+  Nix store. `source_of_truth: "config.json"` so Nix wins over the config DB on
+  every restart while the dashboard stays browsable.
+- **Providers**: `qwen` (custom, OpenAI-compatible, → `qwen-35b-a3b:8080` on the
+  bridge), plus native `anthropic` / `deepseek` and a custom `minimax`. Remote
+  keys come from the `bifrost` secret scope by `env.<VAR>` indirection.
+- **Storage**: sqlite config + request-log stores in a named volume; 30-day log
+  retention. Survives rebuilds (`down` without `-v`, `restartTriggers` on the
+  unit).
+- **Access**: Tailscale is the perimeter — no virtual key,
+  `enforce_auth_on_inference: false`. The gateway binds loopback inside the
+  sidecar netns; nothing is on a host port.
+- **Reliability**: `just reliability-gate` (`scripts/bifrost-reliability-gate.py`)
+  re-runs the large-body / long-stream / tool-calling checks that LiteLLM failed;
+  see `docs/bifrost-reliability-gate.md`.
 
 ### GPU Passthrough for Strix Halo
 
@@ -394,7 +416,7 @@ scripts/populate-host-secrets.sh # materializes the 2 file-backed host secrets
 - **Host secrets** (tailscale, flakehub): `host-secrets-populate.service` resolves
   the `host` scope and writes `/run/secrets/tailscale-auth-key` and
   `/run/secrets/flakehub-token` (the only file-backed consumers).
-- **Container secrets** (litellm, openwebui, memory): the compose systemd
+- **Container secrets** (bifrost, openwebui, memory): the compose systemd
   services run `secretspec run -P production -S <scope> -- podman-compose up -d`,
   injecting values straight into the process env (no `.env`).
 
