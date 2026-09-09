@@ -45,6 +45,20 @@
 
     # NixOS hardware quirks
     nixos-hardware.url = "github:nixos/nixos-hardware";
+
+    # pi coding agent — consumed as an overlay in the dev shell ONLY
+    # (see modules/infra/devshell.nix), never in a host closure. The stock
+    # nixpkgs pi-coding-agent trips over NixOS's read-only, non-FHS store;
+    # pi.nix's wrapper redirects NPM_CONFIG_PREFIX to $XDG_DATA_HOME so pi
+    # can start. Tracks pi.nix's default branch (it follows upstream pi
+    # within a day or two and caches builds at pi.cachix.org); flake.lock
+    # still pins an exact rev, so bump it deliberately with
+    # `nix flake update pi-nix`. Pi moves too fast for a tag pin to be
+    # worth the manual babysitting, and this is dev-shell-only anyway.
+    pi-nix = {
+      url = "github:lukasl-dev/pi.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}: let

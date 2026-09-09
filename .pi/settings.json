@@ -9,7 +9,7 @@
     "npm:pi-background-tasks@latest",
     "npm:@feniix/pi-exa",
     "npm:pi-mcp-extension",
-    "git:git@github.com:joshleblanc/pi-minimax",
+    "git:https://github.com/joshleblanc/pi-minimax",
     "npm:@ashebanow/pi-gotgenes-subagent",
     "npm:@alasano/pi-linear"
   ],
