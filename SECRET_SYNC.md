@@ -151,7 +151,7 @@ fetch secrets from BWS — API keys are expected in the environment already:
 |--------------|---------|
 | `lumquat-tailscale-auth-key` | host `tailscale` (node auth) |
 | `NIX_FLAKEHUB_CACHE_TOKEN` | `determinate-nixd` cache auth |
-| `LiteLLM Master Key` | openwebui session-signing key (`WEBUI_SECRET_KEY`) |
+| `webui-secret-key` | openwebui session-signing key (`WEBUI_SECRET_KEY`) |
 | `deepseek-api-key` | bifrost |
 | `anthropic-api-key-pi` | bifrost |
 | `minimax-api-key` | bifrost |
@@ -160,17 +160,17 @@ fetch secrets from BWS — API keys are expected in the environment already:
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |
 | `bifrost-tailscale-auth-key` | bifrost tailscale sidecar (the `ai` node) |
 
-> The `LiteLLM Master Key` / `OpenWebUI TS Auth Key` / `anthropic-api-key-pi`
-> names predate this migration; they are referenced as-is to avoid re-pointing
-> the dev-shell and dotfiles UUIDs. `LiteLLM Master Key` is now Open WebUI's
-> session key alone (the LiteLLM stack was deleted in BOX-138) — rename it in
-> the BWS console at leisure and update the `WEBUI_SECRET_KEY` ref.
-> `FLAKEHUB_TOKEN` was re-pointed from the legacy `flakehub_bergamot_token` item
-> to `NIX_FLAKEHUB_CACHE_TOKEN` (the token formerly lived in the operator's
+> The `OpenWebUI TS Auth Key` / `anthropic-api-key-pi` names predate this
+> migration; they are referenced as-is to avoid re-pointing the dev-shell and
+> dotfiles UUIDs. `webui-secret-key` holds the value the old `LiteLLM Master
+> Key` item held — copied to a litellm-free name for BOX-138. `FLAKEHUB_TOKEN`
+> was re-pointed from the legacy `flakehub_bergamot_token` item to
+> `NIX_FLAKEHUB_CACHE_TOKEN` (the token formerly lived in the operator's
 > personal Bitwarden vault).
 >
-> **Orphaned by BOX-138** — safe to delete in the BWS console:
-> `litellm-tailscale-auth-key`, `litellm-db-password`.
+> **Orphaned by BOX-138** — safe to delete in the BWS console once this branch
+> is deployed: `LiteLLM Master Key`, `litellm-tailscale-auth-key`,
+> `litellm-db-password`.
 
 ### Manual steps that git cannot record
 
