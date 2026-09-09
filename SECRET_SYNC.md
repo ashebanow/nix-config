@@ -45,7 +45,7 @@ Each consumer resolves only its own scope of the shared `production` profile:
 |-------|---------|----------|
 | `host` | `TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN` | `host-secrets-populate.service` (root) |
 | `litellm` | `TS_AUTHKEY`, `LITELLM_MASTER_KEY`, `LITELLM_DB_PASSWORD`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `litellm-compose.service` |
-| `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `LITELLM_MASTER_KEY` | `openwebui-compose.service` |
+| `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
 | `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `bifrost-compose.service` |
 

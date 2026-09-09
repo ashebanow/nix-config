@@ -8,9 +8,10 @@
 # node directly (container↔container hole-punches on-host), so large streaming
 # prompts are unaffected by the DERP issue that hits container→host (BOX-140).
 #
-# WEBUI_SECRET_KEY still derives from the LiteLLM master key — changing it
-# invalidates every logged-in session. It is rehomed when the LiteLLM stack is
-# deleted (BOX-138), not here.
+# WEBUI_SECRET_KEY is the session-signing key. It resolves to the same BWS
+# value the LiteLLM master key used, now under an honest name in the openwebui
+# scope (BOX-138 part 1) — the value is unchanged, so existing sessions stay
+# valid.
 
 services:
   tailscale:
@@ -57,8 +58,8 @@ services:
       # anthropic/deepseek entries are also trimmed to the latest of each family
       # (bifrost-config.json trims the same set for other clients).
       - 'OPENAI_API_CONFIGS={"0":{"enable":true,"prefix_id":"","tags":[],"model_ids":["qwen-latest","minimax/MiniMax-M2","minimax/MiniMax-M2.1","deepseek/deepseek-v4-pro","deepseek/deepseek-v4-flash","anthropic/claude-haiku-4-5-20251001","anthropic/claude-sonnet-5","anthropic/claude-opus-5","anthropic/claude-fable-5-1"]}}'
-      # Unchanged on purpose — see the header. Rehomed in BOX-138.
-      - WEBUI_SECRET_KEY=${LITELLM_MASTER_KEY}
+      # Session-signing key — same BWS value as before, honest name. See header.
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
     volumes:
       - webui-data:/app/backend/data
     restart: unless-stopped
