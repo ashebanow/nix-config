@@ -116,9 +116,6 @@ _: {
       systemd.tmpfiles.rules = [
         "d ${modelsDir} 0775 root root -"
         "d ${hfCacheDir} 0775 ${cfg.baseUsername} ${cfg.baseUsername} -"
-        "d /etc/litellm 0755 root root -"
-        "L+ /etc/litellm/compose.yml - - - - ${../../compose/llm/compose.yml}"
-        "L+ /etc/litellm/litellm-config.yaml - - - - ${../../compose/llm/litellm-config.yaml}"
         "d /etc/openwebui 0755 root root -"
         "L+ /etc/openwebui/compose.yml - - - - ${../../compose/llm/openwebui-compose.yml}"
       ];
@@ -162,13 +159,11 @@ _: {
         containers = {
           # Qwen 3.6 35B-A3B UD-Q8_K_XL MTP — coding assistant (256K ctx, ~2x faster via MTP)
           qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b {
-            # Warm-up: send a dummy request on start so model is preloaded before first real query.
-            # Without this, the very first user request triggers prompt cache init which adds latency.
-            #
-            # --network llm-internal: reachable as `qwen-35b-a3b:8080` from other
-            # containers on that bridge (bifrost). The host `8080:8080` publish
-            # is kept for the legacy paths (litellm, tailscale-llm-serve) until
-            # BOX-138 retires them.
+            # Not published on the host — reachable only as `qwen-35b-a3b:8080`
+            # on the llm-internal bridge, i.e. only through the bifrost gateway.
+            # (The host :8080 publish and the direct `lumquat.ts.net/<model>`
+            # serve paths were retired with LiteLLM in BOX-138.)
+            ports = [];
             extraOptions =
               baseOptions
               ++ [
@@ -187,61 +182,11 @@ _: {
         };
       };
 
-      # Tailscale Serve — publish each model on the node's own hostname.
-      # Each model is accessible at https://lumquat.fluffy-walleye.ts.net/<name>
-      # (e.g. /qwen-35b-a3b).  TLS certs are issued automatically
-      # by Tailscale.  No admin approval needed — direct serve works on the
-      # Free plan and with tagged nodes.
-      #
-      # We use direct serve (without --service=svc:) because the svc: service
-      # proxy feature requires the tailscale.com/cap/services tailnet capability
-      # which is not available on the Personal/Free plan.
-      #
-      # NOTE: llama-server serves plain HTTP, so the proxy target uses
-      # http:// (Tailscale terminates TLS at the edge and forwards to
-      # the HTTP backend).
-      # LiteLLM proxy with Tailscale sidecar (podman-compose).
-      # Serves at https://litellm.fluffy-walleye.ts.net.
-      # Routes model names → local llama.cpp backends (and remote APIs).
-      # Secrets are resolved from BWS via secretspec (litellm scope) at start —
-      # no .env or podman-secret readback; values live only in the process env.
-      # Compose + config are symlinked to /etc/litellm via tmpfiles above.
-      systemd.services.litellm-compose = lib.mkIf config.my.llmServe {
-        description = "LiteLLM proxy compose stack";
-        after = ["network-online.target"];
-        wants = ["network-online.target"];
-        wantedBy = ["multi-user.target"];
-        path = [
-          pkgs.podman
-          pkgs.podman-compose
-          pkgs.secretspec
-          pkgs.bws
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = "yes";
-          User = config.my.baseUsername;
-          Environment = [
-            "SECRETSPEC_FILE=${config.my.secretspecManifest}"
-            "SECRETSPEC_PROVIDER=bws-service"
-          ];
-          LoadCredential = [
-            "access_token:${config.my.bwsAccessTokenFile}"
-          ];
-          ExecStart = pkgs.writeShellScript "litellm-compose-start" ''
-            set -e
-            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-            # secretspec injects the litellm scope (TS_AUTHKEY,
-            # LITELLM_MASTER_KEY, LITELLM_DB_PASSWORD, DEEPSEEK_API_KEY,
-            # ANTHROPIC_API_KEY, MINIMAX_API_KEY) into this environment;
-            # podman-compose substitutes them in compose.yml.
-            exec ${pkgs.secretspec}/bin/secretspec run -P production -S litellm -- \
-              ${pkgs.podman-compose}/bin/podman-compose -f /etc/litellm/compose.yml up -d
-          '';
-          ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/litellm/compose.yml down";
-        };
-      };
-
+      # Open WebUI — the one browser client, served at
+      # https://openwebui.fluffy-walleye.ts.net via its Tailscale sidecar.
+      # Talks to the bifrost gateway (my.bifrostServe, modules/features/
+      # bifrost.nix) for every model. Secrets come from BWS via secretspec
+      # (openwebui scope) at start; no .env or podman-secret readback.
       systemd.services.openwebui-compose = lib.mkIf config.my.llmServe {
         description = "Open WebUI compose stack";
         after = ["network-online.target"];
@@ -277,42 +222,6 @@ _: {
           '';
           ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/openwebui/compose.yml down";
         };
-      };
-
-      systemd.services.tailscale-llm-serve = lib.mkIf config.my.llmServe {
-        description = "Tailscale Serve for LLM services";
-        after = [
-          "tailscaled.service"
-          "tailscaled-autoconnect.service"
-        ];
-        wants = ["tailscaled.service"];
-        wantedBy = ["multi-user.target"];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-        };
-        path = [config.services.tailscale.package];
-        script = let
-          modelNames = builtins.attrNames modelsLib.models;
-          # /llm is the generic alias for whatever model is currently primary.
-          primaryModel =
-            lib.findFirst (n: modelsLib.models.${n}.primary or false) null modelNames;
-          servePath = path: port: ''
-            echo "Configuring Tailscale Serve for ${path} -> http://localhost:${toString port}"
-            tailscale serve --bg --set-path=${path} http://localhost:${toString port}
-          '';
-        in
-          # `tailscale serve --set-path` is additive and nothing ever removes a
-          # path, so the live table accumulates entries for models that no longer
-          # exist. Reset first, then re-add, so the serve table equals this
-          # declaration rather than the history of every config we ever applied.
-          ''
-            tailscale serve reset
-          ''
-          + lib.concatMapStringsSep "\n" (n: servePath "/${n}" modelsLib.models.${n}.port) modelNames
-          + lib.optionalString (primaryModel != null) (
-            servePath "/llm" modelsLib.models.${primaryModel}.port
-          );
       };
     };
   };
