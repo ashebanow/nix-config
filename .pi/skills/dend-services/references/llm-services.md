@@ -92,38 +92,32 @@ Strix Halo has 128 GB unified memory:
 
 ## Access / Serving
 
-- Containers bind `0.0.0.0` inside the container (mapped to host port 8080)
-- Firewall control via `modules/features/access.nix`; external access via Tailscale
-- `tailscale-llm-serve.service` publishes each model:
-  `https://lumquat.fluffy-walleye.ts.net/qwen-35b-a3b` → `http://localhost:8080`
-- It also publishes `/llm`, a generic alias for whichever model is marked
-  `primary = true` in `lib/models.nix`
-- The unit runs `tailscale serve reset` before re-adding its paths, so the live
-  serve table always equals the declaration. `--set-path` is additive and never
-  removes anything, so without the reset the table accumulates paths for models
-  the host no longer runs. A path added by hand on lumquat does not survive a
-  rebuild — add it to the module instead.
-- Tailscale *Services* (`svc:` names, one subdomain per service) are **not**
-  available on this tailnet; see TS-SERVE.MD. Per-service subdomains come from a
-  Tailscale sidecar container per service instead.
+- Containers bind `0.0.0.0` inside the container namespace. qwen publishes
+  nothing on the host — it is reached only as `qwen-35b-a3b:8080` on the
+  `llm-internal` podman bridge, i.e. only through the bifrost gateway.
+- Firewall control via `modules/features/access.nix`; external access via
+  Tailscale only.
+- Tailscale *Services* (`svc:` names) are **not** available on this tailnet
+  (see TS-SERVE.MD). Per-service subdomains come from a Tailscale sidecar
+  container per service — `openwebui.`, `memory.`, `ai.`.
 
-## LiteLLM Proxy
+## Bifrost Gateway
 
-`litellm-compose.service` (compose file: `compose/llm/compose.yml`, symlinked to
-`/etc/litellm/`) runs a pinned `ghcr.io/berriai/litellm:v1.97.0` image with a
-Tailscale sidecar, served at `https://litellm.fluffy-walleye.ts.net`. It routes
-model names → local llama.cpp backends and remote providers (deepseek-*,
-minimax-*, claude-*). Two aliases point at the same llama-server:
-`qwen-35b-a3b` (legacy, back compat) and `qwen-latest` (generic). Secrets are
-injected from BWS via secretspec (`litellm` scope) at start; no `.env` files.
+`bifrost-compose.service` (`compose/llm/bifrost-compose.yml` + `bifrost-config
+.json`, symlinked to `/etc/bifrost/`, gated on `my.bifrostServe`) runs
+`maximhq/bifrost` with a Tailscale sidecar, served at
+`https://ai.fluffy-walleye.ts.net`. It replaced the LiteLLM proxy. Providers:
+`qwen` (custom, → `qwen-35b-a3b:8080` on the bridge), native `anthropic` /
+`deepseek`, custom `minimax`. Remote keys come from the `bifrost` secret scope
+by `env.<VAR>` indirection; `config.json` is the source of truth (Nix wins over
+the config DB on restart). sqlite log store in a named volume, 30-day
+retention. See `docs/bifrost-reliability-gate.md` and `just reliability-gate`.
 
 ## Adding a Second Model
 
 1. Add the model to the `models` attrset in `lib/models.nix` (unique `port`)
 2. Add a container entry in `modules/features/llm.nix` via `mkContainer`
-   (health-check extraOptions if you want preloading)
+   (health-check extraOptions if you want preloading; no `ports` — bridge only)
 3. Optionally promote it into `ggufs` with a SHA256
-4. Add a litellm model route in `compose/llm/litellm-config.yaml`
-5. If the new model should become the default `/llm` target, move
-   `primary = true` onto it — exactly one model should carry it
-6. `just dry-run` to validate the config on lumquat, then `just switch`
+4. Add a provider (or key alias) for it in `compose/llm/bifrost-config.json`
+5. `just dry-run` to validate the config on lumquat, then `just switch`
