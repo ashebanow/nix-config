@@ -20,6 +20,15 @@
   deferredDarwinModules = builtins.attrValues config.my.modules.darwin;
   deferredHmModules = builtins.attrValues config.my.modules.home-manager;
 
+  # worktrunk (wt) is three releases behind nixpkgs, and the agent-plugin
+  # commands (`wt config plugins pi|codex|opencode`) only exist from 0.77.0.
+  # Apply the pinned-release overlay to every Darwin workstation's pkgs so
+  # `pkgs.worktrunk` — installed by modules/features/cli-vcs-tools.nix via
+  # home.packages — is upstream's build. Deliberately NOT applied to lumquat:
+  # there worktrunk is a dev tool and reaches you through the dev shell only
+  # (modules/infra/devshell.nix), so no host closure carries it.
+  worktrunkOverlay = import ../../lib/overlays/worktrunk.nix {inherit (inputs) worktrunk;};
+
   # Binary caches for the darwin hosts — same set as the NixOS hosts
   # (modules/infra/nix/caches.nix), minus flakehub and
   # install.determinate.systems which Determinate Nix's own nix.conf
@@ -89,6 +98,11 @@
                 "trusted-public-keys" = darwinCaches.keys;
               };
             };
+          }
+          {
+            # Dev-workstation-only package override — see worktrunkOverlay
+            # above for why this is here and not in the NixOS builder.
+            nixpkgs.overlays = [worktrunkOverlay];
           }
           nix-homebrew.darwinModules.nix-homebrew
           {
