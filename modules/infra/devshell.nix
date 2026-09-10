@@ -15,6 +15,12 @@
     # in a production host's pkgs. `pi-coding-agent` here is pi.nix's build,
     # which unlike nixpkgs' works in NixOS's read-only store.
     piPkgs = pkgs.extend inputs.pi-nix.overlays.default;
+
+    # Same treatment for worktrunk: nixpkgs' `worktrunk` is 0.74.0 and lacks
+    # `wt config plugins pi`, which the agent workflow in this shell needs.
+    # The overlay wraps upstream's own build of the pinned release (see
+    # lib/overlays/worktrunk.nix).
+    worktrunkPkgs = pkgs.extend (import ../../lib/overlays/worktrunk.nix {inherit (inputs) worktrunk;});
   in {
     devShells.default = pkgs.mkShell {
       name = "lumquat-dev";
@@ -50,7 +56,7 @@
         piPkgs.pi-coding-agent
         secretspec
         uv
-        worktrunk
+        worktrunkPkgs.worktrunk
       ];
     };
   };

@@ -59,6 +59,26 @@
       url = "github:lukasl-dev/pi.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # worktrunk (wt, the git-worktree CLI) — nixpkgs unstable is 0.74.0, three
+    # releases behind, and the agent integrations the workflow needs
+    # (`wt config plugins pi`, .codex, .opencode) only exist from 0.77.0.
+    # Upstream publishes no `overlays` output, so lib/overlays/worktrunk.nix
+    # wraps the package its own flake builds with crane under the nixpkgs
+    # attribute name. That overlay reaches the dev shell on every host and
+    # (Darwin only) the workstations' pkgs — lumquat's host closure never
+    # carries worktrunk, matching pi.nix's dev-tool policy.
+    #
+    # TEMPORARY FORK PIN (BOX-145). Upstream's `pi` installer writes an
+    # oh-my-pi hook (`~/.omp/agent/hooks/pre/worktrunk.ts`), which earendil pi
+    # never reads; the split lives on the fork's branch below and is proposed
+    # upstream. Once a release carries it, point this back at a release tag —
+    # the durable form, since upstream uses release-please and `main` carries
+    # unreleased commits — and `nix flake lock`.
+    worktrunk = {
+      url = "github:ashebanow/worktrunk/feat/pi-and-omp-plugin-targets";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}: let
