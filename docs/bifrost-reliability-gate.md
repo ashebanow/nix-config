@@ -26,10 +26,39 @@ feels off.
 | `long-sustained-stream` | A multi-minute generation streamed to completion; asserts `[DONE]` with no silent gap > 30 s. LiteLLM hung mid-stream / tore the connection down. | Local model. ~5 min. |
 | `tool-roundtrip-anthropic` | Forced `get_weather` tool call → tool result fed back → final answer that used it, through the native Anthropic provider. | Remote. ~3 s. |
 | `tool-roundtrip-deepseek` | Same round trip through the DeepSeek provider. | Remote. ~2 s. |
+| `tool-roundtrip-deepseek-thinking` | Same round trip with thinking explicitly on (`reasoning_effort: high`) and the assistant's reasoning replayed on the follow-up turn. Asserts reasoning actually came back. | Remote. ~2 s. |
 
 ## Run log
 
-### 2026-09-08 — bifrost v2.0.0 — **5/5 PASS**
+### 2026-09-11 — bifrost v2.0.0 — **6/6 PASS**
+
+| check | result | detail |
+|---|---|---|
+| `stream-body-over-12kb` | **PASS** | 18 KB body, 78 chunks, 17.8 s |
+| `prompt-100k-tokens` | **PASS** | 527 KB body, 120 022 prompt_tokens ingested, `finish=length`, 835 s |
+| `long-sustained-stream` | **PASS** | 3785 chunks, 15 066 chars, 319 s, max gap 0.5 s |
+| `tool-roundtrip-anthropic` | **PASS** | tool_call → result → "18°C" |
+| `tool-roundtrip-deepseek` | **PASS** | reasoning 44 chars, tool_call → result → "18°C" |
+| `tool-roundtrip-deepseek-thinking` | **PASS** | reasoning 72 chars, tool_call → result → "18°C" |
+
+Two repairs were needed first — and the reason to distrust the previous entry:
+
+- **Both remote checks were failing, not passing.** They named models `bifrost-config.json`
+  no longer declares (`deepseek/deepseek-chat`, `anthropic/claude-haiku-4-5`), so they
+  returned `no keys found that support model`. The script and the config drifted apart when
+  the providers were rewritten for BOX-134, and nothing tied them together. The gate was
+  reporting **3/5 in practice**, not the 5/5 on record. Model ids are now module constants
+  with a comment naming the gateway config as the authority.
+- **The DeepSeek round trip never enabled thinking.** It ran on a non-thinking legacy model,
+  so the gate would have stayed green through a reasoning-content regression — the failure
+  the agent clients depend on most. The new check turns thinking on and asserts the
+  reasoning survives the round trip, rather than trusting that thinking was on.
+
+Still not covered: **MiniMax**, which is in active use. Streaming it through the gateway
+stalls ~8 minutes while non-streaming takes 2.4 s (BOX-160). The gate covers the providers
+someone remembered to write a check for — which is the same gap in a different costume.
+
+### 2026-09-08 — bifrost v2.0.0 — **5/5 PASS** (superseded, see above)
 
 | check | result | detail |
 |---|---|---|
