@@ -301,13 +301,13 @@ def _tool_roundtrip(base_url, model):
 def _tool_roundtrip_anthropic(base_url):
     """A tool-calling round trip through the Anthropic provider — native provider
     type, so bifrost maps tool_use/tool_result correctly."""
-    return _tool_roundtrip(base_url, "anthropic/claude-haiku-4-5")
+    return _tool_roundtrip(base_url, "anthropic/claude-haiku-4-5-20251001")
 
 
 @check("tool-roundtrip-deepseek")
 def _tool_roundtrip_deepseek(base_url):
     """A tool-calling round trip through the DeepSeek provider."""
-    return _tool_roundtrip(base_url, "deepseek/deepseek-chat")
+    return _tool_roundtrip(base_url, "deepseek/deepseek-v4-flash")
 
 
 # ----------------------------------------------------------------------- harness
