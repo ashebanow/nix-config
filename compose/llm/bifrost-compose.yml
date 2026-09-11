@@ -78,6 +78,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - MINIMAX_API_KEY=${MINIMAX_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     volumes:
       - bifrost-data:/app/data
       - /etc/bifrost/config.json:/app/data/config.json:ro
