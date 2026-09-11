@@ -28,6 +28,13 @@ import urllib.request
 DEFAULT_BASE_URL = "https://ai.fluffy-walleye.ts.net"
 LOCAL_MODEL = "qwen-latest"
 
+# Remote model ids must be ones bifrost-config.json actually declares. A check naming
+# an undeclared model fails with `no keys found that support model: <id>`, which is how
+# both remote checks silently rotted when the config was rewritten for native providers
+# (BOX-156). Keep these in step with compose/llm/bifrost-config.json.
+DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash"
+ANTHROPIC_MODEL = "anthropic/claude-haiku-4-5-20251001"
+
 # --------------------------------------------------------------------------- io
 
 
@@ -241,9 +248,14 @@ def _long_sustained_stream(base_url):
     return True, f"{r['chunks']} chunks, {len(r['text'])} chars, {r['elapsed']:.0f}s, max gap {r['gap']:.1f}s"
 
 
-def _tool_roundtrip(base_url, model):
+def _tool_roundtrip(base_url, model, reasoning_effort=None, require_reasoning=False):
     """Two-turn tool call: force a function call, feed the result back, expect a
-    final text answer that used it. Returns (ok, note)."""
+    final text answer that used it. Returns (ok, note).
+
+    With `reasoning_effort` set, thinking is turned on explicitly and the assistant's
+    reasoning is replayed back to the gateway on turn 2 — the shape the agent clients
+    send. `require_reasoning` additionally asserts the model returned reasoning at all,
+    so a check can't pass by having thinking quietly switched off."""
     tools = [
         {
             "type": "function",
@@ -259,12 +271,14 @@ def _tool_roundtrip(base_url, model):
         }
     ]
     msgs = [{"role": "user", "content": "Use the get_weather tool for Paris, then tell me the temperature."}]
-    status, raw, _ = _request(
-        base_url,
-        "/v1/chat/completions",
-        {"model": model, "messages": msgs, "tools": tools, "max_tokens": 512},
-        timeout=120,
-    )
+
+    def payload():
+        body = {"model": model, "messages": msgs, "tools": tools, "max_tokens": 512}
+        if reasoning_effort:
+            body["reasoning_effort"] = reasoning_effort
+        return body
+
+    status, raw, _ = _request(base_url, "/v1/chat/completions", payload(), timeout=120)
     if status != 200:
         return False, f"turn 1 HTTP {status}: {raw[:200]!r}"
     try:
@@ -276,16 +290,19 @@ def _tool_roundtrip(base_url, model):
     if call["function"]["name"] != "get_weather" or "paris" not in json.dumps(args).lower():
         return False, f"turn 1: wrong tool call {call['function']['name']}({args})"
 
+    reasoning = m.get("reasoning_content")
+    if require_reasoning and not reasoning:
+        return False, "turn 1: thinking requested but no reasoning_content came back"
+
+    assistant = {"role": "assistant", "content": m.get("content"), "tool_calls": m["tool_calls"]}
+    if reasoning:
+        assistant["reasoning_content"] = reasoning
     msgs += [
-        {"role": "assistant", "content": m.get("content"), "tool_calls": m["tool_calls"]},
+        assistant,
         {"role": "tool", "tool_call_id": call["id"], "content": "18°C, partly cloudy"},
     ]
-    status, raw, _ = _request(
-        base_url,
-        "/v1/chat/completions",
-        {"model": model, "messages": msgs, "tools": tools, "max_tokens": 512},
-        timeout=120,
-    )
+
+    status, raw, _ = _request(base_url, "/v1/chat/completions", payload(), timeout=120)
     if status != 200:
         return False, f"turn 2 HTTP {status}: {raw[:200]!r}"
     try:
@@ -294,20 +311,35 @@ def _tool_roundtrip(base_url, model):
         return False, f"turn 2: unparseable ({e})"
     if "18" not in final:
         return False, f"turn 2: answer did not use the tool result: {final[:120]!r}"
-    return True, f"tool_call → result → {final[:60]!r}"
+    prefix = f"reasoning {len(reasoning)} chars, " if reasoning else ""
+    return True, f"{prefix}tool_call → result → {final[:60]!r}"
 
 
 @check("tool-roundtrip-anthropic")
 def _tool_roundtrip_anthropic(base_url):
     """A tool-calling round trip through the Anthropic provider — native provider
     type, so bifrost maps tool_use/tool_result correctly."""
-    return _tool_roundtrip(base_url, "anthropic/claude-haiku-4-5-20251001")
+    return _tool_roundtrip(base_url, ANTHROPIC_MODEL)
 
 
 @check("tool-roundtrip-deepseek")
 def _tool_roundtrip_deepseek(base_url):
     """A tool-calling round trip through the DeepSeek provider."""
-    return _tool_roundtrip(base_url, "deepseek/deepseek-v4-flash")
+    return _tool_roundtrip(base_url, DEEPSEEK_MODEL)
+
+
+@check("tool-roundtrip-deepseek-thinking")
+def _tool_roundtrip_deepseek_thinking(base_url):
+    """The same round trip with thinking on and the reasoning replayed back.
+
+    DeepSeek's V4 family returns `reasoning_content` and requires it to be echoed on
+    assistant messages once thinking is enabled; replaying it wrongly, or losing it in
+    translation, 400s the second turn. The plain DeepSeek check above cannot catch that
+    because it never turns thinking on — which is how the gate reported 5/5 while this
+    path went untested (BOX-156)."""
+    return _tool_roundtrip(
+        base_url, DEEPSEEK_MODEL, reasoning_effort="high", require_reasoning=True
+    )
 
 
 # ----------------------------------------------------------------------- harness
