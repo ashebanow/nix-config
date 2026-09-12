@@ -22,7 +22,7 @@ revision = "1.0"
 [profiles.production]
 DEEPSEEK_API_KEY = { description = "DeepSeek API key", required = true, ref = { item = "deepseek-api-key" } }
 
-[scopes.litellm]
+[scopes.bifrost]
 secrets = ["DEEPSEEK_API_KEY"]
 ```
 
@@ -39,7 +39,7 @@ secrets = ["DEEPSEEK_API_KEY"]
 | Scope | Consumer |
 |-------|----------|
 | `host` | `host-secrets-populate.service` |
-| `litellm` | `litellm-compose.service` |
+| `bifrost` | `bifrost-compose.service` |
 | `openwebui` | `openwebui-compose.service` |
 | `memory` | `memory-compose.service`, `memory-health-check.service` |
 

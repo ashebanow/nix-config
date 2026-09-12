@@ -16,7 +16,7 @@ are declared in the repo-root [`secretspec.toml`](../../../secretspec.toml).
 There is no encrypted file in git and no sops-nix. Nothing in the Nix store or
 git holds a secret value.
 
-1. **Values**: BWS items (e.g. `litellm-db-password`).
+1. **Values**: BWS items (e.g. `bifrost-tailscale-auth-key`).
 2. **Declarations**: `secretspec.toml` — `[profiles.production]` declares each
    secret (`description`, `ref = { item = "<bws item key>" }`); `[scopes.*]`
    partitions them for least-privilege consumers.
@@ -34,7 +34,7 @@ Each consumer resolves only its own scope:
 | Scope | Consumer |
 |-------|----------|
 | `host` | `host-secrets-populate.service` (tailscale + flakehub) |
-| `litellm` | `litellm-compose.service` |
+| `bifrost` | `bifrost-compose.service` |
 | `openwebui` | `openwebui-compose.service` |
 | `memory` | `memory-compose.service`, `memory-health-check.service` |
 
