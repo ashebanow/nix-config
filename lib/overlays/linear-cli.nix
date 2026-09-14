@@ -11,10 +11,19 @@
 # our systems, so this fetches those instead: two hashes, no toolchain.
 #
 # The Linux binary is a stock glibc executable (NEEDED: libc, libm, libdl,
-# librt, libpthread, libgcc_s; interp /lib64/ld-linux-x86-64.so.2), so
-# autoPatchelfHook plus libgcc_s from the compiler runtime is all it takes.
-# The Darwin binary runs as shipped. Neither is stripped: they are 160 MB
-# Deno runtimes with the program appended, and strip has nothing to gain.
+# librt, libpthread, libgcc_s; interp /lib64/ld-linux-x86-64.so.2), so it
+# needs the usual interpreter + rpath patch — but NOT autoPatchelfHook.
+# `deno compile` output is [ELF runtime][program payload][16-byte trailer];
+# the runtime finds its program at startup by reading its own file's last
+# 16 bytes (libsui 0.12: u32 magic 0x501e, u32 name hash, u64 offset back
+# from EOF) and slicing from EOF-offset. It is not an ELF section, and
+# patchelf, which only knows the ELF, appends its relocated sections after
+# the payload — the trailer is no longer at EOF and the binary dies with
+# "Could not find standalone binary section". So the install step splits
+# the payload off using that trailer, patches the bare ELF, and re-appends
+# the payload; the trailer's end-relative offset is then correct again.
+# The Darwin binary runs as shipped. Neither is stripped and the fixup
+# phase's own patchelf pass is disabled, for the same reason.
 #
 # The `linear` on PATH is a shim over `linear-unwrapped`. When
 # LINEAR_API_KEY is not already set and /run/secrets/linear-api-key is
@@ -64,18 +73,38 @@ in {
     };
 
     nativeBuildInputs = final.lib.optionals final.stdenv.hostPlatform.isLinux [
-      final.autoPatchelfHook
-    ];
-    buildInputs = final.lib.optionals final.stdenv.hostPlatform.isLinux [
-      final.stdenv.cc.cc.lib # libgcc_s.so.1
+      final.patchelf
     ];
 
     dontConfigure = true;
     dontBuild = true;
     dontStrip = true;
+    dontPatchELF = true; # would re-break the trailer (see header comment)
 
     installPhase = ''
       runHook preInstall
+
+      ${final.lib.optionalString final.stdenv.hostPlatform.isLinux ''
+        # Split [ELF][payload][trailer] on the libsui trailer, patch the ELF
+        # alone, rejoin. Sizes via wc/od so this needs nothing but coreutils.
+        size=$(wc -c < linear | tr -d ' ')
+        magic=$(tail -c 16 linear | head -c 4 | od -An -tu4 | tr -d ' ')
+        plen=$(tail -c 8 linear | od -An -tu8 | tr -d ' ')
+        if [ "$magic" != "20510" ]; then # 0x501e
+          echo "linear-cli: no libsui trailer at EOF (magic=$magic); upstream changed the deno compile layout — re-check lib/overlays/linear-cli.nix" >&2
+          exit 1
+        fi
+        head -c $((size - plen)) linear > linear.elf
+        tail -c "$plen" linear > linear.payload
+        patchelf \
+          --set-interpreter ${final.stdenv.cc.bintools.dynamicLinker} \
+          --set-rpath ${final.lib.makeLibraryPath [final.stdenv.cc.cc.lib final.glibc]} \
+          linear.elf
+        cat linear.elf linear.payload > linear
+        rm linear.elf linear.payload
+        # Trailer must be at EOF again with the same end-relative offset.
+        [ "$(tail -c 8 linear | od -An -tu8 | tr -d ' ')" = "$plen" ]
+      ''}
 
       install -Dm755 linear $out/bin/linear-unwrapped
       install -Dm644 LICENSE $out/share/licenses/linear-cli/LICENSE
