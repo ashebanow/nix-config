@@ -94,6 +94,51 @@ secrets-check:
 reliability-gate base_url="https://ai.fluffy-walleye.ts.net":
     python3 scripts/bifrost-reliability-gate.py {{base_url}}
 
+# ===== TOOL PINS =====
+
+# Rewrites `version` and both per-system hashes in lib/overlays/linear-cli.nix
+# from the release assets, then re-vendors the agent skill in the dotfiles
+# repo from the same tag so binary and skill never drift apart (BOX-176).
+# Re-running with the current tag is a no-op. Follow up with a devshell
+# `nix build` and commit BOTH repos.
+# Bump the linear CLI to an upstream release tag, e.g. `just linear-bump v2.7.0`
+[group('tools')]
+linear-bump tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tag="{{tag}}"; ver="${tag#v}"
+    overlay="lib/overlays/linear-cli.nix"
+    base="https://github.com/schpet/linear-cli/releases/download/v${ver}"
+    grep -q 'version = "' "$overlay" || { echo "no version line in $overlay" >&2; exit 1; }
+
+    echo "linear-bump: v${ver}"
+    tmp="$(mktemp)"; trap 'rm -f "$tmp"' EXIT
+    awk -v ver="$ver" '/^  version = "/ { sub(/"[^"]*"/, "\"" ver "\"") } { print }' "$overlay" > "$tmp" && mv "$tmp" "$overlay"
+
+    # One hash per target; the hash line directly follows its target line.
+    for target in $(awk -F'"' '/^ +target = "/ { print $2 }' "$overlay"); do
+      hash="$(nix store prefetch-file --json --name "linear-${target}.tar.xz" "${base}/linear-${target}.tar.xz" | sed -E 's/.*"hash":"([^"]+)".*/\1/')"
+      [[ "$hash" == sha256-* ]] || { echo "prefetch of ${target} returned no hash" >&2; exit 1; }
+      echo "  ${target}: ${hash}"
+      tmp="$(mktemp)"
+      awk -v t="$target" -v h="$hash" '
+        $0 ~ "^ +target = \"" t "\"" { armed = 1 }
+        armed && /hash = "/ { sub(/"[^"]*"/, "\"" h "\""); armed = 0 }
+        { print }' "$overlay" > "$tmp" && mv "$tmp" "$overlay"
+    done
+
+    # The vendored skill lives in the dotfiles repo and is pinned to the same tag.
+    dotfiles="$(chezmoi execute-template '{{{{ .chezmoi.workingTree }}' 2>/dev/null || echo "$HOME/.local/share/chezmoi")"
+    if [[ -f "$dotfiles/justfile" ]]; then
+      just -f "$dotfiles/justfile" linear-vendor-skill "v${ver}"
+    else
+      echo "dotfiles repo not found at $dotfiles — run there: just linear-vendor-skill v${ver}" >&2
+    fi
+
+    echo
+    echo "Next: nix build the devshell, then commit nix-config ($overlay) and dotfiles (home/dot_agents/skills/linear-cli)."
+    git --no-pager diff --stat -- "$overlay"
+
 # ===== MISC =====
 
 # Build the zmx binary (standalone, from the zmx repo)
