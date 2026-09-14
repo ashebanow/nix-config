@@ -11,6 +11,12 @@ _: {
         difftastic
         gh
         git
+        # The Linear.app CLI — tracker-of-record tool beside `gh`. Not in
+        # nixpkgs; `pkgs.linear-cli` exists only where the linear-cli overlay
+        # (lib/overlays/linear-cli.nix) is applied: the Darwin workstations'
+        # pkgs and the dev shell. Lumquat has this flag off, so its closure
+        # never evaluates the attribute.
+        linear-cli
         git-lfs
         gitnr
         lazygit

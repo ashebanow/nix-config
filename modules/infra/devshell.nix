@@ -21,6 +21,12 @@
     # The overlay wraps upstream's own build of the pinned release (see
     # lib/overlays/worktrunk.nix).
     worktrunkPkgs = pkgs.extend (import ../../lib/overlays/worktrunk.nix {inherit (inputs) worktrunk;});
+
+    # linear-cli (the Linear.app CLI that replaces the Linear MCP, BOX-176)
+    # is not in nixpkgs; the overlay fetches upstream's release binary. Same
+    # dev-tool policy as pi/worktrunk: in the shell on every host, in a
+    # host closure only on the Darwin workstations.
+    linearPkgs = pkgs.extend (import ../../lib/overlays/linear-cli.nix);
   in {
     devShells.default = pkgs.mkShell {
       name = "lumquat-dev";
@@ -46,6 +52,7 @@
         gh
         git
         home-manager
+        linearPkgs.linear-cli
         mcp-nixos
         nixd
         nixfmt
