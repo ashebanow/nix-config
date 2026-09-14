@@ -39,9 +39,10 @@
 #   * the Darwin workstations' package sets (modules/infra/darwin-builder.nix)
 #     — installed globally via modules/features/cli-vcs-tools.nix.
 #
-# Bumping: `just linear-bump vX.Y.Z` (BOX-183) rewrites `version` and both
-# hashes below and re-vendors the agent skill in the chezmoi repo, which is
-# pinned to the same tag. Do not bump one without the other.
+# Bumping: `just linear-bump vX.Y.Z` rewrites `version` and both hashes
+# below and re-vendors the agent skill in the dotfiles repo, which is pinned
+# to the same tag. Do not bump one without the other. The recipe finds the
+# hash lines by the `target = "..."` line above each, so keep that shape.
 final: _prev: let
   version = "2.6.0";
 
