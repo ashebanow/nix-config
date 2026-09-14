@@ -27,14 +27,17 @@ Nothing in git or the Nix store holds a secret value.
         │                       │
         ▼                       ▼
   host-secrets-populate   compose services
-  (root, -S host)         (podman user)
-  writes 2 files:         secretspec run injects
-  /run/secrets/tailscale  env vars straight into
-  /run/secrets/flakehub   podman-compose (no files)
-        │                       │
-        ▼                       ▼
-  tailscale authKeyFile   bifrost / openwebui /
-  determinate-nixd token  mnemosyne containers
+  (root, -S host then     (podman user)
+   -S dev)                secretspec run injects
+  writes 3 files:         env vars straight into
+  /run/secrets/tailscale  podman-compose (no files)
+  /run/secrets/flakehub           │
+  /run/secrets/linear-api-key     │
+        │                         ▼
+        ▼                 bifrost / openwebui /
+  tailscale authKeyFile   mnemosyne containers
+  determinate-nixd token
+  `linear` CLI wrapper (operator user)
 ```
 
 ### Scopes (least privilege)
@@ -43,7 +46,8 @@ Each consumer resolves only its own scope of the shared `production` profile:
 
 | Scope | Secrets | Consumer |
 |-------|---------|----------|
-| `host` | `TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN` | `host-secrets-populate.service` (root) |
+| `host` | `TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
+| `dev` | `LINEAR_API_KEY` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
 | `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `bifrost-compose.service` |
@@ -97,14 +101,29 @@ services) will fail loudly at boot — that is the intended fail-safe.
 ### Host secrets (tailscale, flakehub) — file-backed consumers
 
 `tailscale` (`authKeyFile`) and `determinate-nixd` (`--token-file`) both require a
-file interface, so these are the **only** two secrets written to disk:
+file interface, so these are written to disk (tmpfs):
 
 `host-secrets-populate.service` (root, `modules/features/secrets.nix`) runs
-`secretspec run -P production -S host -- scripts/populate-host-secrets.sh`, which
-writes:
+`secretspec run -P production -S host -- scripts/populate-host-secrets.sh host`,
+which writes:
 
-- `/run/secrets/tailscale-auth-key` (0600) → `services.tailscale.authKeyFile`
-- `/run/secrets/flakehub-token` (0600) → `flakehub-nixd-auth.service --token-file`
+- `/run/secrets/tailscale-auth-key` (0600 root) → `services.tailscale.authKeyFile`
+- `/run/secrets/flakehub-token` (0600 root) → `flakehub-nixd-auth.service --token-file`
+
+### Dev secrets (linear) — operator-tool consumers
+
+The same unit then runs a **second** `secretspec run -P production -S dev --
+scripts/populate-host-secrets.sh dev <operator-user>` (separate invocation, so
+neither subprocess sees the other scope), which writes:
+
+- `/run/secrets/linear-api-key` (0400, owned by `my.baseUsername`) → read by the
+  `linear` CLI's Nix wrapper (`lib/overlays/linear-cli.nix`) when
+  `LINEAR_API_KEY` is not already in the environment.
+
+`dev` secrets are optional: an absent value skips the file with a notice and
+does not fail the unit. Why operator tools get their secrets this way rather
+than through a user-level BWS token or a keyring:
+[ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md).
 
 ### Container secrets (bifrost, openwebui, memory) — no files
 
@@ -129,7 +148,10 @@ fetch secrets from BWS — API keys are expected in the environment already:
   `FLAKEHUB_TOKEN` (item `NIX_FLAKEHUB_CACHE_TOKEN`), and more. `nix develop`
   inherits these from the parent shell.
 - **NixOS (lumquat)**: secrets reach systemd services via `secretspec` +
-  `LoadCredential` (above); the devshell is not a secret channel there.
+  `LoadCredential` (above). The devshell still never talks to BWS; the one
+  secret an interactive tool needs there (`LINEAR_API_KEY`) is read from
+  `/run/secrets/linear-api-key` by the tool's own wrapper (dev scope, above),
+  so `nix develop` needs nothing in its parent environment.
 
 ## Adding or rotating a secret
 
@@ -159,6 +181,7 @@ fetch secrets from BWS — API keys are expected in the environment already:
 | `mnemo-tailscale-auth-key` | mnemosyne tailscale sidecar |
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |
 | `bifrost-tailscale-auth-key` | bifrost tailscale sidecar (the `ai` node) |
+| `linear-mcp-api-key` | `linear` CLI on lumquat (`dev` scope → `/run/secrets/linear-api-key`); also the Darwin `secrets.sh` cache (dotfiles). Name predates the MCP → CLI move. |
 
 > The `OpenWebUI TS Auth Key` / `anthropic-api-key-pi` names predate this
 > migration; they are referenced as-is to avoid re-pointing the dev-shell and

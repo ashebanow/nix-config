@@ -5,7 +5,11 @@
 #   - /var/lib/secrets/         (root-only dir for the out-of-band BWS token)
 #   - /run/secrets/             (tmpfs for the two file-backed host secrets)
 #   - host-secrets-populate.service (root) — resolves the `host` scope from BWS
-#     and materializes tailscale + flakehub secrets as root-only files.
+#     and materializes tailscale + flakehub secrets as root-only files, then
+#     the `dev` scope for operator-tool secrets (currently the Linear CLI key)
+#     as files readable only by the operator user. Two `secretspec run`
+#     invocations, so neither subprocess sees the other scope. See
+#     docs/adr/0001 for why operator tools get their secrets this way.
 #
 # Container/compose secrets (bifrost, openwebui, memory) resolve
 # their own scopes directly via `secretspec run` in their own feature modules;
@@ -19,9 +23,13 @@ _: {
   }: let
     manifest = config.my.secretspecManifest;
     accessToken = config.my.bwsAccessTokenFile;
+    populate = ../../scripts/populate-host-secrets.sh;
     populateScript = pkgs.writeShellScript "populate-host-secrets" ''
-      exec ${pkgs.secretspec}/bin/secretspec run -P production -S host -- \
-        ${pkgs.bash}/bin/bash ${../../scripts/populate-host-secrets.sh}
+      set -euo pipefail
+      ${pkgs.secretspec}/bin/secretspec run -P production -S host -- \
+        ${pkgs.bash}/bin/bash ${populate} host
+      ${pkgs.secretspec}/bin/secretspec run -P production -S dev -- \
+        ${pkgs.bash}/bin/bash ${populate} dev ${config.my.baseUsername}
     '';
   in {
     config = lib.mkIf (config.my.access || config.my.llm) {
@@ -33,10 +41,11 @@ _: {
       ];
 
       # Resolve the `host` scope from BWS and write the two file-backed
-      # secrets that root system services consume. Runs once at boot, before
-      # tailscale autoconnect and flakehub auth need the files.
+      # secrets that root system services consume, then the `dev` scope for
+      # the operator user's tools. Runs once at boot, before tailscale
+      # autoconnect and flakehub auth need the files.
       systemd.services.host-secrets-populate = {
-        description = "Populate host secrets (tailscale, flakehub) from BWS via secretspec";
+        description = "Populate host + dev secrets (tailscale, flakehub, linear) from BWS via secretspec";
         wantedBy = ["multi-user.target"];
         wants = ["network-online.target"];
         after = ["network-online.target"];
