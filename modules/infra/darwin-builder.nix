@@ -29,6 +29,12 @@
   # (modules/infra/devshell.nix), so no host closure carries it.
   worktrunkOverlay = import ../../lib/overlays/worktrunk.nix {inherit (inputs) worktrunk;};
 
+  # linear-cli (BOX-176): not in nixpkgs at all, so the overlay is the only
+  # source of `pkgs.linear-cli`. Same scoping as worktrunk — Darwin
+  # workstations get it globally via cli-vcs-tools.nix; lumquat only through
+  # the dev shell.
+  linearCliOverlay = import ../../lib/overlays/linear-cli.nix;
+
   # Binary caches for the darwin hosts — same set as the NixOS hosts
   # (modules/infra/nix/caches.nix), minus flakehub and
   # install.determinate.systems which Determinate Nix's own nix.conf
@@ -100,9 +106,10 @@
             };
           }
           {
-            # Dev-workstation-only package override — see worktrunkOverlay
-            # above for why this is here and not in the NixOS builder.
-            nixpkgs.overlays = [worktrunkOverlay];
+            # Dev-workstation-only package overrides — see worktrunkOverlay
+            # and linearCliOverlay above for why these are here and not in
+            # the NixOS builder.
+            nixpkgs.overlays = [worktrunkOverlay linearCliOverlay];
           }
           nix-homebrew.darwinModules.nix-homebrew
           {
