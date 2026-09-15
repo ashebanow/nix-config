@@ -86,7 +86,10 @@ Linear (team Boxbow, project Nix-Config; IDs like `BOX-130`), via the `linear` C
 
 ### Triage labels
 
-Default matt pocock vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Boxbow has no labels for four of the five canonical triage roles. Triage shows up as a
+category label (`Feature` / `Bug` / `Improvement`) plus the `Ready For Agent` and `Deferred`
+labels; the remaining roles resolve to Linear workflow states or a comment. See
+`docs/agents/triage-labels.md`.
 
 ### Domain docs
 
