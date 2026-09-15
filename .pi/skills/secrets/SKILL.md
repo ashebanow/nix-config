@@ -91,7 +91,9 @@ For a file-backed root consumer (tailscale / determinate-nixd), add it to the
 ### 4. Verify
 
 ```bash
-just secrets-check   # resolves every secret in the manifest against BWS
+# Agents must pass a reason (secretspec `require_reason` policy, BOX-184);
+# humans can omit it. Just binds the argument positionally.
+just secrets-check "BOX-<n>: verify new declaration"
 ```
 
 ## Step-by-Step: Removing a Secret
@@ -100,7 +102,8 @@ just secrets-check   # resolves every secret in the manifest against BWS
    `[scopes.*]`).
 2. Remove its consumption from the module / populate script.
 3. Delete the value from BWS (only after the config no longer references it).
-4. `just secrets-check` to confirm nothing is missing.
+4. `just secrets-check "BOX-<n>: confirm removal"` to confirm nothing is
+   missing (agents must pass a reason; humans can omit it).
 
 ## Bootstrap Token (out-of-band)
 

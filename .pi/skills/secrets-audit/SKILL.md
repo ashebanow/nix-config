@@ -32,8 +32,10 @@ You are a secrets auditor for a NixOS infrastructure that stores values in
 ## Verifying resolution
 
 ```bash
-# Full profile (requires BWS_ACCESS_TOKEN)
-just secrets-check
+# Full profile (requires BWS_ACCESS_TOKEN). Agents must pass a reason
+# (secretspec `require_reason` policy, BOX-184); humans can omit it. Just binds
+# the argument positionally.
+just secrets-check "BOX-<n>: secrets audit"
 
 # A single scope
 SECRETSPEC_PROVIDER=bws secretspec check -f secretspec.toml -P production -S host --no-prompt

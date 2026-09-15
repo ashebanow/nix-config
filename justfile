@@ -79,11 +79,22 @@ bootstrap-bws HOST="lumquat":
     fi
     echo "Bootstrap token installed at {{HOST}}:/var/lib/secrets/bws-access-token"
 
+# Note: secretspec's `require_reason` policy (secretspec.toml [project], left at
+# its default of "agents") makes it refuse to resolve secrets when it detects an
+# AI agent unless a reason is supplied. The reason is the audit trail, so agents
+# must pass a real ticket id and purpose, not a placeholder. Just's recipe
+# arguments bind positionally, so the reason is the first (and only) argument:
+#
+#     just secrets-check "BOX-184: verify new declaration"
+#
+# Humans need no argument — the default is empty, and secretspec treats an empty
+# SECRETSPEC_REASON as absent, so the policy simply doesn't apply.
+
 # Verify every secret in the shared manifest resolves against BWS.
 # Requires BWS_ACCESS_TOKEN in the environment.
 [group('secrets')]
-secrets-check:
-    secretspec check -f secretspec.toml -P production --no-prompt
+secrets-check reason="":
+    SECRETSPEC_REASON="{{reason}}" secretspec check -f secretspec.toml -P production --no-prompt
 
 # ===== LLM GATEWAY =====
 

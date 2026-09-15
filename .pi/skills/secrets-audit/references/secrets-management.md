@@ -32,7 +32,8 @@ secrets = ["DEEPSEEK_API_KEY"]
 2. Declare it in `secretspec.toml` under `[profiles.production]` with a `ref.item`.
 3. Add it to the relevant `[scopes.<name>].secrets` allowlist.
 4. Consume it via `secretspec run -P production -S <scope> -- …`.
-5. Verify with `just secrets-check`.
+5. Verify with `just secrets-check "BOX-<n>: verify <secret>"` — agents must pass
+   a reason (BOX-184); humans can omit it.
 
 ## Scopes
 

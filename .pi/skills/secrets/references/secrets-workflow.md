@@ -34,7 +34,9 @@
 4. **Verify**:
 
    ```bash
-   just secrets-check   # resolves the full manifest against BWS
+   # Agents must pass a reason (secretspec `require_reason` policy, BOX-184);
+   # humans can omit it. Just binds the argument positionally.
+   just secrets-check "BOX-<n>: verify <secret> resolves"
    ```
 
 ## Resolving a scope manually (operator)
