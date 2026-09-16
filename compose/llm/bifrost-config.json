@@ -15,39 +15,51 @@
         "provider_configs": [
           {
             "provider": "qwen",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "qwen-35b-a3b",
               "qwen-latest"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "anthropic",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "claude-fable-5-1",
               "claude-haiku-4-5-20251001",
               "claude-opus-5",
               "claude-sonnet-5"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "deepseek",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "deepseek-v4-flash",
               "deepseek-v4-pro"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "gemini",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "gemini-3.5-flash",
               "gemini-3.5-flash-lite",
               "gemini-3.6-flash",
               "gemini-3.7-flash"
-            ]
+            ],
+            "weight": 1
           }
         ]
       },
@@ -59,39 +71,51 @@
         "provider_configs": [
           {
             "provider": "qwen",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "qwen-35b-a3b",
               "qwen-latest"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "anthropic",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "claude-fable-5-1",
               "claude-haiku-4-5-20251001",
               "claude-opus-5",
               "claude-sonnet-5"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "deepseek",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "deepseek-v4-flash",
               "deepseek-v4-pro"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "gemini",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "gemini-3.5-flash",
               "gemini-3.5-flash-lite",
               "gemini-3.6-flash",
               "gemini-3.7-flash"
-            ]
+            ],
+            "weight": 1
           }
         ]
       },
@@ -103,39 +127,51 @@
         "provider_configs": [
           {
             "provider": "qwen",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "qwen-35b-a3b",
               "qwen-latest"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "anthropic",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "claude-fable-5-1",
               "claude-haiku-4-5-20251001",
               "claude-opus-5",
               "claude-sonnet-5"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "deepseek",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "deepseek-v4-flash",
               "deepseek-v4-pro"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "gemini",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "gemini-3.5-flash",
               "gemini-3.5-flash-lite",
               "gemini-3.6-flash",
               "gemini-3.7-flash"
-            ]
+            ],
+            "weight": 1
           }
         ]
       },
@@ -147,39 +183,51 @@
         "provider_configs": [
           {
             "provider": "qwen",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "qwen-35b-a3b",
               "qwen-latest"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "anthropic",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "claude-fable-5-1",
               "claude-haiku-4-5-20251001",
               "claude-opus-5",
               "claude-sonnet-5"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "deepseek",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "deepseek-v4-flash",
               "deepseek-v4-pro"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "gemini",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "gemini-3.5-flash",
               "gemini-3.5-flash-lite",
               "gemini-3.6-flash",
               "gemini-3.7-flash"
-            ]
+            ],
+            "weight": 1
           }
         ]
       },
@@ -191,39 +239,51 @@
         "provider_configs": [
           {
             "provider": "qwen",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "qwen-35b-a3b",
               "qwen-latest"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "anthropic",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "claude-fable-5-1",
               "claude-haiku-4-5-20251001",
               "claude-opus-5",
               "claude-sonnet-5"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "deepseek",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "deepseek-v4-flash",
               "deepseek-v4-pro"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "gemini",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "gemini-3.5-flash",
               "gemini-3.5-flash-lite",
               "gemini-3.6-flash",
               "gemini-3.7-flash"
-            ]
+            ],
+            "weight": 1
           }
         ]
       },
@@ -235,39 +295,51 @@
         "provider_configs": [
           {
             "provider": "qwen",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "qwen-35b-a3b",
               "qwen-latest"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "anthropic",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "claude-fable-5-1",
               "claude-haiku-4-5-20251001",
               "claude-opus-5",
               "claude-sonnet-5"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "deepseek",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "deepseek-v4-flash",
               "deepseek-v4-pro"
-            ]
+            ],
+            "weight": 1
           },
           {
             "provider": "gemini",
-            "weight": 1.0,
+            "key_ids": [
+              "*"
+            ],
             "allowed_models": [
               "gemini-3.5-flash",
               "gemini-3.5-flash-lite",
               "gemini-3.6-flash",
               "gemini-3.7-flash"
-            ]
+            ],
+            "weight": 1
           }
         ]
       }
