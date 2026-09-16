@@ -78,6 +78,17 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Per-client virtual keys (BOX-149). One per client tool; the gateway
+      # records which client sent each request so the log view can attribute it.
+      # Randomly generated, held in BWS, referenced by name in config.json —
+      # never committed. Enforcement stays off (BOX-193 flips it), so these
+      # label traffic without admitting or rejecting any of it.
+      - VK_PI=${VK_PI}
+      - VK_HERMES=${VK_HERMES}
+      - VK_ZED=${VK_ZED}
+      - VK_RAYCAST=${VK_RAYCAST}
+      - VK_OPENWEBUI=${VK_OPENWEBUI}
+      - VK_GATE=${VK_GATE}
     volumes:
       - bifrost-data:/app/data
       - /etc/bifrost/config.json:/app/data/config.json:ro
