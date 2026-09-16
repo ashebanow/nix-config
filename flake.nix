@@ -71,12 +71,28 @@
     #
     # TEMPORARY FORK PIN (BOX-145). Upstream's `pi` installer writes an
     # oh-my-pi hook (`~/.omp/agent/hooks/pre/worktrunk.ts`), which earendil pi
-    # never reads; the split lives on the fork's branch below and is proposed
-    # upstream. Once a release carries it, point this back at a release tag —
-    # the durable form, since upstream uses release-please and `main` carries
-    # unreleased commits — and `nix flake lock`.
+    # never reads; the split lives on the fork and is proposed upstream. Once a
+    # release carries it, point this back at a release tag — the durable form,
+    # since upstream uses release-please and `main` carries unreleased commits —
+    # and `nix flake lock`.
+    #
+    # Pinned to the fork's `nix-pin` branch, NOT the feature branch that carries
+    # the same commits. Two branches, two jobs:
+    #
+    #   feat/pi-and-omp-plugin-targets  the upstream PR; rebased at will, so its
+    #                                   history is rewritten and it is unsafe to
+    #                                   pin. Force-pushes there are expected.
+    #   nix-pin                         what this input reads. Append-only:
+    #                                   fast-forward it from the feature branch
+    #                                   once a rebase there is tested, never
+    #                                   rebase or force-push it. A rewritten pin
+    #                                   branch breaks every consumer's lock.
+    #
+    # `nix-pin` also carries the `stdenv.hostPlatform.isDarwin` fix that used to
+    # warn on every evaluation (max-sixty/worktrunk#4132); drop that commit from
+    # `nix-pin` once it lands upstream.
     worktrunk = {
-      url = "github:ashebanow/worktrunk/feat/pi-and-omp-plugin-targets";
+      url = "github:ashebanow/worktrunk/nix-pin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

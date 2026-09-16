@@ -866,16 +866,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1789517451,
-        "narHash": "sha256-sEOWTfmOgtY2ySH9Vo8LJQOGIu/kiwMgmS9xLHLFx28=",
+        "lastModified": 1789519156,
+        "narHash": "sha256-Fds8cUxArZiZ836RU9N04mWcNFj6UYaLItIW5msRrJ8=",
         "owner": "ashebanow",
         "repo": "worktrunk",
-        "rev": "1f1413717348e84ae2847b6e6fdf381937d48afd",
+        "rev": "960a4307eb2c135b73bd318aef8fc2d4933a66eb",
         "type": "github"
       },
       "original": {
         "owner": "ashebanow",
-        "ref": "feat/pi-and-omp-plugin-targets",
+        "ref": "nix-pin",
         "repo": "worktrunk",
         "type": "github"
       }
