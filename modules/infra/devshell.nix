@@ -16,6 +16,19 @@
     # which unlike nixpkgs' works in NixOS's read-only store.
     piPkgs = pkgs.extend inputs.pi-nix.overlays.default;
 
+    # pi.nix's package still takes `typescript-go` as a callPackage argument,
+    # but nixpkgs renamed that attr to `typescript`. As of nixpkgs ef34387
+    # (2026-09-13) the old name is a `throw`, not a deprecation warning:
+    #
+    #   typescript-go = throw "'typescript-go' has been renamed to/replaced by 'typescript'";
+    #
+    # Because `inputs.nixpkgs.follows = "nixpkgs"` puts pi.nix on our nixpkgs,
+    # merely evaluating pi-coding-agent aborts `nix develop` — which is why a
+    # `nix flake update` appears to break a dev shell nothing changed in.
+    # `pkgs.typescript` is the same derivation the old name used to resolve to.
+    # Drop this once pi.nix renames the argument (its HEAD still does not).
+    pi = piPkgs.pi-coding-agent.override {typescript-go = pkgs.typescript;};
+
     # Same treatment for worktrunk: nixpkgs' `worktrunk` is 0.74.0 and lacks
     # `wt config plugins pi`, which the agent workflow in this shell needs.
     # The overlay wraps upstream's own build of the pinned release (see
@@ -60,7 +73,7 @@
         # wrapper adds them to pi's own PATH, but keep them in the shell too
         # so a stale/odd invocation can't hit `spawn npm ENOENT`.
         nodejs
-        piPkgs.pi-coding-agent
+        pi
         secretspec
         uv
         worktrunkPkgs.worktrunk
