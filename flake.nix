@@ -69,28 +69,30 @@
     # (Darwin only) the workstations' pkgs — lumquat's host closure never
     # carries worktrunk, matching pi.nix's dev-tool policy.
     #
-    # TEMPORARY FORK PIN (BOX-145). Upstream's `pi` installer writes an
-    # oh-my-pi hook (`~/.omp/agent/hooks/pre/worktrunk.ts`), which earendil pi
-    # never reads; the split lives on the fork and is proposed upstream. Once a
-    # release carries it, point this back at a release tag — the durable form,
-    # since upstream uses release-please and `main` carries unreleased commits —
-    # and `nix flake lock`.
+    # TEMPORARY FORK PIN (BOX-145). Both changes the fork carried are now
+    # upstream — the Pi/oh-my-pi split (max-sixty/worktrunk#4135, the split we
+    # proposed; upstream closed our #4133 by landing it) and the
+    # `stdenv.hostPlatform.isDarwin` fix (#4132) — but no *release* carries them
+    # yet (`v0.77.0` is still the latest tag, and `main` runs ahead of it with
+    # release-please). So the input stays on the fork until a release ships
+    # them; pinning `main` would re-inherit the unreleased-commit churn this pin
+    # exists to avoid. Tracked, with the removal steps, in BOX-190.
     #
-    # Pinned to the fork's `nix-pin` branch, NOT the feature branch that carries
-    # the same commits. Two branches, two jobs:
+    # Pinned to the fork's `nix-pin` branch, NOT the PR branches that carried the
+    # same commits. Two kinds of branch, two jobs:
     #
-    #   feat/pi-and-omp-plugin-targets  the upstream PR; rebased at will, so its
-    #                                   history is rewritten and it is unsafe to
-    #                                   pin. Force-pushes there are expected.
+    #   pi-omp-split, feat/pi-and-omp-plugin-targets
+    #                                   upstream PR heads; rebased at will, so
+    #                                   their history is rewritten and they are
+    #                                   unsafe to pin.
     #   nix-pin                         what this input reads. Append-only:
-    #                                   fast-forward it from the feature branch
-    #                                   once a rebase there is tested, never
-    #                                   rebase or force-push it. A rewritten pin
-    #                                   branch breaks every consumer's lock.
+    #                                   fast-forwarded from the PR branch once a
+    #                                   rebase there is tested, never rebased or
+    #                                   force-pushed. A rewritten pin branch
+    #                                   breaks every consumer's lock.
     #
-    # `nix-pin` also carries the `stdenv.hostPlatform.isDarwin` fix that used to
-    # warn on every evaluation (max-sixty/worktrunk#4132); drop that commit from
-    # `nix-pin` once it lands upstream.
+    # `nix-pin` is now purely a waiting-on-a-release hold: it carries two commits
+    # upstream already has.
     worktrunk = {
       url = "github:ashebanow/worktrunk/nix-pin";
       inputs.nixpkgs.follows = "nixpkgs";
