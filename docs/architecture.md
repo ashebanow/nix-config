@@ -291,9 +291,10 @@ LiteLLM proxy.
 - **Providers**: `qwen` (custom, OpenAI-compatible, → `qwen-35b-a3b:8080` on the
   bridge), plus native `anthropic` / `deepseek` and a custom `minimax`. Remote
   keys come from the `bifrost` secret scope by `env.<VAR>` indirection.
-- **Storage**: sqlite config + request-log stores in a named volume; 30-day log
-  retention. Survives rebuilds (`down` without `-v`, `restartTriggers` on the
-  unit).
+- **Storage**: sqlite config + request-log stores in a named volume; 7-day log
+  retention, with a weekly `bifrost-vacuum` timer to reclaim the space, since
+  bifrost's cleaner deletes rows but never VACUUMs (BOX-202). Survives rebuilds
+  (`down` without `-v`, `restartTriggers` on the unit).
 - **Access**: Tailscale is the perimeter — no virtual key,
   `enforce_auth_on_inference: false`. The gateway binds loopback inside the
   sidecar netns; nothing is on a host port.
