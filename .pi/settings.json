@@ -2,8 +2,5 @@
   "defaultProvider": "deepseek",
   "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "high",
-  "hideThinkingBlock": false,
-  "packages": [
-    "git:https://github.com/joshleblanc/pi-minimax"
-  ]
+  "hideThinkingBlock": false
 }
