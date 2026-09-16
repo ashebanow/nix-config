@@ -42,9 +42,18 @@ any client not yet migrated, starts receiving 401s from a shared gateway. The
 attribution requirement does not need enforcement, so enforcement is a
 separate, independently revertible decision (see *Follow-ups*).
 
-The consequence to keep in view: an unmigrated or misconfigured client does not
-fail. It silently appears anonymous in the log. Verification (D6) exists to
-catch exactly that.
+The consequence to keep in view: an unmigrated client does not fail. It
+silently appears anonymous in the log. Verification (D6) exists to catch
+exactly that.
+
+> **Correction (2026-09-16, verified against v2.0.0).** This originally read
+> "an unmigrated *or misconfigured* client does not fail". That is wrong for
+> the misconfigured case. `enforce_auth_on_inference: false` means the gateway
+> does not *require* a key; it still *validates* any key presented. Measured:
+> no key returns `200` (anonymous), an unknown key returns
+> `401 virtual_key_not_found`. So a typo'd, revoked or stale key is a hard
+> failure for that client, not a silent degradation to anonymous. Found by the
+> D6 negative test (BOX-195).
 
 ### D2 — One virtual key per client tool
 
@@ -91,9 +100,13 @@ The gateway and the client each resolve the *same* BWS item:
   function `private_config.yaml.tmpl` already uses for an `x-api-key`.
 
 This means **rotating a VK requires redeploying the gateway and re-applying
-chezmoi on each client host.** With enforcement off, a missed re-apply costs
-attribution only; with enforcement on it would be an outage. Named here rather
-than discovered later.
+chezmoi on each client host.** Named here rather than discovered later.
+
+> **Correction (2026-09-16).** This originally said a missed re-apply "costs
+> attribution only" with enforcement off. It does not. A stale key is an
+> *unknown* key, and an unknown key is rejected with `401` even when
+> enforcement is off (see the D1 correction). Rotation is an outage risk for
+> the un-re-applied client today, not only after BOX-193.
 
 ### D5 — Each client uses its native credential surface
 
