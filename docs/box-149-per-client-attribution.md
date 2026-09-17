@@ -216,7 +216,7 @@ six seeded from `bifrost-config.json` and recorded as `virtual_key_name`:
 | -- | -- | -- | -- |
 | pi | `secretspec run` via a shell wrapper; `headers.x-bf-vk` interpolates `$VK_PI` | `x-bf-vk` | yes |
 | hermes | `secretspec run` via a shell wrapper; `model.extra_headers` expands `${VK_HERMES}` | `x-bf-vk` | yes |
-| Zed | macOS keychain (manual, per-machine) | `Authorization` | yes |
+| Zed | macOS keychain (manual, per-machine; `setup-zed-attribution`) | `Authorization` | yes (macOS) |
 | Open WebUI | `secretspec run` (its own scope); volume re-seeded | `Authorization` | yes |
 | Raycast | chezmoi `bitwardenSecrets` in `providers.yaml.tmpl` | `Authorization` | yes |
 | gate | environment (`VK_GATE`) | `x-bf-vk` | yes |
@@ -296,8 +296,21 @@ reasoning is recorded here instead.
   but the user column stayed empty in testing. Not a blocker — the VK is the
   mechanism — but the supplementary signal should not be described as working
   until it is seen in the log.
-- **Zed's delivery is not declarative.** The keychain value is a manual,
-  per-machine step that a fresh install or a rotated key must repeat. Its item
-  also carries no ACL, so macOS cannot persist an `Always Allow` grant and
-  re-prompts on access. Worth revisiting if Zed's attribution ever matters more
-  than it does now.
+- **Zed's delivery is not declarative, and is macOS-only.** The keychain value
+  is a per-machine manual step that a fresh install or a rotated key must
+  repeat; `setup-zed-attribution` makes it reproducible but not automatic. Its
+  item also carries no ACL, so macOS cannot persist an `Always Allow` grant and
+  re-prompts on access. **On Linux this does not work at all** — Zed reads the
+  Secret Service there, a different mechanism with no persistence when no
+  provider is present, so a Linux host sends no key and is logged as anonymous.
+  The script fails loudly rather than no-op. The owner's CachyOS/Niri host
+  (`yuzu`) is a known desktop host in the dotfiles, so it receives the Zed
+  config and hits exactly this.
+- **BOX-205 — replace per-machine keychain entries with factorseal.**
+  [factorseal](https://github.com/cachix/factorseal) is a hardware-backed vault
+  (TPM 2.0 / Secure Enclave) that abstracts the platform keychain and already
+  exposes a SecretSpec provider. That is the actual fix for the Zed (and
+  Raycast) delivery problem: the key stops living in a per-machine keychain
+  entry, and `setup-zed-attribution` gets deleted rather than extended. Note it
+  is currently an **unaudited prototype** and explicitly not production-ready,
+  so this is a watch-and-adopt item, not a drop-in.
