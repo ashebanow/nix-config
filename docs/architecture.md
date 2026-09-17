@@ -295,9 +295,19 @@ LiteLLM proxy.
   retention, with a weekly `bifrost-vacuum` timer to reclaim the space, since
   bifrost's cleaner deletes rows but never VACUUMs (BOX-202). Survives rebuilds
   (`down` without `-v`, `restartTriggers` on the unit).
-- **Access**: Tailscale is the perimeter — no virtual key,
-  `enforce_auth_on_inference: false`. The gateway binds loopback inside the
-  sidecar netns; nothing is on a host port.
+- **Access**: Tailscale is the perimeter — the gateway binds loopback inside the
+  sidecar netns, and nothing is on a host port. Client attribution is by
+  **bifrost virtual keys** (BOX-149): the gateway knows one key per client tool
+  (`pi`, `hermes`, `zed`, `raycast`, `openwebui`, plus `gate` for the
+  reliability gate) and records it as `virtual_key_name` on every log row, so
+  the log view can filter by origin. Values are randomly generated and held in
+  BWS; `bifrost-config.json` references them by `env.VK_*` indirection, so no
+  key value is in git. They are **recorded but not enforced** —
+  `enforce_auth_on_inference` is still `false`, and a request with no key is
+  served and logged as anonymous. That is deliberately a separate decision: a
+  key is *validated* when present (an unknown one is rejected `401` even with
+  enforcement off), but never *required*. Making it mandatory, plus per-client
+  budgets, is BOX-193.
 - **Reliability**: `just reliability-gate` (`scripts/bifrost-reliability-gate.py`)
   re-runs the large-body / long-stream / tool-calling checks that LiteLLM failed;
   see `docs/bifrost-reliability-gate.md`.
