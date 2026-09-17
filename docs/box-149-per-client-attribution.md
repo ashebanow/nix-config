@@ -42,9 +42,18 @@ any client not yet migrated, starts receiving 401s from a shared gateway. The
 attribution requirement does not need enforcement, so enforcement is a
 separate, independently revertible decision (see *Follow-ups*).
 
-The consequence to keep in view: an unmigrated or misconfigured client does not
-fail. It silently appears anonymous in the log. Verification (D6) exists to
-catch exactly that.
+The consequence to keep in view: an unmigrated client does not fail. It
+silently appears anonymous in the log. Verification (D6) exists to catch
+exactly that.
+
+> **Correction (2026-09-16, verified against v2.0.0).** This originally read
+> "an unmigrated *or misconfigured* client does not fail". That is wrong for
+> the misconfigured case. `enforce_auth_on_inference: false` means the gateway
+> does not *require* a key; it still *validates* any key presented. Measured:
+> no key returns `200` (anonymous), an unknown key returns
+> `401 virtual_key_not_found`. So a typo'd, revoked or stale key is a hard
+> failure for that client, not a silent degradation to anonymous. Found by the
+> D6 negative test (BOX-195).
 
 ### D2 — One virtual key per client tool
 
@@ -91,22 +100,32 @@ The gateway and the client each resolve the *same* BWS item:
   function `private_config.yaml.tmpl` already uses for an `x-api-key`.
 
 This means **rotating a VK requires redeploying the gateway and re-applying
-chezmoi on each client host.** With enforcement off, a missed re-apply costs
-attribution only; with enforcement on it would be an outage. Named here rather
-than discovered later.
+chezmoi on each client host.** Named here rather than discovered later.
+
+> **Correction (2026-09-16).** This originally said a missed re-apply "costs
+> attribution only" with enforcement off. It does not. A stale key is an
+> *unknown* key, and an unknown key is rejected with `401` even when
+> enforcement is off (see the D1 correction). Rotation is an outage risk for
+> the un-re-applied client today, not only after BOX-193.
 
 ### D5 — Each client uses its native credential surface
 
 bifrost accepts a VK on several headers, so no client needs bespoke machinery.
 
-| client | surface | note |
-| -- | -- | -- |
-| pi | `apiKey` on the `bifrost` provider | becomes `Authorization: Bearer` |
-| hermes | `api_key` under `providers.bifrost` | **new field; acceptance unverified** |
-| Zed | `custom_headers: { x-bf-vk: … }` | `openai_compatible` refuses `api_key`; only `api_url`, `available_models`, `custom_headers` are accepted |
-| Raycast | `api_keys` | present in schema, absent today |
-| Open WebUI | `OPENAI_API_KEY` | see D6 — the env var seeds a fresh DB only |
-| reliability gate | `Authorization: Bearer` | currently a hardcoded `sk-gate` |
+**The table below was D5's plan. Implementation disproved most of it — the
+as-built column is what shipped, and the notes name where each assumption
+failed.** The uniform lesson: only Zed's *plan* used `x-bf-vk`, but Zed is the
+one client that could not actually deliver it; and three clients are on
+`Authorization`, which is the header BOX-193 changes.
+
+| client | planned surface | as built | note |
+| -- | -- | -- | -- |
+| pi | `apiKey` → `Authorization: Bearer` | `headers: { x-bf-vk: "$VK_PI" }` | `apiKey` was avoidable: pi supports `headers` with env interpolation, so pi gets the durable header after all. `apiKey` keeps a dummy because pi requires configured auth for models to be selectable |
+| hermes | `api_key` under `providers.bifrost` | `model.extra_headers: { x-bf-vk: "${VK_HERMES}" }` | **The open question resolved to `extra_headers`, not `api_key`** — both are known keys, but `api_key` feeds the SDK Bearer token. Also: per-provider `extra_headers` is matched by **base_url equality**, and hermes' primary turn runs as provider `deepseek`, so a header on `providers.bifrost` silently never applied. Measured in the log, not theorised |
+| Zed | `custom_headers: { x-bf-vk: … }` | keychain → `Authorization: Bearer` | **The planned mechanism is unreachable.** Zed refuses to let `custom_headers` override a provider-managed header, and there is nowhere to get a value: Zed does not interpolate env vars in `settings.json` (zed#26043) and the file is chezmoi's editable-symlink target. Keychain is the only delivery path, and it lands on `Authorization` |
+| Raycast | `api_keys` | `api_keys`, chezmoi-rendered | As planned. `providers.yaml` was converted to a `.tmpl`; `bitwardenSecrets` resolves the value at apply time. Also `Authorization` |
+| Open WebUI | `OPENAI_API_KEY` | `OPENAI_API_KEY=${VK_OPENWEBUI}` | Also `Authorization`. The env var seeds a fresh DB only — see D6 |
+| reliability gate | `Authorization: Bearer` | `x-bf-vk` | Moved off `Authorization` deliberately, so the gate keeps working across the BOX-193 flip |
 
 Where a client can express `x-bf-vk` directly it should, because `x-bf-vk`
 works identically whether or not enforcement is on, whereas
@@ -128,26 +147,32 @@ gives the ticket a machine-checkable path that does not depend on a human
 running a client.
 
 The check issues a request under a known VK and asserts the log row carries the
-expected `virtual_key_name`. Open cost: the logs endpoint needs
-dashboard/management credentials, which the gate does not hold today. If that
-cost is unacceptable, the fallback is a documented manual check per client — but
-that is the approach that rots, and it is what BOX-137 already did.
+expected `virtual_key_name`. **Resolved (BOX-195): the cost was acceptable.**
+The logs endpoint needs no dashboard credential on this deployment —
+`GET /api/logs` is served unauthenticated inside the sidecar netns — so the
+gate reads it directly. No fallback to a manual check was needed.
 
 Two traps this check exists to catch:
 
 - **Open WebUI**: its `OPENAI_*` environment variables seed a *fresh database
   only*. Open WebUI persists connections in its own DB, so editing the compose
   env var has no effect on a running deployment and the log stays anonymous
-  while the config looks correct. The change must also be applied in the admin
-  UI, or the volume re-seeded.
+  while the config looks correct. **Confirmed live (BOX-199):** after deploying
+  `OPENAI_API_KEY=${VK_OPENWEBUI}`, the running instance still held
+  `openai.api_keys = ["sk-openwebui-dummy"]` in its `config` table. Re-seeding
+  the `webui-data` volume was the fix taken — the volume held nothing real.
 - **hermes**: `providers.bifrost` has no `api_key` field today (all existing
-  `api_key` occurrences are under `auxiliary.*`). That the loader accepts one at
-  provider level is unverified and must be confirmed at implementation.
+  `api_key` occurrences are under `auxiliary.*`). **Resolved (BOX-197):** the
+  provider-level surface exists and is `extra_headers`/`key_env`, both listed in
+  `_KNOWN_KEYS`. `api_key` also exists but feeds the SDK Bearer token. The
+  working surface is `model.extra_headers`, because per-provider `extra_headers`
+  is matched by base_url rather than by provider name. See the D5 table.
 
-**Raycast is explicitly best-effort.** It is the one client whose attribution
-may be allowed to degrade to an "other/misc" bucket rather than block the
-ticket. Raycast's `X-User-Email` is kept (D8), but if its `api_keys` field
-proves awkward, Raycast does not hold up the rest.
+**Raycast was explicitly best-effort** and did not need the exemption: its
+`api_keys` field worked as expected and Raycast is attributed (BOX-200). Its
+`X-User-Email` is kept (D8). Note that `X-User-Email` did not show up in the
+log's user column in testing, so the supplementary signal is unproven even
+though the VK mechanism is not.
 
 ### D7 — Enforcement, budgets and rate limits are out of scope
 
@@ -171,8 +196,8 @@ VK.
 
 | criterion | how it is met |
 | -- | -- |
-| Each gateway client's requests are attributable | D1/D2/D5 — VK recorded as `virtual_key_name`; D6 asserts it |
-| Attribution survives a gateway restart and config reload | `source_of_truth: "config.json"` means the VK seed wins on every restart; VKs are not UI-authored state |
+| Each gateway client's requests are attributable | D1/D2/D5 — VK recorded as `virtual_key_name`; D6 asserts it. **All five clients verified against the live gateway** (BOX-196 pi, BOX-197 hermes, BOX-198 Zed, BOX-199 Open WebUI, BOX-200 Raycast) |
+| Attribution survives a gateway restart and config reload | `source_of_truth: "config.json"` means the VK seed wins on every restart; VKs are not UI-authored state. **Verified:** a `nixos-rebuild switch` restarted the stack and all six keys came back active |
 | No client credential committed in plaintext | True **by construction** (D3/D4) — values are random and live only in BWS. Nothing to argue about |
 | Enabling attribution does not break the direct bypass paths | D1 — enforcement stays off, so nothing is rejected |
 
@@ -181,6 +206,32 @@ reachable only on the `llm-internal` bridge and the direct serve paths on
 lumquat are published but unused as a revert affordance (BOX-137 dropped that
 requirement). The criterion is therefore about *not introducing* a bypass, which
 D1 satisfies.
+
+## As built
+
+Attribution works end to end on the live gateway. One key per client tool, all
+six seeded from `bifrost-config.json` and recorded as `virtual_key_name`:
+
+| client | delivery | header | verified |
+| -- | -- | -- | -- |
+| pi | `secretspec run` via a shell wrapper; `headers.x-bf-vk` interpolates `$VK_PI` | `x-bf-vk` | yes |
+| hermes | `secretspec run` via a shell wrapper; `model.extra_headers` expands `${VK_HERMES}` | `x-bf-vk` | yes |
+| Zed | macOS keychain (manual, per-machine; `setup-zed-attribution`) | `Authorization` | yes (macOS) |
+| Open WebUI | `secretspec run` (its own scope); volume re-seeded | `Authorization` | yes |
+| Raycast | chezmoi `bitwardenSecrets` in `providers.yaml.tmpl` | `Authorization` | yes |
+| gate | environment (`VK_GATE`) | `x-bf-vk` | yes |
+
+**The one design gap to carry forward:** three clients (Zed, Raycast, Open
+WebUI) send the key on `Authorization`, which is where bifrost accepts a VK
+*only* while `enforce_auth_on_inference` is false. Zed and Raycast are
+structural — their OpenAI-compatible credential surfaces offer no header knob,
+so `x-bf-vk` is not expressible without committing a literal. BOX-193 must
+resolve these before it can turn enforcement on.
+
+**A wrong key is an outage today, not a de-attribution.** An unknown VK is
+rejected `401` even with enforcement off; only a *missing* key falls through to
+anonymous. Anyone rotating a key should expect the affected client to break
+until it is re-applied.
 
 ## Rejected alternatives
 
@@ -201,20 +252,65 @@ reasoning is recorded here instead.
 ## Implementation notes
 
 - **pi, Zed and Raycast configs are not `.tmpl` files** today — only their
-  `symlink_*.json.tmpl` wrappers are. Resolving a VK from BWS at apply time
-  requires converting `editable-models.json`, `editable-settings.json` and
-  `providers.yaml` to templated forms. hermes is already a `.tmpl`, and its
-  line 101 shows the `bitwardenSecrets` pattern to follow.
+  `symlink_*.json.tmpl` wrappers are, and those emit a *path*, not content. So
+  none of the three can hold a rendered value in place: the live file is
+  tracked untemplated, and a literal written there would be a committed
+  plaintext credential.
+
+  **As built, only Raycast was converted** (to `providers.yaml.tmpl`, rendered
+  with `bitwardenSecrets`). The other two found better mechanisms:
+  - **pi** needs no templating at all — `apiKey`/`headers` support `$VK_PI`
+    environment interpolation, resolved by pi rather than by chezmoi. The value
+    reaches the environment via a `secretspec run` wrapper
+    (`~/.config/shell/attribution.sh`).
+  - **Zed** cannot use either: no env interpolation in `settings.json`
+    (zed#26043), and `custom_headers` cannot supply the value. It delivers from
+    the **macOS keychain** instead, which is a per-machine manual step and the
+    one place this design is not declarative.
+
+  hermes' `.tmpl` was already there and shows the `bitwardenSecrets` pattern;
+  it was not used, because `secretspec run` keeps the value in the process env
+  rather than on disk.
 - **`bifrost-config.json` and `bifrost-compose.yml` are both `restartTriggers`**
   on `bifrost-compose.service`, so a VK change restarts the stack; the named
   data volume and its logs survive (`down`, no `-v`).
 - Adding `VK_*` to the `bifrost` secretspec scope is the only manifest change;
-  the scope is consumed only by that service, so least-privilege holds.
-- `docs/architecture.md` describes access as "no virtual key" and must be
-  updated to "virtual keys recorded, not enforced".
+  the scope is consumed only by that service, so least-privilege holds. Open
+  WebUI consumes `VK_OPENWEBUI` through its own existing `openwebui` scope — a
+  separate scope, so the gateway scope did not have to widen.
+- `docs/architecture.md` described access as "no virtual key" and has been
+  updated to "virtual keys recorded, not enforced" (BOX-201).
+- **Three of five clients ride `Authorization`** (Zed, Raycast, Open WebUI)
+  because their OpenAI-compatible credential surfaces have no header knob. That
+  is acceptable only while enforcement is off; BOX-193 must revisit all three.
 
 ## Follow-ups
 
-- **Enforcement + budgets** (new ticket, references this design) — D7.
+- **BOX-193 — Enforcement + budgets** — D7. Owns flipping
+  `enforce_auth_on_inference`, adding per-VK budgets and rate limits, and moving
+  the three `Authorization`-borne keys to a durable header. That last item is
+  the most likely way to take clients down.
 - **Open WebUI per-person attribution** — its own session identity, not a
   shared VK (D2).
+- **Raycast `X-User-Email` is unverified.** It is configured and retained (D8),
+  but the user column stayed empty in testing. Not a blocker — the VK is the
+  mechanism — but the supplementary signal should not be described as working
+  until it is seen in the log.
+- **Zed's delivery is not declarative, and is macOS-only.** The keychain value
+  is a per-machine manual step that a fresh install or a rotated key must
+  repeat; `setup-zed-attribution` makes it reproducible but not automatic. Its
+  item also carries no ACL, so macOS cannot persist an `Always Allow` grant and
+  re-prompts on access. **On Linux this does not work at all** — Zed reads the
+  Secret Service there, a different mechanism with no persistence when no
+  provider is present, so a Linux host sends no key and is logged as anonymous.
+  The script fails loudly rather than no-op. The owner's CachyOS/Niri host
+  (`yuzu`) is a known desktop host in the dotfiles, so it receives the Zed
+  config and hits exactly this.
+- **BOX-205 — replace per-machine keychain entries with factorseal.**
+  [factorseal](https://github.com/cachix/factorseal) is a hardware-backed vault
+  (TPM 2.0 / Secure Enclave) that abstracts the platform keychain and already
+  exposes a SecretSpec provider. That is the actual fix for the Zed (and
+  Raycast) delivery problem: the key stops living in a per-machine keychain
+  entry, and `setup-zed-attribution` gets deleted rather than extended. Note it
+  is currently an **unaudited prototype** and explicitly not production-ready,
+  so this is a watch-and-adopt item, not a drop-in.

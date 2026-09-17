@@ -20,13 +20,27 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 DEFAULT_BASE_URL = "https://ai.fluffy-walleye.ts.net"
 LOCAL_MODEL = "qwen-latest"
+
+# The gate carries its own virtual key (BOX-149), so its 20-odd minutes of
+# synthetic traffic is distinguishable in the log from real client traffic. The
+# value is read from the environment (secretspec `bifrost` scope); the name is
+# what the gateway records and what the attribution check asserts on.
+GATE_VK_NAME = "gate"
+GATE_VK = os.environ.get("VK_GATE", "sk-bf-gate")
+
+# How long the attribution check waits for the log write to land. The log is
+# written asynchronously relative to the response, so a small grace period is
+# required; override to keep tests off the clock.
+ATTRIBUTION_DEADLINE_S = float(os.environ.get("GATE_ATTRIBUTION_DEADLINE_S", "30"))
 
 # Remote model ids must be ones bifrost-config.json actually declares. A check naming
 # an undeclared model fails with `no keys found that support model: <id>`, which is how
@@ -38,6 +52,17 @@ ANTHROPIC_MODEL = "anthropic/claude-haiku-4-5-20251001"
 # --------------------------------------------------------------------------- io
 
 
+def _auth_headers():
+    """Headers identifying the gate to the gateway.
+
+    The virtual key rides `x-bf-vk`, not `Authorization`. A VK is accepted on
+    `Authorization: Bearer` only while `disable_auth_on_inference` is true —
+    precisely the condition BOX-193 changes — so relying on it would break the
+    gate silently on the day enforcement lands. `x-bf-vk` works in both modes.
+    """
+    return {"Content-Type": "application/json", "x-bf-vk": GATE_VK}
+
+
 def _request(base_url, path, payload, timeout):
     """POST JSON, return (status, raw_bytes, elapsed_seconds). Never raises for HTTP
     errors — a non-2xx is returned like any other response so a check can assert on it."""
@@ -45,7 +70,7 @@ def _request(base_url, path, payload, timeout):
     req = urllib.request.Request(
         base_url.rstrip("/") + path,
         data=body,
-        headers={"Content-Type": "application/json", "Authorization": "Bearer sk-gate"},
+        headers=_auth_headers(),
         method="POST",
     )
     start = time.monotonic()
@@ -71,7 +96,7 @@ def _stream(base_url, path, payload, timeout):
     req = urllib.request.Request(
         base_url.rstrip("/") + path,
         data=body,
-        headers={"Content-Type": "application/json", "Authorization": "Bearer sk-gate"},
+        headers=_auth_headers(),
         method="POST",
     )
     text_parts = []
@@ -129,6 +154,42 @@ def _stream(base_url, path, payload, timeout):
     }
 
 
+# ------------------------------------------------------------------- logging
+
+
+def _fetch_logs(base_url, params, timeout=30):
+    """GET /api/logs with query params, return the `logs` list.
+
+    Bifrost serves this unauthenticated on this deployment (verified against
+    v2.0.0), so the gate needs no dashboard credential of its own. Raises on a
+    non-2xx so a check reports a readable failure rather than an empty result.
+    """
+    query = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
+    url = base_url.rstrip("/") + "/api/logs" + (f"?{query}" if query else "")
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        obj = json.loads(resp.read())
+    if isinstance(obj, dict):
+        return obj.get("logs") or []
+    return obj or []
+
+
+def _find_log_row(base_url, vk_name, since=None, timeout=30):
+    """Return the most recent log row attributed to `vk_name`, or None.
+
+    Filtering happens client-side on `virtual_key_name` rather than trusting the
+    query parameter alone: the server-side filter is an optimisation, and a
+    silently-ignored filter would otherwise turn an unattributed run into a
+    false PASS.
+    """
+    rows = _fetch_logs(base_url, {"limit": 100, "virtual_key_name": vk_name}, timeout)
+    for row in rows:
+        if row.get("virtual_key_name") == vk_name:
+            if since is None or str(row.get("timestamp", "")) >= since:
+                return row
+    return None
+
+
 # ------------------------------------------------------------------------ checks
 # Each check is `name -> fn(base_url) -> (ok: bool, note: str)`. Keep the note short;
 # it lands in the summary table and the recorded run log.
@@ -142,6 +203,55 @@ def check(name):
         return fn
 
     return register
+
+
+@check("attribution")
+def _attribution(base_url):
+    """A request made under the gate's virtual key comes back attributed to it.
+
+    This is the check that makes BOX-149's claim real. With enforcement off,
+    nothing fails when a client stops sending its key — the request succeeds and
+    is simply recorded as anonymous — so attribution can rot invisibly while
+    every other check stays green. Asserting the log row pins it.
+
+    Runs a local model request (fast, no upstream spend) and then reads the log.
+    """
+    marker = f"ATTRIB-{int(time.time())}"
+    status, raw, _ = _request(
+        base_url,
+        "/v1/chat/completions",
+        {
+            "model": LOCAL_MODEL,
+            "messages": [{"role": "user", "content": marker}],
+            "max_tokens": 16,
+        },
+        timeout=180,
+    )
+    if status != 200:
+        return False, f"probe request failed: HTTP {status} {raw[:120]!r}"
+
+    # The log write is asynchronous relative to the response, so poll briefly.
+    deadline = time.monotonic() + ATTRIBUTION_DEADLINE_S
+    while True:
+        try:
+            row = _find_log_row(base_url, GATE_VK_NAME)
+        except (urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError) as e:
+            return False, f"could not read /api/logs: {type(e).__name__}: {e}"
+        if row is not None:
+            return True, (
+                f"log row attributed to {GATE_VK_NAME!r} "
+                f"(virtual_key_id={row.get('virtual_key_id')})"
+            )
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(2)
+
+    return False, (
+        f"no log row attributed to {GATE_VK_NAME!r} within "
+        f"{ATTRIBUTION_DEADLINE_S:.0f}s — the request succeeded but the gateway "
+        f"recorded no virtual key, so the request is not attributed; the gate's "
+        f"key is not reaching it (check VK_GATE in the bifrost secretspec scope)"
+    )
 
 
 @check("stream-body-over-12kb")
