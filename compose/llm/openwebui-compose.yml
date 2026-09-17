@@ -22,6 +22,35 @@ services:
     image: docker.io/tailscale/tailscale:latest
     container_name: openwebui-ts
     hostname: openwebui
+    # MagicDNS does not resolve inside this shared network namespace, so pin the
+    # gateway node's tailnet address here.
+    #
+    # `tailscale up --accept-dns` is set below and `tailscale dns status`
+    # reports MagicDNS enabled, but /etc/resolv.conf keeps pointing at podman's
+    # aardvark resolver (10.89.x.1), which knows nothing about .ts.net names.
+    # Nothing rewrites that file -- the image has no resolvconf and tailscaled
+    # will not manage it -- and Tailscale's own 100.100.100.100 returns
+    # SERVFAIL from this namespace. So ai.fluffy-walleye.ts.net is NXDOMAIN and
+    # every Open WebUI chat fails with "Server Connection Error", for local and
+    # remote models alike, since both go through the gateway.
+    #
+    # This stack is the only one that must resolve a DIFFERENT tailnet node:
+    # bifrost runs ON `ai` and never looks its own hostname up, and the memory
+    # stack's client never calls another .ts.net name. That is why the gap went
+    # unnoticed until Open WebUI was actually used.
+    #
+    # On THIS service, not on open-webui. podman rejects extra_hosts on a
+    # container that joins another's network namespace ("cannot set extra host
+    # entries when the container is joined to another containers network
+    # namespace"), which fails the unit with status 125. Declared by the
+    # namespace owner, the entry lands in the shared /etc/hosts and the joined
+    # container sees it -- verified.
+    #
+    # tailnet IPs are assigned once per node and persist across restarts, so
+    # this is not address churn. If `ai` is ever re-keyed, update this line; the
+    # failure is a hard connection error, not a silent one.
+    extra_hosts:
+      - "ai.fluffy-walleye.ts.net:100.106.204.40"
     environment:
       - TS_AUTHKEY=${OPENWEBUI_TS_AUTHKEY}
       - TS_STATE_DIR=/var/lib/tailscale
