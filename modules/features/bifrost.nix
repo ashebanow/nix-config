@@ -82,6 +82,71 @@ _: {
           ExecStop = "${pkgs.podman-compose}/bin/podman-compose -f /etc/bifrost/compose.yml down";
         };
       };
+
+      # Bifrost's log cleaner deletes expired rows in batches and never
+      # VACUUMs (framework/logstore/cleaner.go), so the pages it frees land in
+      # SQLite's freelist rather than back on the filesystem. logs.db only
+      # ratchets upward no matter what log_retention_days says: dropping
+      # retention 30 -> 7 deleted 93 rows and moved the file 1,627,226,112 ->
+      # 1,627,258,880 bytes, i.e. up. This timer is what actually reclaims the
+      # space; retention alone does not (BOX-202).
+      #
+      # VACUUM rewrites the whole database and wants exclusive access, so the
+      # stack goes down for the duration. The trap fires on any exit path, so
+      # a sqlite failure costs the space, never the gateway.
+      systemd.services.bifrost-vacuum = {
+        description = "Reclaim freelist space in the bifrost sqlite databases";
+        path = [pkgs.sqlite pkgs.coreutils pkgs.systemd];
+        serviceConfig = {
+          Type = "oneshot";
+          # A 1.6 GB rewrite is seconds on NVMe, but the stack is down for it.
+          TimeoutStartSec = "30m";
+          ExecStart = pkgs.writeShellScript "bifrost-vacuum" ''
+            set -euo pipefail
+            data=/home/podman/.local/share/containers/storage/volumes/bifrost_bifrost-data/_data
+
+            trap 'systemctl start bifrost-compose.service || true' EXIT
+            systemctl stop bifrost-compose.service
+
+            for db in logs.db config.db; do
+              f="$data/$db"
+              [ -f "$f" ] || continue
+
+              # These files belong to the container's uid (999, mapped into
+              # podman's subuid range), not to root. sqlite recreates the
+              # database and its -wal/-shm sidecars as whoever ran it, and a
+              # sidecar the container cannot write makes bifrost crash-loop on
+              # "attempt to write a readonly database" at the next start — so
+              # capture ownership first and put it back afterwards rather than
+              # hardcoding the mapped uid.
+              owner="$(stat -c '%u:%g' "$f")"
+              before="$(stat -c %s "$f")"
+
+              sqlite3 "$f" 'VACUUM;'
+
+              for p in "$f" "$f-wal" "$f-shm"; do
+                if [ -e "$p" ]; then chown "$owner" "$p"; fi
+              done
+
+              echo "$db: $before -> $(stat -c %s "$f") bytes"
+            done
+          '';
+        };
+      };
+
+      systemd.timers.bifrost-vacuum = {
+        description = "Weekly bifrost sqlite vacuum";
+        wantedBy = ["timers.target"];
+        timerConfig = {
+          # The cleaner prunes daily, so freelist pages accumulate daily too;
+          # weekly keeps the file near its steady state without paying the
+          # downtime every night. Persistent so a box that was off over the
+          # window still catches up.
+          OnCalendar = "Sun 04:00";
+          RandomizedDelaySec = "30m";
+          Persistent = true;
+        };
+      };
     };
   };
 }

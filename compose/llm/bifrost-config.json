@@ -1,7 +1,7 @@
 {
   "client": {
     "enable_logging": true,
-    "log_retention_days": 30,
+    "log_retention_days": 7,
     "enforce_auth_on_inference": false
   },
   "source_of_truth": "config.json",
