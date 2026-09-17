@@ -3,10 +3,14 @@
 #   https://openwebui.fluffy-walleye.ts.net
 #
 # Connects to the bifrost gateway at https://ai.fluffy-walleye.ts.net/v1 for
-# all models (local qwen + deepseek/anthropic/gemini). The gateway enforces
-# no virtual key, so OPENAI_API_KEY is a dummy. openwebui-ts reaches the `ai`
-# node directly (container↔container hole-punches on-host), so large streaming
-# prompts are unaffected by the DERP issue that hits container→host (BOX-140).
+# all models (local qwen + deepseek/anthropic/gemini). OPENAI_API_KEY carries
+# this client's virtual key (`openwebui`), so the gateway records
+# `virtual_key_name: openwebui` and its traffic is filterable by client
+# (BOX-199, parent BOX-149). It is an attribution label, not authorization:
+# the gateway does not require it (BOX-193 owns enforcement). openwebui-ts
+# reaches the `ai` node directly (container↔container hole-punches on-host), so
+# large streaming prompts are unaffected by the DERP issue that hits
+# container→host (BOX-140).
 #
 # WEBUI_SECRET_KEY is the session-signing key. It resolves to the same BWS
 # value the LiteLLM master key used, now under an honest name in the openwebui
@@ -51,7 +55,7 @@ services:
       - tailscale
     environment:
       - OPENAI_API_BASE_URL=https://ai.fluffy-walleye.ts.net/v1
-      - OPENAI_API_KEY=sk-openwebui-dummy
+      - OPENAI_API_KEY=${VK_OPENWEBUI}
       # Curated model list for connection 0. bifrost's /v1/models enumerates only
       # its native providers, never the local qwen custom provider, so model_ids
       # names every model explicitly; the remote entries match what

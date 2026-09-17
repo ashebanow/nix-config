@@ -3,6 +3,8 @@ secrets/keys/
 
 # Pi Agent
 .pi/tasks/
+# Delegate/Fusion scratch: per-task seed and result files, not repo content.
+.pi/delegate/
 
 # Graphify
 graphify-out/
