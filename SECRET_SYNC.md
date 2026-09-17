@@ -125,6 +125,32 @@ does not fail the unit. Why operator tools get their secrets this way rather
 than through a user-level BWS token or a keyring:
 [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md).
 
+### Home Manager activation (chezmoi) — systemd-credential consumer
+
+`home-manager-podman.service` runs the `chezmoiApply` activation on every
+`nh os switch`; the `gh` token template needs the BWS token, so the unit gets
+`LoadCredential=access_token:${my.bwsAccessTokenFile}` and the activation script
+reads `${CREDENTIALS_DIRECTORY}/access_token` into `BWS_ACCESS_TOKEN`.
+
+The token is not the whole story: the template resolves the value by shelling
+out to the `bws` CLI (chezmoi's `output "bws" "secret" get …`), and the
+activation's `PATH` is nix-store coreutils/findutils/… only — neither the system
+profile nor `/run/wrappers/bin` is on it. `my.bwsBinDir` (set by the NixOS layer
+to the `bws` store path, default `/run/current-system/sw/bin`) is prepended to
+the activation `PATH` so the template can actually call it (BOX-174).
+
+This deliberately goes through `LoadCredential` rather than reading the
+root-only file directly: the activation's `PATH` is nix-store paths only, so
+`sudo` (which NixOS installs in `/run/wrappers/bin`) is not found, and the
+earlier `sudo -n cat … 2>/dev/null || true` silently produced an empty token
+for every activation (BOX-174).
+
+Failure is loud in both directions the activation can distinguish: an absent
+credential (or no `${CREDENTIALS_DIRECTORY}` at all, as under standalone
+`home-manager switch` or a VM test) keeps the intended token-less apply, while a
+credential that exists but cannot be read or is empty aborts the activation
+instead of degrading to an empty `BWS_ACCESS_TOKEN`.
+
 ### Container secrets (bifrost, openwebui, memory) — no files
 
 The podman-compose systemd services (`bifrost-compose`, `openwebui-compose`,

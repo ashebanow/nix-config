@@ -126,6 +126,16 @@
       default = "/var/lib/secrets/bws-access-token";
       description = "Root-only BWS bootstrap access token file (provisioned out-of-band; never in the store or git).";
     };
+    bwsBinDir = lib.mkOption {
+      type = lib.types.str;
+      default = "/run/current-system/sw/bin";
+      description = ''
+        Directory containing the `bws` CLI, prepended to the Home Manager
+        activation's PATH. The chezmoi `gh` hosts.yml template resolves the
+        GitHub token by invoking `bws secret get`, and the activation's PATH
+        does not otherwise include the system profile (BOX-174).
+      '';
+    };
 
     # CLI tools feature (Home Manager)
     cliTools = lib.mkOption {
