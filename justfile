@@ -29,6 +29,54 @@ show:
 update:
     nix flake update
 
+# Move the worktrunk input to upstream's newest *tagged release* and re-lock.
+#
+# Tags only, deliberately: `nix flake update worktrunk` on its own would
+# re-resolve whatever ref flake.nix names, and naming `main` there would pin an
+# arbitrary unreleased commit (release-please, dependabot, and in-flight
+# features all land on it). So this bumps the ref itself: find the highest
+# semver tag upstream publishes, rewrite the URL in flake.nix if it moved, then
+# lock. `sort -V` is what orders 0.9 before 0.10; `--refs` drops the `^{}`
+# peeled duplicates.
+#
+# The ref is rewritten in place rather than passed as `--override-input` so the
+# committed flake.nix stays the source of truth for which version is pinned —
+# an override would bump the lock while leaving flake.nix claiming the old tag.
+#
+# Scoped to worktrunk because it is the only input on a release tag: pi-nix
+# tracks a branch by choice, and the rest follow nixpkgs.
+#
+# Move the worktrunk input to upstream's newest tagged release, then re-lock
+[group('nix')]
+update-worktrunk:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    latest="$(git ls-remote --tags --refs https://github.com/max-sixty/worktrunk.git \
+      | awk -F'refs/tags/' '{print $2}' \
+      | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+      | sort -V | tail -1)"
+    [[ -n "$latest" ]] || { echo "error: no semver tags found upstream" >&2; exit 1; }
+    current="$(sed -n 's|.*url = "github:max-sixty/worktrunk/\([^"]*\)".*|\1|p' flake.nix)"
+    # Without this guard an empty `current` makes the sed below a no-op that still
+    # exits 0, so the recipe reports success after `nix flake lock` has dropped
+    # the worktrunk input entirely — a silent desync of flake.nix and flake.lock.
+    [[ -n "$current" ]] || {
+      echo "error: no worktrunk url line found in flake.nix (input removed or renamed?)" >&2
+      exit 1
+    }
+    if [[ "$current" == "$latest" ]]; then
+      echo "worktrunk already on $latest"
+      exit 0
+    fi
+    echo "worktrunk: $current -> $latest"
+    # Anchor the rewrite to the `url = "..."` line, the same shape `current`
+    # reads. A bare substring match would also hit prose comments citing an
+    # older release, silently editing documentation.
+    sed -i.bak "s|^\\( *url = \"github:max-sixty/worktrunk/\\)$current\\(\"\\)|\\1$latest\\2|" flake.nix
+    rm -f flake.nix.bak
+    nix flake lock
+    echo "now on $latest — review \`git diff flake.nix flake.lock\`"
+
 # Format all Nix files
 [group('nix')]
 fmt:

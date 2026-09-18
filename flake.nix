@@ -69,32 +69,23 @@
     # (Darwin only) the workstations' pkgs — lumquat's host closure never
     # carries worktrunk, matching pi.nix's dev-tool policy.
     #
-    # TEMPORARY FORK PIN (BOX-145). Both changes the fork carried are now
-    # upstream — the Pi/oh-my-pi split (max-sixty/worktrunk#4135, the split we
-    # proposed; upstream closed our #4133 by landing it) and the
-    # `stdenv.hostPlatform.isDarwin` fix (#4132) — but no *release* carries them
-    # yet (`v0.77.0` is still the latest tag, and `main` runs ahead of it with
-    # release-please). So the input stays on the fork until a release ships
-    # them; pinning `main` would re-inherit the unreleased-commit churn this pin
-    # exists to avoid. Tracked, with the removal steps, in BOX-190.
+    # TEMPORARY RELEASE PIN (BOX-145). Both changes the fork carried are now in
+    # upstream's v0.78.0 — the Pi/oh-my-pi split (max-sixty/worktrunk#4135, the
+    # split we proposed; upstream closed our #4133 by landing it) and the
+    # `stdenv.hostPlatform.isDarwin` fix (#4132) — so the fork pin is gone and
+    # this reads upstream's tag directly. The fork's `nix-pin` branch is retired;
+    # nothing here should point at a fork branch again.
     #
-    # Pinned to the fork's `nix-pin` branch, NOT the PR branches that carried the
-    # same commits. Two kinds of branch, two jobs:
+    # Pinned to the tag, NOT `main`: `main` runs ahead of releases with
+    # release-please and would re-inherit the unreleased-commit churn this pin
+    # exists to avoid. `v0.78.0` is upstream's newest *published* release; a
+    # `Release v0.79.0` commit exists on `main` but the tag is not pushed, so
+    # there is nothing newer to point at.
     #
-    #   pi-omp-split, feat/pi-and-omp-plugin-targets
-    #                                   upstream PR heads; rebased at will, so
-    #                                   their history is rewritten and they are
-    #                                   unsafe to pin.
-    #   nix-pin                         what this input reads. Append-only:
-    #                                   fast-forwarded from the PR branch once a
-    #                                   rebase there is tested, never rebased or
-    #                                   force-pushed. A rewritten pin branch
-    #                                   breaks every consumer's lock.
-    #
-    # `nix-pin` is now purely a waiting-on-a-release hold: it carries two commits
-    # upstream already has.
+    # This pin drops entirely once nixpkgs unstable ships >= 0.78.0 — then the
+    # overlay in lib/overlays/worktrunk.nix goes too. Tracked in BOX-190.
     worktrunk = {
-      url = "github:ashebanow/worktrunk/nix-pin";
+      url = "github:max-sixty/worktrunk/v0.78.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

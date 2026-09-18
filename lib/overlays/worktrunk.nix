@@ -4,8 +4,8 @@
 # behind, and the agent integrations the dev workflow uses — `wt config
 # plugins pi`, `.codex`, `.opencode` — only exist from 0.77.0 on. Upstream
 # publishes no `overlays` output, so this wraps the package its own flake
-# builds with crane (input pinned to a release tag in flake.nix) under the
-# nixpkgs attribute name.
+# builds with crane (input pinned to upstream's `v0.78.0` tag in flake.nix)
+# under the nixpkgs attribute name.
 #
 # Applied to:
 #   * this repo's dev shell package set (modules/infra/devshell.nix) — the
@@ -16,6 +16,9 @@
 # Bumping: edit the tag in flake.nix, run `nix flake lock`, and the new
 # source/build inputs follow. Nothing to hash by hand here — upstream's
 # flake owns the crane recipe and the crate hashes.
+#
+# Retiring: drop this overlay and the flake input once nixpkgs unstable ships
+# >= 0.78.0 (BOX-190).
 {worktrunk}: final: _prev: {
   worktrunk = worktrunk.packages.${final.stdenv.hostPlatform.system}.worktrunk;
 }
