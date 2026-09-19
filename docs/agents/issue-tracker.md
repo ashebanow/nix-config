@@ -43,6 +43,7 @@ shell-mangled.
 | Create a ticket  | `linear issue create --no-interactive --project Nix-Config --title "…" --description-file body.md` (`--label <name>` repeatable; `--parent BOX-<n>` for a sub-issue; `--state Todo`)                                                              |
 | Comment          | `linear issue comment add BOX-<n> --body-file note.md`                                                                                                                                                                                            |
 | Labels           | `linear issue update BOX-<n> --add-label "Ready For Agent"` / `--remove-label …` (by name; `--label` _replaces_ the whole set). Inventory: `linear label list`                                                                                    |
+| Priority         | `linear issue update BOX-<n> --priority <1-4>` (1 urgent … 4 low). Triage always sets one — see `docs/agents/triage-labels.md`                                                                                                                       |
 | Change state     | `linear issue update BOX-<n> --state "In Progress"` (by name; `linear team states` lists them)                                                                                                                                                    |
 | Close            | `linear issue update BOX-<n> --state Done` — or `Canceled` / `"Won't Fix"` / `"Can't Reproduce"` / `Duplicate`, with a comment saying why                                                                                                         |
 | Claim / assign   | `linear issue update BOX-<n> --assignee self` (`--unassign` to release)                                                                                                                                                                           |
@@ -55,6 +56,10 @@ shell-mangled.
 in workflow **states**: `Backlog`, `Icebox`, `Todo`, `In Progress`, `In Review`, `Ready to
 Merge`, `Done`, `Canceled`, `Won't Fix`, `Can't Reproduce`, `Duplicate`. Prefer a state where
 one matches; use labels only for roles with no matching state.
+
+**Priorities.** Triage also assigns a Linear priority (`--priority 1-4`). The levels and when
+to use each are defined in `docs/agents/triage-labels.md`. An issue that has been through
+triage should never be left at priority `0`.
 
 ## Generating issue markdown
 
