@@ -299,25 +299,11 @@ These items are planned but not yet implemented:
 
 | Task | Priority | Notes |
 |------|----------|-------|
-| **Colmena deployment** | High | Replace manual `nixos-rebuild` with `colmena deploy` |
 | **DeepSeek v4 container** | Medium | Add second container when model is released |
 | **`system.stateVersion`** | Low | Add explicit state version to base config |
 | **Automated key backup** | Medium | Backup SSH host keys to secure storage |
 | **Monitoring dashboards** | Low | Grafana/Prometheus for GPU and LLM metrics |
 | **Firewall consolidation** | Low | Move all firewall rules to a single location |
-| **Colmena health checks** | Low | Set up `colmena exec` health checks |
-
-### Colmena Setup (Future)
-
-When ready for Colmena:
-
-```bash
-# Add colmena input to flake.nix
-# Create colmena config
-# Deploy:
-colmena deploy --on lumquat
-colmena exec --on lumquat -- sudo systemctl status tailscaled
-```
 
 ### LLM Containers
 
@@ -337,6 +323,18 @@ To add a second model:
 ---
 
 ## Daily Operations
+
+### Deploy a Config Change
+
+There is no remote deployment tool and no per-host fan-out: `just switch` runs
+`nh os switch` for the current hostname, so it is run **on the host being updated**.
+Lumquat is the only NixOS host.
+
+```bash
+just dry-run       # show what would change
+just switch        # build and activate
+just test          # activate without committing to boot
+```
 
 ### Check System Status
 

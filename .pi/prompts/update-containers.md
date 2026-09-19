@@ -42,13 +42,15 @@ If updates are available:
 ### 5. Deploy
 
 ```bash
-colmena apply --on lumquat --impure
+just switch
 ```
+
+`just switch` runs `nh os switch` for the current hostname. Run it **on the host being
+updated** — there is no remote fan-out, and lumquat is the only NixOS host.
 
 ### 6. Verify
 
 ```bash
 ssh lumquat "podman ps"
-ssh lumquat "systemctl status podman-qwen-27b"
-ssh lumquat "systemctl status podman-deepseek-v4"
+ssh lumquat "systemctl status podman-qwen-35b-a3b"
 ```

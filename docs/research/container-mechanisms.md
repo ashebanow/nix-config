@@ -31,9 +31,9 @@ the generator at build time and aborts if a unit is missing. Its freeform Pascal
 full upstream coverage (`AddDevice`, `ShmSize`, `SecurityLabelDisable`) at the cost of per-field
 type checking.
 
-**Recommendation: mirkolenz**, for three reasons tied to this repo. (1) lumquat is deployed
-unattended via Colmena; build-time validation turns a silently-missing service into a failed
-build. (2) `modules/features/llm.nix` already runs rootless Podman as `cfg.baseUsername` from
+**Recommendation: mirkolenz**, for three reasons tied to this repo. (1) lumquat's switches are
+scripted (`just switch` → `nh os switch`) rather than watched, so build-time validation turns a
+silently-missing service into a failed build. (2) `modules/features/llm.nix` already runs rootless Podman as `cfg.baseUsername` from
 a *system* service — mirkolenz supports that with a plain `uid`, while SEIAROTg's equivalent
 is explicitly unsupported by its own README. (3) Semver tags and a changelog give a pinnable
 dependency; SEIAROTg has none.

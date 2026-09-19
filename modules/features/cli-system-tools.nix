@@ -14,7 +14,6 @@ _: {
         btop
         cachix # binary cache management
         chezmoi
-        colmena
         ctop
         duf
         fastfetch

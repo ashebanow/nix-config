@@ -297,7 +297,7 @@ nix build .#nixosConfigurations.lumquat.config.system.build.toplevel
 ### Step 2: Deploy
 
 ```bash
-colmena apply --on lumquat
+just switch        # run on lumquat
 ```
 
 ### Step 3: Verify autoconnect
@@ -340,7 +340,7 @@ If something goes wrong:
 1. Revert the changes to `access.nix`, `llm.nix`, `my-options-module.nix`, and `configuration.nix`
 2. Rebuild + redeploy:
    ```bash
-   colmena apply --on lumquat
+   just switch      # run on lumquat
    ```
 3. The old Aperture-based setup was never removed, so clients can continue using it
 

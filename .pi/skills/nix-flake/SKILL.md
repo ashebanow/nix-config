@@ -19,7 +19,6 @@ This flake manages the lumquat NixOS configuration with:
 - `flake-parts` — flake framework
 - `import-tree` — automatic directory importing
 - `home-manager` — user environment management
-- `colmena` — remote deployment
 - `secretspec` + BWS — secrets management (declared in `secretspec.toml`)
 - `nixos-hardware` — hardware quirks
 
