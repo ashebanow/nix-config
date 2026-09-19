@@ -31,8 +31,7 @@ reference documentation, and helper patterns.
 | Skill | Invocation | Purpose |
 |-------|------------|---------|
 | Nix Module | `/skill:nix-module` | Nix language and module system expert |
-| Deploy | `/skill:deploy` | Colmena remote deployment specialist |
-| Container | `/skill:container` | Container image management |
+| Container | `/skill:container-manager` | Container image management |
 | Nix Debug | `/skill:nix-debug` | Service debugging via SSH |
 | Secrets Audit | `/skill:secrets-audit` | Secrets management auditing |
 | Nix Flake | `/skill:nix-flake` | Flake dependency management |
@@ -48,7 +47,6 @@ for common workflows.
 
 | Template | Invocation | Purpose |
 |----------|------------|---------|
-| Deploy All | `/deploy-all` | Deploy to all hosts via Colmena |
 | Dend Review (Arch) | `/dend-review-arch` | Pre-implementation architecture check |
 | Dend Review (Features) | `/dend-review-features` | Feature module compliance review |
 | Health Check | `/health` | Run health checks on lumquat |
