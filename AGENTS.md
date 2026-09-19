@@ -1,28 +1,12 @@
 This is the nix-config for ashebanow. The initial version we are building only covers our server configuration for our AI server, lumquat. Eventually we will add other servers and our unix and mac desktop configurations. It uses the dendritic pattern as described below.
 
-# Hardware for Lumquat
-
-GMKTec Evo X2 (Strix Halo mini PC):
-
-- CPU/APU: AMD Ryzen AI Max (Strix Halo), `x86_64-linux`
-- RAM: 128 GB unified (CPU + GPU share the same pool)
-- GPU: AMD RDNA 3.5 integrated (`amdgpu`)
-- LUKS-encrypted root (`/dev/mapper/luks-...`)
-- Boot: systemd-boot + EFI
-
-Kernel params must be set in `hardware-configuration.nix` on order for the Strix Halo to run LLMs properly:
-
-- `amd_iommu=off` — required for Strix Halo stability
-- `amdgpu.gttsize=126976` — expose ~124 GB VRAM to the GPU
-- `ttm.pages_limit=32505856` — allow TTM to use the full pool
-
-See [nix-strix-halo on github](https://github.com/hellas-ai/nix-strix-halo) for a collection of useful platform specific modules.
-
 # Important References
 
 There is a very in-depth config that follows the dendritic patter in [Fred Drake's nix config](../../dendritic-configs/fred-drake-nix), and another one worth looking at is is in [Mango's nix config](../../dendritic-configs/mango-nix). Finally, another article in blog form worth looking at is [Fiction Becomes Fact: NixOS Server Configuration](https://fictionbecomesfact.com/notes/nixos-server-configuration/) - its much simpler than the other two but has nice podman support plus monitoring, rdp, and so forth.
 
 The fred-drake-nix config is also interesting because it has an extensive set of Claude Code agents, skills, and so forth, including a per-agent memory system. It would be nice to bring as much forward to our config as possible, using the pi agent instead of Claude Code.
+
+Lumquat's own hardware, kernel parameters, and GPU/LLM tuning live in `docs/lumquat-hardware.md` — reference material, deliberately kept out of this file.
 
 # Project Goals
 
