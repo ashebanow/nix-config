@@ -21,6 +21,7 @@ _: {
         gum
         jq
         jsongrep
+        lazyrsync
         mpv
         nano
         neovim
