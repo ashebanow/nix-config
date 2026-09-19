@@ -39,8 +39,9 @@ container without changing the containerisation story.
 **`SEIAROTg/quadlet-nix`.** Rejected despite far greater maturity — 395 stars and three years,
 against thirteen stars and one maintainer. Two properties disqualify it here. It writes units for
 Podman's generator to consume **at boot**, and that generator logs-and-skips units it cannot
-parse, so an invalid unit silently does not exist — the worst available failure mode for a host
-deployed unattended by Colmena. And its rootless support requires Home Manager; the
+parse, so an invalid unit silently does not exist — a bad failure mode on a host whose
+switches are scripted (`just switch` → `nh os switch`) rather than watched. And its rootless
+support requires Home Manager; the
 in-system-systemd mode it would need here is self-labelled "not officially supported by Podman".
 The model container already runs rootless Podman as a non-root user from a *system* service,
 which is exactly the shape `mirkolenz/quadlet-nix` supports natively.

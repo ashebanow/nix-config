@@ -80,27 +80,30 @@ _: {
 }
 ```
 
-## Colmena Host Config (Thin)
+## Host Config (Thin)
+
+A host config sets capability flags and host-specific values — nothing else. Capability
+flags are what turn feature modules on, through their `mkIf` guards.
 
 ```nix
-# modules/hosts/lumquat.nix
-{inputs, ...}: {
-  configurations.nixos.lumquat = {
-    system = "x86_64-linux";
-    modules = [
-      inputs.self.nixosModules.nixos-infra
-      inputs.self.nixosModules.nixos-base
-      inputs.self.nixosModules.podman-base
-      inputs.self.nixosModules.llm-serve
-      inputs.self.nixosModules.tailscale
-      inputs.self.nixosModules.cockpit
-      ./hardware-configuration.nix
-    ];
-  };
+# hosts/lumquat/configuration.nix
+{lib, ...}: {
+  my.hostName = "lumquat";
 
-  config.my = {
-    hostName = "lumquat";
-    hasMonitoring = true;
-  };
+  # Capability flags — enables feature modules via mkIf guards
+  my.base = true;
+  my.baseUsername = "podman";
+  my.llm = true;
+  my.llmServe = true;
+  my.monitoring = true;
+
+  my.llmModelStorage = "/var/lib/llm-models";
+  my.monitoringPort = 9090;
+
+  # Non-hardware defaults
+  networking.useDHCP = lib.mkDefault true;
 }
 ```
+
+Hardware facts live beside it in `hosts/<host>/hardware-configuration.nix`. Anything a
+second host would also want belongs in a feature module behind a flag, not here.

@@ -1,8 +1,8 @@
 ---
 name: dend-services
 description: |
-  Reviews server services and Colmena deployment configs. Checks whether services
-  follow the dendritic pattern, whether Colmena host configs are thin, and whether
+  Reviews server services and host configuration. Checks whether services
+  follow the dendritic pattern, whether host configs stay thin, and whether
   there's config duplication across hosts.
 ---
 
@@ -18,8 +18,7 @@ In the dendritic architecture:
 1. **Feature modules** in `modules/features/` self-register into
    `my.modules.nixos` or `my.modules.home-manager`
 2. **Service modules** in `modules/features/` define service configurations
-3. **Colmena configs** in `modules/infra/` define per-host deployment settings
-4. **Host definitions** in `modules/hosts/` set capability flags
+3. **Host definitions** in `hosts/<host>/` set capability flags and host-specific values
 
 ## What to Check
 
@@ -28,19 +27,16 @@ In the dendritic architecture:
 - Are services imported per-host or registered as deferred features?
 - Are there service modules that duplicate config in features?
 
-### 2. Colmena Config Hygiene
-- Is `colmena-config.nix` thin (just imports + host settings)?
-- Is there duplicated logic across hosts?
-
-### 3. Host Definition Consistency
+### 2. Host Definition Consistency
 - Are server hosts defined with the same pattern?
+- Is each host config thin — capability flags and host-specific values, nothing else?
 - Do server hosts use capability flags correctly?
 
-### 4. Config Duplication
+### 3. Config Duplication
 - Are there repeated patterns across hosts that should be feature modules?
 - Can shared server config be extracted to `modules/features/`?
 
-### 5. LLM Service Specifics
+### 4. LLM Service Specifics
 - Are LLM containers configured correctly with GPU passthrough?
 - Are container ports unique and non-conflicting?
 - Is Tailscale Aperture routing configured properly?

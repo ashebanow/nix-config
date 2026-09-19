@@ -39,8 +39,7 @@ is 102,400 MiB; 106 GB is 27,787,264 four-kilobyte pages.
 > **Doc drift to be aware of.** `AGENTS.md` and `docs/architecture.md` previously listed
 > `amdgpu.gttsize=126976` and `ttm.pages_limit=32505856`. Neither matches the file above —
 > `gttsize` is not set at all, and the page limit differs. The table here is what is actually
-> configured. `.pi/skills/colmena-deployer/references/host-inventory.md` and
-> `.../infrastructure.md` carry the same stale pair.
+> configured.
 
 ## The IOMMU question
 
