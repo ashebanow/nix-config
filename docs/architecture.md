@@ -314,12 +314,17 @@ LiteLLM proxy.
 
 ### GPU Passthrough for Strix Halo
 
-The Strix Halo APU requires specific kernel parameters (already set in hardware-configuration.nix):
-- `amd_iommu=off` — required for stability
-- `amdgpu.gttsize=126976` — expose ~124 GB VRAM
-- `ttm.pages_limit=32505856` — full TTM pool
+The Strix Halo APU needs specific kernel parameters, already set in
+`hosts/lumquat/hardware-configuration.nix`:
+
+- `ttm.pages_limit=27787264` — 106 GB TTM-managed pool
+- `amdgpu.vis_vramlimit=102400` — 100 GB of visible VRAM reported to ROCm
+- `amd_iommu=off` — currently set, but contested; see below
 
 Container needs `/dev/dri` device access for GPU.
+
+`docs/lumquat-hardware.md` is the source of truth for the hardware inventory, the memory layout,
+and the open IOMMU question. This section summarises it rather than duplicating it.
 
 ---
 
@@ -510,18 +515,20 @@ fmt:
 
 ### Hardware Configuration
 
-From `modules/hosts/lumquat/hardware-configuration.nix`:
+From `hosts/lumquat/hardware-configuration.nix`:
 
 ```nix
-# Kernel parameters required for Strix Halo stability
+# Kernel parameters — full memory layout in docs/lumquat-hardware.md
 boot.kernelParams = [
-  "amd_iommu=off"
-  "amdgpu.gttsize=126976"
-  "ttm.pages_limit=32505856"
+  "amd_iommu=off"              # contested; see docs/lumquat-hardware.md
+  "ttm.pages_limit=27787264"   # 106 GB / 4 KB
+  "amdgpu.vis_vramlimit=102400" # 100 GB visible VRAM
 ];
 
 # Boot configuration
-boot.loader.grub.device = "/dev/sda";  # Adjust as needed
+boot.loader.systemd-boot.enable = true;
+boot.loader.efi.canTouchEfiVariables = true;
+boot.loader.efi.efiSysMountPoint = "/boot";
 boot.initrd.luks.devices."luks-root".device = "/dev/disk/by-uuid/...";
 
 # Filesystems
