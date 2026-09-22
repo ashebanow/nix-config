@@ -24,6 +24,18 @@
       default = "America/New_York";
       description = "System timezone.";
     };
+    baseAllowSuspend = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether the host may suspend/hibernate. Defaults to false: a host that
+        must be reachable over the network (a server, or a remote-accessed
+        desktop) should not sleep out from under its clients. Turn it on for a
+        desktop only once its resume path is known to bring networking back —
+        e.g. after the r8169 workaround in hosts/yuzu/hardware-configuration.nix
+        is verified on real hardware.
+      '';
+    };
 
     # LLM feature
     llm = lib.mkOption {
@@ -117,8 +129,9 @@
 
     # Desktop workstation feature (NixOS hosts with a graphical session).
     # Distinct from `access`/`llm`: a desktop can also be an SSH target, but
-    # this flag is what switches the host from server to workstation defaults
-    # (base.nix power/user behaviour) and turns on a desktop environment.
+    # this flag is what switches the host to workstation user defaults (zsh
+    # login shell, NetworkManager group) and turns on a desktop environment.
+    # It does NOT affect suspend — that is my.baseAllowSuspend, which is opt-in.
     desktop = lib.mkOption {
       type = lib.types.bool;
       default = false;

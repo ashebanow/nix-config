@@ -1,6 +1,6 @@
 # Base module — foundation shared by servers and desktops: primary user,
-# SSH, base packages, podman. Power/logind/user differences between the two
-# are keyed off my.desktop (see below).
+# SSH, base packages, podman. User defaults are keyed off my.desktop; power/
+# logind (suspend) is keyed off my.baseAllowSuspend, which is opt-in (see below).
 _: {
   my.modules.nixos.base = {
     lib,
@@ -47,10 +47,11 @@ _: {
       security.sudo.wheelNeedsPassword = false;
 
       # ── Power management ─────────────────────────────────────────
-      # A server must never sleep — it serves LLM requests. A desktop is a
-      # normal machine: leave logind/sleep at their NixOS defaults so the
-      # session can suspend and the power button does something.
-      systemd = lib.mkIf (!config.my.desktop) {
+      # A host that must be reachable over the network should not sleep out
+      # from under its clients, so suspend is opt-in: my.baseAllowSuspend
+      # defaults false. Only a desktop whose resume path is proven (e.g.
+      # yuzu's r8169 reload hook) should set it true.
+      systemd = lib.mkIf (!config.my.baseAllowSuspend) {
         sleep.settings.Sleep = {
           AllowSuspend = "no";
           AllowHibernation = "no";
@@ -66,8 +67,8 @@ _: {
         };
       };
 
-      # Logind: ignore power/sleep buttons, lid switch (servers only)
-      services.logind.settings.Login = lib.mkIf (!config.my.desktop) {
+      # Logind: ignore power/sleep buttons, lid switch (unless suspend is opted in)
+      services.logind.settings.Login = lib.mkIf (!config.my.baseAllowSuspend) {
         HandleLidSwitch = "ignore";
         HandleLidSwitchExternalPower = "ignore";
         HandleLidSwitchDocked = "ignore";
