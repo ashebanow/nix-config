@@ -17,13 +17,16 @@ There is no encrypted file in git and no sops-nix. Nothing in the Nix store or
 git holds a secret value.
 
 1. **Values**: BWS items (e.g. `bifrost-tailscale-auth-key`).
-2. **Declarations**: `secretspec.toml` — `[profiles.production]` declares each
-   secret (`description`, `ref = { item = "<bws item key>" }`); `[scopes.*]`
+2. **Declarations**: `secretspec.toml` — `[profiles.default]` declares shared
+   secrets (`description`, `ref = { item = "<bws item key>" }`); per-host
+   profiles (`[profiles.<host>]`) override node-specific ones; `[scopes.*]`
    partitions them for least-privilege consumers.
 3. **Bootstrap**: a single out-of-band BWS access token at
    `/var/lib/secrets/bws-access-token` (root-only, 0600), delivered to services
    via `LoadCredential` + the `systemd-credential://` provider.
-4. **Consumption**: services run `secretspec run -P production -S <scope> -- …`.
+4. **Consumption**: services run `secretspec run -P <profile> -S <scope> -- …`
+   (`production` for the container stacks; the per-host profile for host
+   services — see `my.secretsProfile`).
 
 See `SECRET_SYNC.md` for the full architecture and BWS item inventory.
 
@@ -48,10 +51,19 @@ convention: env var lowercased, service prefix, underscores → dashes
 
 ### 2. Declare it in `secretspec.toml`
 
-Add to `[profiles.production]`:
+Add to `[profiles.default]` for account-wide values:
 
 ```toml
 MY_SERVICE_API_KEY = { description = "My service API key", required = true, ref = { item = "my-service-api-key" } }
+```
+
+For a value that differs per node, declare it in each `[profiles.<host>]`
+instead — profiles inherit `[profiles.default]` and override only what they
+redeclare. The Tailscale auth key is the existing example:
+
+```toml
+[profiles.lumquat]
+TAILSCALE_AUTH_KEY = { description = "Tailscale auth key for the lumquat node", required = true, ref = { item = "lumquat-tailscale-auth-key" } }
 ```
 
 Add it to the relevant scope allowlist:
@@ -92,14 +104,15 @@ For a file-backed root consumer (tailscale / determinate-nixd), add it to the
 
 ```bash
 # Agents must pass a reason (secretspec `require_reason` policy, BOX-184);
-# humans can omit it. Just binds the argument positionally.
+# humans can omit it. Just binds the argument positionally. This iterates the
+# container-stack `production` profile and every per-host profile.
 just secrets-check "BOX-<n>: verify new declaration"
 ```
 
 ## Step-by-Step: Removing a Secret
 
-1. Remove its declaration from `secretspec.toml` (`[profiles.production]` and any
-   `[scopes.*]`).
+1. Remove its declaration from `secretspec.toml` (`[profiles.default]`, any
+   `[profiles.<host>]`, and any `[scopes.*]`).
 2. Remove its consumption from the module / populate script.
 3. Delete the value from BWS (only after the config no longer references it).
 4. `just secrets-check "BOX-<n>: confirm removal"` to confirm nothing is

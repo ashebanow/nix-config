@@ -18,10 +18,10 @@ Nothing in git or the Nix store holds a secret value.
                                 │
                     ┌───────────▼────────────┐
                     │  secretspec.toml (git) │  declarations + scopes only
-                    │  [profiles.production] │
+                    │  [profiles.<host>]     │
                     │  [scopes.*]            │
                     └───────────┬────────────┘
-                                │ secretspec run -P production -S <scope>
+                                │ secretspec run -P <host> -S <scope>
                                 │
         ┌───────────────────────┼───────────────────────────────┐
         │                       │
@@ -42,7 +42,10 @@ Nothing in git or the Nix store holds a secret value.
 
 ### Scopes (least privilege)
 
-Each consumer resolves only its own scope of the shared `production` profile:
+Each consumer resolves only its own scope of the effective profile. Host
+services use the per-host profile (`[profiles.<host>]`, selected by
+`my.secretsProfile`, default `my.hostName`) because a Tailscale auth key is
+issued per node; the container stacks use `production`:
 
 | Scope | Secrets | Consumer |
 |-------|---------|----------|
@@ -104,7 +107,8 @@ services) will fail loudly at boot — that is the intended fail-safe.
 file interface, so these are written to disk (tmpfs):
 
 `host-secrets-populate.service` (root, `modules/features/secrets.nix`) runs
-`secretspec run -P production -S host -- scripts/populate-host-secrets.sh host`,
+`secretspec run -P <host> -S host -- scripts/populate-host-secrets.sh host`
+(the profile is per host — `my.secretsProfile`, default `my.hostName`),
 which writes:
 
 - `/run/secrets/tailscale-auth-key` (0600 root) → `services.tailscale.authKeyFile`
@@ -112,7 +116,7 @@ which writes:
 
 ### Dev secrets (linear) — operator-tool consumers
 
-The same unit then runs a **second** `secretspec run -P production -S dev --
+The same unit then runs a **second** `secretspec run -P <host> -S dev --
 scripts/populate-host-secrets.sh dev <operator-user>` (separate invocation, so
 neither subprocess sees the other scope), which writes:
 
@@ -184,8 +188,10 @@ fetch secrets from BWS — API keys are expected in the environment already:
 1. **Create/update the value in BWS** (Homelab project). Naming convention: env
    var lowercased, service prefix, underscores → dashes
    (e.g. `bifrost-tailscale-auth-key`).
-2. **Declare it** in `secretspec.toml` under `[profiles.production]`, and add it
-   to the relevant `[scopes.<name>].secrets` list.
+2. **Declare it** in `secretspec.toml`: under `[profiles.default]` for
+   account-wide values, or under the relevant `[profiles.<host>]` for
+   node-specific ones (the Tailscale auth key is the existing example), and add
+   it to the relevant `[scopes.<name>].secrets` list.
 3. **Consume it** in the module via `secretspec run` (container service) or the
    host populate script (file-backed consumer).
 4. **Verify**: `just secrets-check` (requires `BWS_ACCESS_TOKEN`).
@@ -197,7 +203,8 @@ fetch secrets from BWS — API keys are expected in the environment already:
 
 | BWS item key | Used by |
 |--------------|---------|
-| `lumquat-tailscale-auth-key` | host `tailscale` (node auth) |
+| `lumquat-tailscale-auth-key` | host `tailscale` on lumquat (`[profiles.lumquat]`) |
+| `yuzu-tailscale-auth-key` | host `tailscale` on yuzu (`[profiles.yuzu]`) |
 | `NIX_FLAKEHUB_CACHE_TOKEN` | `determinate-nixd` cache auth |
 | `webui-secret-key` | openwebui session-signing key (`WEBUI_SECRET_KEY`) |
 | `deepseek-api-key` | bifrost |

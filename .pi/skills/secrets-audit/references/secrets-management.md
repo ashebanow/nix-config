@@ -19,8 +19,13 @@ scripts/populate-host-secrets.sh         # host-scope file materialization
 name = "nix-config"
 revision = "1.0"
 
-[profiles.production]
+[profiles.default]
 DEEPSEEK_API_KEY = { description = "DeepSeek API key", required = true, ref = { item = "deepseek-api-key" } }
+
+# Per-host profiles ([profiles.<host>]) inherit [profiles.default] and override
+# node-specific secrets — e.g. TAILSCALE_AUTH_KEY.
+[profiles.lumquat]
+TAILSCALE_AUTH_KEY = { description = "Tailscale auth key for the lumquat node", required = true, ref = { item = "lumquat-tailscale-auth-key" } }
 
 [scopes.bifrost]
 secrets = ["DEEPSEEK_API_KEY"]
@@ -29,9 +34,10 @@ secrets = ["DEEPSEEK_API_KEY"]
 ## Adding a New Secret
 
 1. Create the value in BWS (Homelab project), lowercased/dashed name.
-2. Declare it in `secretspec.toml` under `[profiles.production]` with a `ref.item`.
+2. Declare it in `secretspec.toml` — `[profiles.default]` for account-wide values,
+   `[profiles.<host>]` for node-specific ones — with a `ref.item`.
 3. Add it to the relevant `[scopes.<name>].secrets` allowlist.
-4. Consume it via `secretspec run -P production -S <scope> -- …`.
+4. Consume it via `secretspec run -P <profile> -S <scope> -- …`.
 5. Verify with `just secrets-check "BOX-<n>: verify <secret>"` — agents must pass
    a reason (BOX-184); humans can omit it.
 

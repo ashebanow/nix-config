@@ -9,10 +9,12 @@
    - Name it with the convention: env var lowercased, service prefix, dashes
      (e.g. `my-service-tailscale-auth-key`)
 
-2. **Declare it** in `secretspec.toml`:
+2. **Declare it** in `secretspec.toml` — `[profiles.default]` for account-wide
+   values, or `[profiles.<host>]` for node-specific ones (a Tailscale auth key
+   is issued per node):
 
    ```toml
-   [profiles.production]
+   [profiles.default]
    MY_SERVICE_TS_AUTHKEY = { description = "Tailscale auth key for my-service", required = true, ref = { item = "my-service-tailscale-auth-key" } }
 
    [scopes.my-service]
@@ -42,7 +44,7 @@
 ## Resolving a scope manually (operator)
 
 ```bash
-SECRETSPEC_PROVIDER=bws secretspec run -f secretspec.toml -P production -S host -- env
+SECRETSPEC_PROVIDER=bws secretspec run -f secretspec.toml -P lumquat -S host -- env
 ```
 
 ## Bootstrap

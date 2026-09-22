@@ -422,7 +422,7 @@ file in the repo and no sops-nix module.
 ### Structure
 
 ```
-secretspec.toml                  # [profiles.production] + [scopes.*] declarations
+secretspec.toml                  # [profiles.*] + [scopes.*] declarations
 scripts/populate-host-secrets.sh # materializes the 2 file-backed host secrets
 /var/lib/secrets/bws-access-token  # out-of-band BWS bootstrap (root-only, 0600)
 ```
@@ -430,7 +430,8 @@ scripts/populate-host-secrets.sh # materializes the 2 file-backed host secrets
 ### Consumption
 
 - **Host secrets** (tailscale, flakehub): `host-secrets-populate.service` resolves
-  the `host` scope and writes `/run/secrets/tailscale-auth-key` and
+  the `host` scope against the per-host profile (`[profiles.<host>]`, selected by
+  `my.secretsProfile`) and writes `/run/secrets/tailscale-auth-key` and
   `/run/secrets/flakehub-token` (the only file-backed consumers).
 - **Container secrets** (bifrost, openwebui, memory): the compose systemd
   services run `secretspec run -P production -S <scope> -- podman-compose up -d`,
