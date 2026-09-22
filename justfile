@@ -138,11 +138,26 @@ bootstrap-bws HOST="lumquat":
 # Humans need no argument — the default is empty, and secretspec treats an empty
 # SECRETSPEC_REASON as absent, so the policy simply doesn't apply.
 
-# Verify every secret in the shared manifest resolves against BWS.
-# Requires BWS_ACCESS_TOKEN in the environment.
+# Verify every secret in the manifest resolves against BWS. Host-scoped secrets
+# live in [profiles.<host>] (a Tailscale auth key is issued per node), so every
+# NixOS host profile is checked alongside the container-stack `production`
+# profile. Each non-default profile inherits [profiles.default], so this covers
+# the shared declarations too. Requires BWS_ACCESS_TOKEN in the environment.
 [group('secrets')]
 secrets-check reason="":
-    SECRETSPEC_REASON="{{reason}}" secretspec check -f secretspec.toml -P production --no-prompt
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # NixOS hosts are the hosts/ dirs carrying a hardware-configuration.nix;
+    # their secretspec profile name is the dir name (my.secretsProfile defaults
+    # to my.hostName).
+    profiles=(production)
+    for d in hosts/*/; do
+        [[ -f "$d/hardware-configuration.nix" ]] && profiles+=("$(basename "$d")")
+    done
+    for profile in "${profiles[@]}"; do
+        echo "== secretspec profile: $profile"
+        SECRETSPEC_REASON="{{reason}}" secretspec check -f secretspec.toml -P "$profile" --no-prompt
+    done
 
 # ===== LLM GATEWAY =====
 

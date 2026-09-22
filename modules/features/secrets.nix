@@ -11,6 +11,10 @@
 #     invocations, so neither subprocess sees the other scope. See
 #     docs/adr/0001 for why operator tools get their secrets this way.
 #
+# The profile is per host (config.my.secretsProfile, default my.hostName): the
+# Tailscale auth key is issued per node, so [profiles.<host>] in secretspec.toml
+# overrides its BWS item. Production/development are not used here.
+#
 # Container/compose secrets (bifrost, openwebui, memory) resolve
 # their own scopes directly via `secretspec run` in their own feature modules;
 # they do not land in this module.
@@ -26,9 +30,9 @@ _: {
     populate = ../../scripts/populate-host-secrets.sh;
     populateScript = pkgs.writeShellScript "populate-host-secrets" ''
       set -euo pipefail
-      ${pkgs.secretspec}/bin/secretspec run -P production -S host -- \
+      ${pkgs.secretspec}/bin/secretspec run -P ${config.my.secretsProfile} -S host -- \
         ${pkgs.bash}/bin/bash ${populate} host
-      ${pkgs.secretspec}/bin/secretspec run -P production -S dev -- \
+      ${pkgs.secretspec}/bin/secretspec run -P ${config.my.secretsProfile} -S dev -- \
         ${pkgs.bash}/bin/bash ${populate} dev ${config.my.baseUsername}
     '';
   in {
