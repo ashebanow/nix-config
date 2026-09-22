@@ -1,5 +1,9 @@
 # Yuzu host configuration.
-{lib, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   imports = [./capabilities.nix];
 
   # Host identity
