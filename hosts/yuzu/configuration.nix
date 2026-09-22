@@ -1,5 +1,4 @@
 # Yuzu host configuration.
-# Host-specific: every host gets its own configuration.nix.
 {lib, ...}: {
   imports = [./capabilities.nix];
 
@@ -7,7 +6,7 @@
   my.hostName = "yuzu";
 
   # NixOS version this host was first installed with (for state migrations)
-  system.stateVersion = "26.11";
+  system.stateVersion = "25.11";
 
   # Capability flags — enables feature modules via mkIf guards
   my.base = true;
@@ -28,11 +27,10 @@
   my.desktopEnvironment = "gnome";
 
   # Boot loader. The EFI system partition is mounted at /boot (see
-  # hardware-configuration.nix), so systemd-boot is the natural choice —
-  # same as lumquat. Confirm this matches the live install if it was set up
-  # with GRUB instead.
+  # hardware-configuration.nix), so systemd-boot is the natural choice.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
