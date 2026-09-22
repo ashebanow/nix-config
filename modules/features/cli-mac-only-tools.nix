@@ -6,7 +6,10 @@ _: {
     config,
     ...
   }: {
-    config = lib.mkIf config.my.cliMacOnlyTools {
+    # Every package here is macOS-only, so the flag is also gated on the
+    # platform: enabling it on a Linux host is a no-op instead of a build
+    # failure.
+    config = lib.mkIf (config.my.cliMacOnlyTools && pkgs.stdenv.hostPlatform.isDarwin) {
       home.packages = with pkgs; [
         dockutil
         pinentry_mac

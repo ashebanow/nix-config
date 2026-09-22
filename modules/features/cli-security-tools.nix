@@ -7,19 +7,24 @@ _: {
     ...
   }: {
     config = lib.mkIf config.my.cliSecurityTools {
-      home.packages = with pkgs; [
-        bitwarden-cli
-        bws # bitwarden-secrets-manager (unfree — needs nixpkgs.config.allowUnfree)
-        _1password-cli
-        cfssl
-        cosign
-        gitleaks
-        gnupg
-        lego
-        minisign
-        rbw
-        trivy
-      ];
+      home.packages =
+        (with pkgs; [
+          bitwarden-cli
+          bws # bitwarden-secrets-manager (unfree — needs nixpkgs.config.allowUnfree)
+          _1password-cli
+          cfssl
+          cosign
+          gitleaks
+          gnupg
+          lego
+          minisign
+          rbw
+          trivy
+        ])
+        # secret-tool, which the dotfiles' ~/.config/shell/secrets.sh uses to
+        # read the BWS token from the login keyring on Linux desktops. macOS
+        # uses its built-in `security` instead.
+        ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [pkgs.libsecret];
     };
   };
 }
