@@ -34,6 +34,12 @@
   ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  # Redistributable firmware — linux-firmware (incl. the RTL8125 blobs, which
+  # r8169 needs) and amd-microcode. The not-detected.nix import above already
+  # sets this to mkDefault true, but this file is hand-maintained: if that
+  # generated import is ever dropped, firmware — and therefore microcode — would
+  # silently turn off. State it explicitly so it cannot.
+  hardware.enableRedistributableFirmware = true;
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
   # ── r8169 (Realtek RTL8125) suspend/resume workaround ───────────────
