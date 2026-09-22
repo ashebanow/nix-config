@@ -1,10 +1,6 @@
 # Shared options module providing config.my.* for host metadata.
 # Following the dendritic pattern: capability flags defined centrally.
-{
-  lib,
-  config,
-  ...
-}: {
+{lib, ...}: {
   options.my = {
     # Identity
     hostName = lib.mkOption {
@@ -140,16 +136,6 @@
     };
 
     # Secrets (secretspec + BWS) — shared paths used by every secret consumer.
-    secretsProfile = lib.mkOption {
-      type = lib.types.str;
-      default = config.my.hostName;
-      description = ''
-        secretspec profile used to resolve host-scoped secrets. Per-node
-        secrets (a Tailscale auth key is issued per node) are declared in
-        `[profiles.<host>]` in secretspec.toml; this defaults to my.hostName so
-        each host picks its own. Container stacks keep resolving `production`.
-      '';
-    };
     secretspecManifest = lib.mkOption {
       type = lib.types.str;
       default = "/etc/secretspec.toml";

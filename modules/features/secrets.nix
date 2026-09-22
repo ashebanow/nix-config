@@ -4,16 +4,18 @@
 #   - /etc/secretspec.toml      (symlink to the repo-root shared manifest)
 #   - /var/lib/secrets/         (root-only dir for the out-of-band BWS token)
 #   - /run/secrets/             (tmpfs for the two file-backed host secrets)
-#   - host-secrets-populate.service (root) — resolves the `host` scope from BWS
-#     and materializes tailscale + flakehub secrets as root-only files, then
-#     the `dev` scope for operator-tool secrets (currently the Linear CLI key)
-#     as files readable only by the operator user. Two `secretspec run`
-#     invocations, so neither subprocess sees the other scope. See
-#     docs/adr/0001 for why operator tools get their secrets this way.
+#   - host-secrets-populate.service (root) — resolves the host's scope from BWS
+#     and materializes its node's tailscale key plus flakehub as root-only
+#     files, then the `dev` scope for operator-tool secrets (currently the
+#     Linear CLI key) as files readable only by the operator user. Two
+#     `secretspec run` invocations, so neither subprocess sees the other scope.
+#     See docs/adr/0001 for why operator tools get their secrets this way.
 #
-# The profile is per host (config.my.secretsProfile, default my.hostName): the
-# Tailscale auth key is issued per node, so [profiles.<host>] in secretspec.toml
-# overrides its BWS item. Production/development are not used here.
+# The profile is always `production` (development/default declare nothing, so a
+# bare secretspec invocation cannot resolve a production value). The node's
+# Tailscale auth key is a per-host secret in that profile, selected by the
+# host's scope `host-<my.hostName>`; the variable name is derived from the
+# hostname to match the manifest's <HOST>_TAILSCALE_AUTH_KEY declaration.
 #
 # Container/compose secrets (bifrost, openwebui, memory) resolve
 # their own scopes directly via `secretspec run` in their own feature modules;
@@ -28,11 +30,14 @@ _: {
     manifest = config.my.secretspecManifest;
     accessToken = config.my.bwsAccessTokenFile;
     populate = ../../scripts/populate-host-secrets.sh;
+    # <HOST>_TAILSCALE_AUTH_KEY, declared in [profiles.production] and selected
+    # by the [scopes.host-<host>] scope below.
+    tailscaleVar = "${lib.toUpper config.my.hostName}_TAILSCALE_AUTH_KEY";
     populateScript = pkgs.writeShellScript "populate-host-secrets" ''
       set -euo pipefail
-      ${pkgs.secretspec}/bin/secretspec run -P ${config.my.secretsProfile} -S host -- \
-        ${pkgs.bash}/bin/bash ${populate} host
-      ${pkgs.secretspec}/bin/secretspec run -P ${config.my.secretsProfile} -S dev -- \
+      ${pkgs.secretspec}/bin/secretspec run -P production -S host-${config.my.hostName} -- \
+        ${pkgs.bash}/bin/bash ${populate} host ${tailscaleVar}
+      ${pkgs.secretspec}/bin/secretspec run -P production -S dev -- \
         ${pkgs.bash}/bin/bash ${populate} dev ${config.my.baseUsername}
     '';
   in {
@@ -44,10 +49,10 @@ _: {
         "d /run/secrets 0755 root root -"
       ];
 
-      # Resolve the `host` scope from BWS and write the two file-backed
-      # secrets that root system services consume, then the `dev` scope for
-      # the operator user's tools. Runs once at boot, before tailscale
-      # autoconnect and flakehub auth need the files.
+      # Resolve the host scope from BWS and write the file-backed secrets that
+      # root system services consume, then the `dev` scope for the operator
+      # user's tools. Runs once at boot, before tailscale autoconnect and
+      # flakehub auth need the files.
       systemd.services.host-secrets-populate = {
         description = "Populate host + dev secrets (tailscale, flakehub, linear) from BWS via secretspec";
         wantedBy = ["multi-user.target"];

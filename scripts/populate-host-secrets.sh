@@ -5,12 +5,16 @@
 # Invoked twice by host-secrets-populate.service, once per scope, so each
 # subprocess sees only its own secrets:
 #
-#   secretspec run -P production -S host -- populate-host-secrets.sh host
+#   secretspec run -P production -S host-<host> -- \
+#     populate-host-secrets.sh host <HOST>_TAILSCALE_AUTH_KEY
 #     /run/secrets/tailscale-auth-key  -> services.tailscale.authKeyFile   (0600 root)
 #     /run/secrets/flakehub-token      -> determinate-nixd auth login --token-file (0600 root)
 #
 #   secretspec run -P production -S dev  -- populate-host-secrets.sh dev <operator-user>
 #     /run/secrets/linear-api-key      -> the `linear` CLI wrapper           (0400 <operator-user>)
+#
+# The tailscale key is per node, so its variable name (<HOST>_TAILSCALE_AUTH_KEY)
+# is passed in by the caller rather than hardcoded.
 #
 # `host` secrets are root-only and mandatory: tailscale and determinate-nixd
 # demand a file interface, and a host without them is misconfigured, so an
@@ -57,7 +61,8 @@ write_user() {
 
 case "${1:-host}" in
   host)
-    write TAILSCALE_AUTH_KEY /run/secrets/tailscale-auth-key
+    [[ -n "${2:-}" ]] || fail "host mode needs the node's tailscale variable name as its second argument"
+    write "$2" /run/secrets/tailscale-auth-key
     write FLAKEHUB_TOKEN /run/secrets/flakehub-token
     ;;
   dev)
@@ -65,6 +70,6 @@ case "${1:-host}" in
     write_user LINEAR_API_KEY /run/secrets/linear-api-key "$2"
     ;;
   *)
-    fail "unknown mode '$1' (expected: host | dev <operator-user>)"
+    fail "unknown mode '$1' (expected: host <HOST>_TAILSCALE_AUTH_KEY | dev <operator-user>)"
     ;;
 esac
