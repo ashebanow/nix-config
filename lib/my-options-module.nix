@@ -115,6 +115,26 @@
       description = "Enable Mnemosyne memory layer for AI agents.";
     };
 
+    # Desktop workstation feature (NixOS hosts with a graphical session).
+    # Distinct from `access`/`llm`: a desktop can also be an SSH target, but
+    # this flag is what switches the host from server to workstation defaults
+    # (base.nix power/user behaviour) and turns on a desktop environment.
+    desktop = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable desktop-workstation configuration (graphical session, desktop power/user defaults).";
+    };
+    desktopEnvironment = lib.mkOption {
+      type = lib.types.enum ["gnome"];
+      default = "gnome";
+      description = ''
+        Which desktop environment / compositor to enable when `my.desktop` is
+        true. desktop.nix picks the session from this; the DE's own module
+        (e.g. gnome.nix) configures it. Add a value here (and a module) when
+        niri / DankMaterialShell / Noctalia land.
+      '';
+    };
+
     # Secrets (secretspec + BWS) — shared paths used by every secret consumer.
     secretspecManifest = lib.mkOption {
       type = lib.types.str;
