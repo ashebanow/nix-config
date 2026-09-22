@@ -104,12 +104,26 @@ bootstrap-bws HOST="lumquat":
     #!/usr/bin/env bash
     set -euo pipefail
     read -rsp "BWS access token (chezmoi machine account): " token; echo
+    # Tolerate a paste with surrounding whitespace or quotes: bws includes
+    # quotes in the token and then fails with "Cipher MAC doesn't match".
+    token="${token#"${token%%[![:space:]]*}"}" # trim leading whitespace
+    token="${token%"${token##*[![:space:]]}"}" # trim trailing whitespace
+    token="${token#\"}"
+    token="${token%\"}"
     [[ -n "$token" ]] || { echo "error: empty token" >&2; exit 1; }
-    # BWS access tokens look like: 0.<base64url-key>.<base64url-mac> (~90 chars).
+    # BWS access tokens are `0.<uuid>.<client_secret>:<base64-key>`:
+    #   - the client secret is base64url ([A-Za-z0-9_-]);
+    #   - the encryption key after the ':' is *standard* base64, so it can
+    #     contain '+', '/' and '=' padding. (The old check rejected every real
+    #     token because it allowed neither ':' nor those characters.)
     # Validate before writing so a wrong paste fails here, not at boot.
-    [[ "$token" =~ ^0\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] || {
-        echo "error: that does not look like a BWS access token (expected 0.<key>.<mac>)" >&2
-        echo "       get it from: BW console → Secrets Manager → Homelab → Machine Accounts → chezmoi → Access Tokens" >&2
+    [[ "$token" =~ ^0\.[A-Za-z0-9-]+\.[A-Za-z0-9_-]+:[A-Za-z0-9+/=]+$ ]] || {
+        echo "error: that does not look like a BWS access token (expected 0.<uuid>.<client_secret>:<base64-key>)" >&2
+        # BWS prints an access token exactly once and never shows it again, so
+        # there is nothing to retrieve from the Secrets Manager console — the
+        # copy to paste lives in the personal Bitwarden vault.
+        echo "       BWS shows a token only once at creation; paste the saved copy from the" >&2
+        echo "       personal Bitwarden vault: item 'BWS Chezmoi Access Token'" >&2
         exit 1
     }
     if [[ "$(hostname)" == "{{HOST}}" || "$(hostname -s)" == "{{HOST}}" ]]; then
