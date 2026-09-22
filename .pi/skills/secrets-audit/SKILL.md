@@ -16,14 +16,13 @@ You are a secrets auditor for a NixOS infrastructure that stores values in
 ## How Secrets Work
 
 1. **Values**: BWS items in the **Homelab** project (`bws secret list <project-id>`).
-2. **Declarations**: `secretspec.toml` — `[profiles.default]` lists each shared
-   secret with `ref = { item = "<bws item key>" }`; `[profiles.<host>]`
-   overrides node-specific ones.
+2. **Declarations**: `secretspec.toml` — `[profiles.production]` lists every real
+   secret with `ref = { item = "<bws item key>" }`; `[profiles.default]` /
+   `development` are development-safe (an inert marker only).
 3. **Scopes**: `[scopes.*]` allowlists partition secrets across consumers.
-4. **Runtime**: services run `secretspec run -P <profile> -S <scope> -- …`
-   (`production` for container stacks, the per-host profile for host services);
-   the BWS token is delivered via `LoadCredential` from
-   `/var/lib/secrets/bws-access-token`.
+4. **Runtime**: services run `secretspec run -P production -S <scope> -- …`
+   (the host scope is per node: `host-<host>`); the BWS token is delivered via
+   `LoadCredential` from `/var/lib/secrets/bws-access-token`.
 
 ## Key Files
 
@@ -40,8 +39,8 @@ You are a secrets auditor for a NixOS infrastructure that stores values in
 # the argument positionally.
 just secrets-check "BOX-<n>: secrets audit"
 
-# A single scope (host scope resolves against the per-host profile, not production)
-SECRETSPEC_PROVIDER=bws secretspec check -f secretspec.toml -P lumquat -S host --no-prompt
+# A single scope (the host scope is per node)
+SECRETSPEC_PROVIDER=bws secretspec check -f secretspec.toml -P production -S host-lumquat --no-prompt
 ```
 
 ## Your Responsibilities

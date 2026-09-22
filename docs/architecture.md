@@ -430,9 +430,9 @@ scripts/populate-host-secrets.sh # materializes the 2 file-backed host secrets
 ### Consumption
 
 - **Host secrets** (tailscale, flakehub): `host-secrets-populate.service` resolves
-  the `host` scope against the per-host profile (`[profiles.<host>]`, selected by
-  `my.secretsProfile`) and writes `/run/secrets/tailscale-auth-key` and
-  `/run/secrets/flakehub-token` (the only file-backed consumers).
+  the per-node `host-<host>` scope against the `production` profile and writes
+  `/run/secrets/tailscale-auth-key` and `/run/secrets/flakehub-token` (the only
+  file-backed consumers).
 - **Container secrets** (bifrost, openwebui, memory): the compose systemd
   services run `secretspec run -P production -S <scope> -- podman-compose up -d`,
   injecting values straight into the process env (no `.env`).
