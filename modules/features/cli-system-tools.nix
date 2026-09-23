@@ -15,6 +15,7 @@ _: {
           cachix # binary cache management
           chezmoi
           ctop
+          dgop
           duf
           fastfetch
           figlet

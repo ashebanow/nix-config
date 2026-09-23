@@ -94,14 +94,17 @@ _: {
         btop
         bws # bitwarden-secrets-manager (unfree) — operator shell + just recipes
         curl
+        devenv
         eza
+        ghostty
         ghostty.terminfo
         git
-        htop
         iputils
+        neovim
         nh
         secretspec # operator shell + just recipes (secrets-check)
         sudo
+        television
         vim
         wget
       ];
