@@ -40,13 +40,25 @@ Nothing in git or the Nix store holds a secret value.
   `linear` CLI wrapper (operator user)
 ```
 
+### Profiles (environments)
+
+`[profiles.default]` (and its explicit alias `development`) is
+development-safe and carries no production values — a developer's
+`~/.config/secretspec/config.toml` defaults to the `development` profile, so a
+bare `secretspec` invocation cannot resolve a production secret. Everything
+real lives in `[profiles.production]`, declared standalone (`inherit = false`)
+and selected explicitly with `-P production` by every host and container stack.
+
 ### Scopes (least privilege)
 
-Each consumer resolves only its own scope of the shared `production` profile:
+Each consumer resolves only its own scope of the `production` profile. A
+Tailscale auth key is issued per node, so the host scope is per node
+(`host-<host>`):
 
 | Scope | Secrets | Consumer |
 |-------|---------|----------|
-| `host` | `TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
+| `host-lumquat` | `LUMQUAT_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
+| `host-yuzu` | `YUZU_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
 | `dev` | `LINEAR_API_KEY` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
@@ -104,8 +116,8 @@ services) will fail loudly at boot — that is the intended fail-safe.
 file interface, so these are written to disk (tmpfs):
 
 `host-secrets-populate.service` (root, `modules/features/secrets.nix`) runs
-`secretspec run -P production -S host -- scripts/populate-host-secrets.sh host`,
-which writes:
+`secretspec run -P production -S host-<host> -- scripts/populate-host-secrets.sh
+host <HOST>_TAILSCALE_AUTH_KEY`, which writes:
 
 - `/run/secrets/tailscale-auth-key` (0600 root) → `services.tailscale.authKeyFile`
 - `/run/secrets/flakehub-token` (0600 root) → `flakehub-nixd-auth.service --token-file`
@@ -184,8 +196,11 @@ fetch secrets from BWS — API keys are expected in the environment already:
 1. **Create/update the value in BWS** (Homelab project). Naming convention: env
    var lowercased, service prefix, underscores → dashes
    (e.g. `bifrost-tailscale-auth-key`).
-2. **Declare it** in `secretspec.toml` under `[profiles.production]`, and add it
-   to the relevant `[scopes.<name>].secrets` list.
+2. **Declare it** in `secretspec.toml` under `[profiles.production]` (all real
+   secrets live there; `default`/`development` are development-safe), and add it
+   to the relevant `[scopes.<name>].secrets` list. A genuinely per-node secret
+   gets a `<HOST>_...` name and its own `[scopes.host-<host>]` — the Tailscale
+   auth key is the existing example.
 3. **Consume it** in the module via `secretspec run` (container service) or the
    host populate script (file-backed consumer).
 4. **Verify**: `just secrets-check` (requires `BWS_ACCESS_TOKEN`).
@@ -197,7 +212,8 @@ fetch secrets from BWS — API keys are expected in the environment already:
 
 | BWS item key | Used by |
 |--------------|---------|
-| `lumquat-tailscale-auth-key` | host `tailscale` (node auth) |
+| `lumquat-tailscale-auth-key` | host `tailscale` on lumquat (`host-lumquat` scope) |
+| `yuzu-tailscale-auth-key` | host `tailscale` on yuzu (`host-yuzu` scope) |
 | `NIX_FLAKEHUB_CACHE_TOKEN` | `determinate-nixd` cache auth |
 | `webui-secret-key` | openwebui session-signing key (`WEBUI_SECRET_KEY`) |
 | `deepseek-api-key` | bifrost |

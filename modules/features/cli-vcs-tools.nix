@@ -14,6 +14,7 @@ _: {
         git
         git-lfs
         gitnr
+	github-cli
         lazygit
         # The Linear.app CLI — tracker-of-record tool beside `gh`. Not in
         # nixpkgs; `pkgs.linear-cli` exists only where the linear-cli overlay

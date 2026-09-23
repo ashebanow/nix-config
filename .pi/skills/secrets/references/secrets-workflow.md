@@ -9,7 +9,8 @@
    - Name it with the convention: env var lowercased, service prefix, dashes
      (e.g. `my-service-tailscale-auth-key`)
 
-2. **Declare it** in `secretspec.toml`:
+2. **Declare it** in `secretspec.toml` under `[profiles.production]` (all real
+   secrets live there; `default`/`development` are development-safe):
 
    ```toml
    [profiles.production]
@@ -42,7 +43,7 @@
 ## Resolving a scope manually (operator)
 
 ```bash
-SECRETSPEC_PROVIDER=bws secretspec run -f secretspec.toml -P production -S host -- env
+SECRETSPEC_PROVIDER=bws secretspec run -f secretspec.toml -P production -S host-lumquat -- env
 ```
 
 ## Bootstrap

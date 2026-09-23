@@ -9,7 +9,12 @@ _: {
     config = lib.mkIf config.my.guiMediaApps {
       home.packages = with pkgs; [
         cava
-        vlc-bin
+        # `vlc-bin` is upstream's macOS binary; Linux uses the `vlc` build.
+        (
+          if stdenv.hostPlatform.isDarwin
+          then vlc-bin
+          else vlc
+        )
         # dolphin-emu (GameCube/Wii emulator, matches the "dolphin" cask
         # token) and pinta both dropped — both need to build a GTK4/
         # native library from source with no cached aarch64-darwin

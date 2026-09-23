@@ -10,7 +10,13 @@ _: {
   }: {
     config = lib.mkIf config.my.guiTerminals {
       home.packages = with pkgs; [
-        ghostty-bin
+        # `ghostty-bin` is upstream's macOS binary; Linux packages the source
+        # build under the plain `ghostty` attribute.
+        (
+          if stdenv.hostPlatform.isDarwin
+          then ghostty-bin
+          else ghostty
+        )
         kitty
         warp-terminal
         tmux

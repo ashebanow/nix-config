@@ -17,13 +17,16 @@ There is no encrypted file in git and no sops-nix. Nothing in the Nix store or
 git holds a secret value.
 
 1. **Values**: BWS items (e.g. `bifrost-tailscale-auth-key`).
-2. **Declarations**: `secretspec.toml` — `[profiles.production]` declares each
-   secret (`description`, `ref = { item = "<bws item key>" }`); `[scopes.*]`
-   partitions them for least-privilege consumers.
+2. **Declarations**: `secretspec.toml` — `[profiles.production]` declares every
+   real secret (`description`, `ref = { item = "<bws item key>" }`);
+   `[profiles.default]`/`development` are development-safe and carry only an
+   inert marker; `[scopes.*]` partitions secrets for least-privilege consumers.
 3. **Bootstrap**: a single out-of-band BWS access token at
    `/var/lib/secrets/bws-access-token` (root-only, 0600), delivered to services
    via `LoadCredential` + the `systemd-credential://` provider.
 4. **Consumption**: services run `secretspec run -P production -S <scope> -- …`.
+   Per-node secrets (a Tailscale auth key is issued per node) get a
+   `<HOST>_...` name and their own `host-<host>` scope.
 
 See `SECRET_SYNC.md` for the full architecture and BWS item inventory.
 
@@ -33,7 +36,7 @@ Each consumer resolves only its own scope:
 
 | Scope | Consumer |
 |-------|----------|
-| `host` | `host-secrets-populate.service` (tailscale + flakehub) |
+| `host-<host>` | `host-secrets-populate.service` (tailscale node key + flakehub) |
 | `bifrost` | `bifrost-compose.service` |
 | `openwebui` | `openwebui-compose.service` |
 | `memory` | `memory-compose.service`, `memory-health-check.service` |
@@ -48,10 +51,21 @@ convention: env var lowercased, service prefix, underscores → dashes
 
 ### 2. Declare it in `secretspec.toml`
 
-Add to `[profiles.production]`:
+Add to `[profiles.production]` (all real secrets live there):
 
 ```toml
 MY_SERVICE_API_KEY = { description = "My service API key", required = true, ref = { item = "my-service-api-key" } }
+```
+
+For a value that differs per node, give it a `<HOST>_...` name and add it to a
+per-node scope. The Tailscale auth key is the existing example:
+
+```toml
+[profiles.production]
+LUMQUAT_TAILSCALE_AUTH_KEY = { description = "Tailscale auth key for the lumquat node", required = true, ref = { item = "lumquat-tailscale-auth-key" } }
+
+[scopes.host-lumquat]
+secrets = ["LUMQUAT_TAILSCALE_AUTH_KEY", "FLAKEHUB_TOKEN", "CACHIX_AUTH_TOKEN"]
 ```
 
 Add it to the relevant scope allowlist:
@@ -86,20 +100,21 @@ systemd.services.my-compose = {
 ```
 
 For a file-backed root consumer (tailscale / determinate-nixd), add it to the
-`host` scope and write it in `scripts/populate-host-secrets.sh`.
+host's `host-<host>` scope and write it in `scripts/populate-host-secrets.sh`.
 
 ### 4. Verify
 
 ```bash
 # Agents must pass a reason (secretspec `require_reason` policy, BOX-184);
-# humans can omit it. Just binds the argument positionally.
+# humans can omit it. Just binds the argument positionally. Checks the
+# `production` profile, which holds every real secret including node keys.
 just secrets-check "BOX-<n>: verify new declaration"
 ```
 
 ## Step-by-Step: Removing a Secret
 
-1. Remove its declaration from `secretspec.toml` (`[profiles.production]` and any
-   `[scopes.*]`).
+1. Remove its declaration from `secretspec.toml` (`[profiles.default]`, any
+   `[profiles.<host>]`, and any `[scopes.*]`).
 2. Remove its consumption from the module / populate script.
 3. Delete the value from BWS (only after the config no longer references it).
 4. `just secrets-check "BOX-<n>: confirm removal"` to confirm nothing is

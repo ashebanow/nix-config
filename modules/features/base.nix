@@ -1,4 +1,6 @@
-# Base module — server foundation with non-root user for containers.
+# Base module — foundation shared by servers and desktops: primary user,
+# SSH, base packages, podman. User defaults are keyed off my.desktop; power/
+# logind (suspend) is keyed off my.baseAllowSuspend, which is opt-in (see below).
 _: {
   my.modules.nixos.base = {
     lib,
@@ -10,14 +12,23 @@ _: {
       # Timezone
       time.timeZone = lib.mkDefault config.my.baseTimezone;
 
-      # Create non-root user for containers
+      # Create the primary user. On a server this is the non-root container
+      # operator (bash, BOX-121); on a desktop it is the interactive user and
+      # mirrors the macOS workstations (zsh login shell, NetworkManager group
+      # so `nmcli` works without a polkit round trip).
       users.users.${config.my.baseUsername} = {
         isNormalUser = true;
-        # Headless host = bash (BOX-121); zsh stays available via
-        # programs.zsh.enable for interactive use if ever needed.
-        shell = pkgs.bash;
-        description = "Container operator";
-        extraGroups = ["wheel" "docker" "podman"];
+        shell =
+          if config.my.desktop
+          then pkgs.zsh
+          else pkgs.bash;
+        description =
+          if config.my.desktop
+          then "Desktop user"
+          else "Container operator";
+        extraGroups =
+          ["wheel" "docker" "podman"]
+          ++ lib.optionals config.my.desktop ["networkmanager"];
         linger = true; # Required for rootless podman systemd services
         openssh.authorizedKeys.keys = [
           "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJhsuxHH4J5rPM5XNosTiTdHOX+NnZzHmePfEFTyaAs1 ashebanow@gmail.com"
@@ -35,25 +46,29 @@ _: {
       # Sudo access for wheel group
       security.sudo.wheelNeedsPassword = false;
 
-      # ── Power management: prevent sleep/hibernate ────────────────
-      # Server must never sleep — it serves LLM requests
-      systemd.sleep.settings.Sleep = {
-        AllowSuspend = "no";
-        AllowHibernation = "no";
-        AllowHybridSleep = "no";
-        AllowSuspendThenHibernate = "no";
+      # ── Power management ─────────────────────────────────────────
+      # A host that must be reachable over the network should not sleep out
+      # from under its clients, so suspend is opt-in: my.baseAllowSuspend
+      # defaults false. Only a desktop whose resume path is proven (e.g.
+      # yuzu's r8169 reload hook) should set it true.
+      systemd = lib.mkIf (!config.my.baseAllowSuspend) {
+        sleep.settings.Sleep = {
+          AllowSuspend = "no";
+          AllowHibernation = "no";
+          AllowHybridSleep = "no";
+          AllowSuspendThenHibernate = "no";
+        };
+        # Mask sleep targets to prevent any sleep action
+        targets = {
+          sleep.enable = false;
+          suspend.enable = false;
+          hibernate.enable = false;
+          hybrid-sleep.enable = false;
+        };
       };
 
-      # Mask sleep targets to prevent any sleep action
-      systemd.targets = {
-        sleep.enable = false;
-        suspend.enable = false;
-        hibernate.enable = false;
-        hybrid-sleep.enable = false;
-      };
-
-      # Logind: ignore power/sleep buttons, lid switch
-      services.logind.settings.Login = {
+      # Logind: ignore power/sleep buttons, lid switch (unless suspend is opted in)
+      services.logind.settings.Login = lib.mkIf (!config.my.baseAllowSuspend) {
         HandleLidSwitch = "ignore";
         HandleLidSwitchExternalPower = "ignore";
         HandleLidSwitchDocked = "ignore";
