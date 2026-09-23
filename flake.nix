@@ -46,6 +46,16 @@
     # NixOS hardware quirks
     nixos-hardware.url = "github:nixos/nixos-hardware";
 
+    # DankMaterialShell — its own flake rather than nixpkgs' programs.dms-shell,
+    # which trails DMS's release cadence (1.6.1 against 1.6.2 when this landed).
+    # `stable` is a branch, so flake.lock is what actually pins it; bump with
+    # `nix flake update dms`. The flake no longer ships quickshell, so
+    # pkgs.quickshell is used either way. See docs/adr/0003.
+    dms = {
+      url = "github:AvengeMedia/DankMaterialShell/stable";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # pi coding agent — consumed as an overlay in the dev shell ONLY
     # (see modules/infra/devshell.nix), never in a host closure. The stock
     # nixpkgs pi-coding-agent trips over NixOS's read-only, non-FHS store;

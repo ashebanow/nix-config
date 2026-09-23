@@ -137,14 +137,35 @@
       default = false;
       description = "Enable desktop-workstation configuration (graphical session, desktop power/user defaults).";
     };
-    desktopEnvironment = lib.mkOption {
-      type = lib.types.enum ["gnome"];
+    desktopSessions = lib.mkOption {
+      type = lib.types.listOf (lib.types.enum ["gnome" "niri"]);
+      default = [];
+      description = ''
+        The graphical sessions this host offers at the login screen, named by
+        compositor or desktop environment. Distinct from the display manager
+        (GDM for every desktop here) and from `desktopDefaultSession`: a host
+        may offer several sessions and start one of them.
+
+        Set in the host's capabilities.nix, not configuration.nix: the niri
+        session is configured by a Home Manager module, and Home Manager
+        evaluates its own `config.my` instance (see CONTEXT.md).
+      '';
+    };
+    desktopDefaultSession = lib.mkOption {
+      type = lib.types.enum ["gnome" "niri"];
       default = "gnome";
       description = ''
-        Which desktop environment / compositor to enable when `my.desktop` is
-        true. desktop.nix picks the session from this; the DE's own module
-        (e.g. gnome.nix) configures it. Add a value here (and a module) when
-        niri / DankMaterialShell / Noctalia land.
+        The session the display manager starts when nobody chooses one. Must
+        appear in `desktopSessions`; desktop.nix asserts that.
+      '';
+    };
+    dankMaterialShell = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable DankMaterialShell, the shell drawn on top of the niri session
+        (see docs/adr/0003). It is a shell, not a session, so it has its own
+        flag rather than an entry in `desktopSessions`.
       '';
     };
 

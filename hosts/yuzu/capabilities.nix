@@ -29,4 +29,13 @@ _: {
   my.guiDevApps = true;
   my.guiMediaApps = true;
   my.guiFonts = true;
+
+  # Desktop session model. It lives here rather than in configuration.nix
+  # because the niri session is configured by a Home Manager module, and Home
+  # Manager evaluates its own `config.my` (see the file header and CONTEXT.md).
+  # niri is the default session; GNOME stays installed and selectable as the
+  # emergency session (docs/adr/0003).
+  my.desktopSessions = ["niri" "gnome"];
+  my.desktopDefaultSession = "niri";
+  my.dankMaterialShell = true;
 }

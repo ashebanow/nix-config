@@ -25,10 +25,10 @@
   my.zmx = true;
 
   # Desktop workstation: switches base.nix to desktop power/user defaults and
-  # enables the desktop environment picked below (see modules/features/desktop.nix
-  # for the session plumbing, gnome.nix for GNOME-specific configuration).
+  # turns on the graphical session plumbing in modules/features/desktop.nix.
+  # Which sessions exist and which one starts by default is capabilities.nix's
+  # business, not this file's — see CONTEXT.md under "NixOS scope".
   my.desktop = true;
-  my.desktopEnvironment = "gnome";
 
   # Boot loader. The EFI system partition is mounted at /boot (see
   # hardware-configuration.nix), so systemd-boot is the natural choice.
