@@ -11,6 +11,7 @@ _: {
   }: {
     config = lib.mkIf config.my.guiCoreApps {
       home.packages = with pkgs; [
+	firefox
         google-chrome
       ];
     };
