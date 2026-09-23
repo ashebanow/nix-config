@@ -126,6 +126,28 @@ is exactly how they became stale.
   step. Consequence: monitor settings changed in DMS's Compositor panel will
   write a file nothing reads. Change it in nix, or switch ownership deliberately
   by dropping the output stanza and adding the include.
+- **DMS's System Check items are answers, not omissions.** Its optional-features
+  list flags four things on this host, and three are deliberate:
+  - `adw-gtk3` — *installed*. GTK3 apps otherwise look like plain GTK3 beside
+    the GTK4 ones DMS's dynamic theming recolours; DMS wants both
+    `adw-gtk3` and `adw-gtk3-dark`, which is exactly what the nixpkgs package
+    ships.
+  - `cups-pk-helper` — the warning appears because `services.printing` is off
+    (nixpkgs' default), not because the helper is missing: nixpkgs' CUPS module
+    adds `cups-pk-helper` itself whenever polkit is enabled, which it is here.
+    Enabling printing would therefore satisfy the check and the printer widget at
+    once. Until then the warning is correct — there is no printer stack.
+  - `fprintd` — **the hardware is present and unsupported.** yuzu has an
+    EgisTec EH577 (`1c7a:0577`), and libfprint lists that vendor/product in
+    `allowlist_id_table`, whose own comment reads "Currently known and
+    unsupported devices". Installing `fprintd` would add a daemon that finds no
+    driver, so fingerprint unlock is not an available feature here and this is
+    not a missing package. Re-check only if libfprint ships an EgisTec 0577
+    driver.
+  - `dankcalendar` — not in nixpkgs. It is a separate upstream project
+    (`github:AvengeMedia/dankcalendar`, default branch `master`), so taking it
+    means another flake input; DMS's calendar *widget* already works through
+    `enableCalendarEvents` (khal).
 - **Screenshots, clipboard, brightness and media keys need packages that DMS and
   niri do not pull in** — `grim`, `slurp`, `satty`, `wl-clipboard`,
   `brightnessctl`, `playerctl` — and `gruvbox-plus-icons` supplies the session

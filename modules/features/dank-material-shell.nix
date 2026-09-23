@@ -15,6 +15,7 @@
   my.modules.home-manager.dank-material-shell = {
     lib,
     config,
+    pkgs,
     ...
   }: let
     # DMS's matugen writes only ~/.config/gtk-{3,4}.0/dank-colors.css — it never
@@ -63,6 +64,13 @@
         "gtk-3.0/settings.ini".text = settingsIni;
         "gtk-4.0/settings.ini".text = settingsIni;
       };
+
+      # GTK3 apps otherwise look like plain GTK3 next to the GTK4/libadwaita ones
+      # DMS's dynamic theming recolours. DMS's own System Check looks for a theme
+      # dir with both variants (it warns when only one is present); the nixpkgs
+      # package ships exactly the two it wants, and home.packages puts them on
+      # XDG_DATA_DIRS, which is where the check looks.
+      home.packages = [pkgs.adw-gtk3];
     };
   };
 
