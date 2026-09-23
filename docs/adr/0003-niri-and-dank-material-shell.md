@@ -132,11 +132,13 @@ is exactly how they became stale.
     the GTK4 ones DMS's dynamic theming recolours; DMS wants both
     `adw-gtk3` and `adw-gtk3-dark`, which is exactly what the nixpkgs package
     ships.
-  - `cups-pk-helper` — the warning appears because `services.printing` is off
-    (nixpkgs' default), not because the helper is missing: nixpkgs' CUPS module
-    adds `cups-pk-helper` itself whenever polkit is enabled, which it is here.
-    Enabling printing would therefore satisfy the check and the printer widget at
-    once. Until then the warning is correct — there is no printer stack.
+  - `cups-pk-helper` — satisfied. The warning appeared because
+    `services.printing` was off (nixpkgs' default), not because the helper was
+    missing: nixpkgs' CUPS module adds `cups-pk-helper` and registers its D-Bus
+    service itself whenever polkit is enabled, which it is here. Printing is now
+    enabled via `my.printing` for the networked HP LaserJet — note that the CUPS
+    *service* is declarative while the printer *queue* is not, since nixpkgs has
+    no option for a queue.
   - `fprintd` — **the hardware is present and unsupported.** yuzu has an
     EgisTec EH577 (`1c7a:0577`), and libfprint lists that vendor/product in
     `allowlist_id_table`, whose own comment reads "Currently known and

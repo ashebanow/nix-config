@@ -24,6 +24,11 @@
   my.accessFallbackPort = 2222;
   my.zmx = true;
 
+  # CUPS, for the networked colour LaserJet. The service is declarative; the
+  # printer queue is added once by hand through the CUPS web interface, because
+  # nixpkgs has no option for a CUPS queue (see modules/features/printing.nix).
+  my.printing = true;
+
   # Desktop workstation: switches base.nix to desktop power/user defaults and
   # turns on the graphical session plumbing in modules/features/desktop.nix.
   # Which sessions exist and which one starts by default is capabilities.nix's

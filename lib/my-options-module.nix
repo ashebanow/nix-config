@@ -113,6 +113,15 @@
       description = "Cockpit web interface port.";
     };
 
+    # Printing feature (CUPS). The service is declarative; the printer queue is
+    # not — there is no nixpkgs option for a CUPS queue, so the printer is added
+    # once through the CUPS web interface or `lpadmin`.
+    printing = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable CUPS printing with HP driver support.";
+    };
+
     # zmx feature
     zmx = lib.mkOption {
       type = lib.types.bool;
