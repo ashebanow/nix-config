@@ -1,4 +1,5 @@
-# Dev shell with alejandra for formatting
+# Dev shell with nixfmt, jq, etc.:w
+#
 {inputs, ...}: {
   perSystem = {
     pkgs,
@@ -53,7 +54,6 @@
       '';
 
       packages = with pkgs; [
-        alejandra
         unfreePkgs.bws
         unfreePkgs.claude-code
         dig
@@ -62,6 +62,7 @@
         home-manager
         linearPkgs.linear-cli
         mcp-nixos
+        nil
         nixd
         nixfmt
         # pi shells out to `npm`/`node` for extension installs; the pi.nix

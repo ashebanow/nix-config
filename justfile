@@ -80,7 +80,7 @@ update-worktrunk:
 # Format all Nix files
 [group('nix')]
 fmt:
-    nix develop .# -c alejandra .
+    nix develop .# -c nixfmt .
 
 # Run the lumquat configuration in a VM (build first, then boot it) —
 # only NixOS config in this flake, so no need to derive the hostname.
