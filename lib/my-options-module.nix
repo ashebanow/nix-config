@@ -113,13 +113,63 @@
       description = "Cockpit web interface port.";
     };
 
-    # Printing feature (CUPS). The service is declarative; the printer queue is
-    # not — there is no nixpkgs option for a CUPS queue, so the printer is added
-    # once through the CUPS web interface or `lpadmin`.
+    # Printing feature (CUPS). The service is declarative; so are the queues:
+    # nixpkgs has no option for a CUPS queue, so modules/features/printing.nix
+    # renders my.printers into an lpadmin oneshot that re-creates them on every
+    # boot.
     printing = lib.mkOption {
       type = lib.types.bool;
       default = false;
       description = "Enable CUPS printing with HP driver support.";
+    };
+
+    # Declarative CUPS queues. CUPS keeps its queues in /etc/cups/printers.conf,
+    # which NixOS regenerates on every activation, so a queue added by hand
+    # vanishes at the next rebuild. Each entry here is re-applied idempotently
+    # by lpadmin at boot instead.
+    printers = lib.mkOption {
+      type = lib.types.listOf (lib.types.submodule {
+        options = {
+          name = lib.mkOption {
+            type = lib.types.str;
+            description = "CUPS queue name (as shown in print dialogs).";
+          };
+          uri = lib.mkOption {
+            type = lib.types.str;
+            description = ''
+              Device URI. For an IPP Everywhere printer use
+              ipp://<host-or-ip>/ipp/print; a literal IP is preferred because
+              CUPS resolves <name>.local mDNS names unreliably.
+            '';
+          };
+          description = lib.mkOption {
+            type = lib.types.str;
+            default = "";
+            description = "Human-readable description shown in print dialogs.";
+          };
+          location = lib.mkOption {
+            type = lib.types.str;
+            default = "";
+            description = "Free-form location string.";
+          };
+          isDefault = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = "Make this queue the system default destination.";
+          };
+          drivers = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = ["everywhere"];
+            description = ''
+              PPD source passed to lpadmin -m. The default "everywhere"
+              selects the driverless IPP Everywhere PPD and is correct for any
+              printer advertising IPP Everywhere (HP LaserJet 2016+).
+            '';
+          };
+        };
+      });
+      default = [];
+      description = "Declarative CUPS printer queues, re-applied at boot.";
     };
 
     # zmx feature

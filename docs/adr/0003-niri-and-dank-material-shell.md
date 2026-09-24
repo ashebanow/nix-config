@@ -136,9 +136,11 @@ is exactly how they became stale.
     `services.printing` was off (nixpkgs' default), not because the helper was
     missing: nixpkgs' CUPS module adds `cups-pk-helper` and registers its D-Bus
     service itself whenever polkit is enabled, which it is here. Printing is now
-    enabled via `my.printing` for the networked HP LaserJet — note that the CUPS
-    *service* is declarative while the printer *queue* is not, since nixpkgs has
-    no option for a queue.
+    enabled via `my.printing` for the networked HP LaserJet. Both the CUPS
+    *service* and the printer *queue* are declarative: nixpkgs has no option for
+    a queue, so `my.printers` is rendered by modules/features/printing.nix into
+    an `lpadmin` oneshot that re-creates it at boot (a queue added by hand would
+    be wiped from /etc/cups/printers.conf on the next activation).
   - `fprintd` — **the hardware is present and unsupported.** yuzu has an
     EgisTec EH577 (`1c7a:0577`), and libfprint lists that vendor/product in
     `allowlist_id_table`, whose own comment reads "Currently known and

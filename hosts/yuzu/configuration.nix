@@ -24,10 +24,24 @@
   my.accessFallbackPort = 2222;
   my.zmx = true;
 
-  # CUPS, for the networked colour LaserJet. The service is declarative; the
-  # printer queue is added once by hand through the CUPS web interface, because
-  # nixpkgs has no option for a CUPS queue (see modules/features/printing.nix).
+  # CUPS, for the networked colour LaserJet. Both the service and the queue are
+  # declarative (see modules/features/printing.nix).
   my.printing = true;
+
+  # HP Color LaserJet MFP M477fdw, reached over IPP Everywhere at its LAN
+  # address. The address is pinned rather than the printer's NPIAF8010.local
+  # mDNS name, which CUPS cannot resolve here — systemd-resolved is not set up
+  # for mDNS resolution, so only the IP works (confirmed via avahi-browse).
+  # When the printer's DHCP lease changes, update the URI here and rebuild.
+  my.printers = [
+    {
+      name = "HP_Color_LaserJet_MFP_M477fdw";
+      uri = "ipp://10.40.60.111/ipp/print";
+      description = "HP Color LaserJet MFP M477fdw";
+      location = "Office";
+      isDefault = true;
+    }
+  ];
 
   # Desktop workstation: switches base.nix to desktop power/user defaults and
   # turns on the graphical session plumbing in modules/features/desktop.nix.
