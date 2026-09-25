@@ -289,7 +289,11 @@ _: {
               useDHT = true;
               searchLAN = true;
               useSyncTrash = true;
-              knownHosts = [ ];
+              # Not `inherit (config.my) resilioKnownHosts` — that would emit the
+              # key under the option's name, and the module reads `knownHosts`.
+              # The daemon ignores unrecognised folder keys silently, so the
+              # wrong spelling would look correct and do nothing.
+              knownHosts = config.my.resilioKnownHosts;
             }
           ];
         };
