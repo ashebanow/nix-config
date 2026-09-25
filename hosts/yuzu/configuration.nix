@@ -3,8 +3,9 @@
   lib,
   pkgs,
   ...
-}: {
-  imports = [./capabilities.nix];
+}:
+{
+  imports = [ ./capabilities.nix ];
 
   # Host identity
   my.hostName = "yuzu";
@@ -23,6 +24,27 @@
   my.accessEnableFallbackSSH = true;
   my.accessFallbackPort = 2222;
   my.zmx = true;
+
+  # Resilio Sync — mirrors the macs' "Synced Files" folder (Books, Documents,
+  # Fonts, Music, Pictures, Scans, Videos, personal_wiki, Google Photos) and
+  # symlinks each into $HOME, so the data dirs are the synced ones. The folder
+  # key comes from BWS via the `resilio` secretspec scope, never from here.
+  # See modules/features/resilio.nix.
+  my.resilio = true;
+  my.resilioUser = "ashebanow";
+  my.resilioDeviceName = "yuzu";
+  my.resilioDirectory = "/home/ashebanow/Synced Files";
+  my.resilioHomeLinks = [
+    "Books"
+    "Documents"
+    "Fonts"
+    "Google Photos"
+    "Music"
+    "Pictures"
+    "Scans"
+    "Videos"
+    "personal_wiki"
+  ];
 
   # CUPS, for the networked colour LaserJet. Both the service and the queue are
   # declarative (see modules/features/printing.nix).
