@@ -51,8 +51,12 @@ _: {
       deviceName =
         if config.my.resilioDeviceName != "" then config.my.resilioDeviceName else config.my.hostName;
 
-      # The well-known port from the setup guide, so peers find each other
-      # directly on the LAN without depending on the tracker or relay.
+      # The well-known port from the setup guide. Pinned rather than left at
+      # the default 0 (random) because a stable port is what makes the peer's
+      # address expressible at all: `known_hosts` entries are `host:port` and
+      # the port is dialed verbatim, so a peer on a random port has no address
+      # anyone can hard-code. The macs currently run on random ports, which is
+      # why LAN/tracker discovery is the only path between them today.
       listeningPort = 4444;
 
       user = config.users.users.${resilioUser};
@@ -64,12 +68,44 @@ _: {
       # the world-readable Nix store.
       keyFile = "/run/secrets/resilio-synced-files-token";
 
+      # Directories the daemon must be able to *traverse* to reach the synced
+      # tree. Path resolution walks one component at a time, so a mode-0700
+      # ancestor stops it long before it reaches the tree — and the ancestor in
+      # question here is the operator's home itself, which is exactly 0700.
+      #
+      # Returns `from` and every directory between it and `to`, excluding `to`
+      # (the caller grants the tree root rwx separately). So for
+      # /home/ashebanow -> /home/ashebanow/Synced Files it returns
+      # ["/home/ashebanow"].
+      treeAncestors =
+        from: to:
+        let
+          rel = lib.removePrefix (from + "/") to;
+          # The leaf is the tree root itself and is handled by the caller.
+          parts = lib.init (lib.splitString "/" rel);
+          n = builtins.length parts;
+        in
+        [ from ] ++ lib.genList (i: from + "/" + lib.concatStringsSep "/" (lib.take (i + 1) parts)) n;
+
       # Owner/group/mode ACLs are applied by an activation script rather than
       # systemd.tmpfiles: they have to follow the *operator's* uid/gid, and
       # tmpfiles' numeric-only syntax cannot express that portably.
       applyPerms = pkgs.writeShellScript "resilio-apply-perms" ''
         set -euo pipefail
         root=${lib.escapeShellArg resilioDirectory}
+
+        # The daemon runs as `rslsync` but the tree lives under the operator's
+        # home, which is mode 0700 — so rslsync cannot even *traverse* into it,
+        # and the daemon dies on startup (SIGSEGV on an internal assertion
+        # about the path, with no mention of permissions). Grant traverse-only
+        # on each ancestor between $HOME and the tree root rather than loosening
+        # the home's mode or adding rslsync to the operator's primary group:
+        # --x is exactly the access needed, and it is scoped to the one group.
+        ${lib.concatMapStrings (dir: ''
+          if [ -d ${lib.escapeShellArg dir} ]; then
+            ${pkgs.acl}/bin/setfacl -m "g:${rslsyncGroup}:x" ${lib.escapeShellArg dir}
+          fi
+        '') (treeAncestors home resilioDirectory)}
 
         ${pkgs.acl}/bin/setfacl -m "g:${rslsyncGroup}:rwx" "$root"
         ${pkgs.acl}/bin/setfacl -d -m "g:${rslsyncGroup}:rwx" "$root"
@@ -85,22 +121,44 @@ _: {
       # Replace real home directories with symlinks into the synced tree,
       # migrating whatever they held. Idempotent: a second run sees links and
       # leaves them alone.
+      #
+      # Ownership is established here rather than by systemd.tmpfiles alone.
+      # A tmpfiles `d` line applies its mode/owner only when it *creates* the
+      # directory, so if anything else got there first — as the `mkdir -p`
+      # below did on the first run — the rule silently becomes a no-op and the
+      # root stays root:root. `install -d` here is therefore authoritative and
+      # re-applied every run, and tmpfiles keeps the same values for the case
+      # where this script is not reached.
       migrateHome = pkgs.writeShellScript "resilio-migrate-home" ''
         set -euo pipefail
         home=${lib.escapeShellArg home}
         root=${lib.escapeShellArg resilioDirectory}
 
+        install -d -m 2775 -o ${resilioUser} -g ${rslsyncGroup} "$root"
+
+        # Only create a subdirectory when there is something to put in it.
+        #
+        # Resilio adopts a share by inspecting the directory, and refuses one
+        # that already has contents with error 105, "Destination folder is not
+        # empty. Add anyway?" — which needs an interactive confirmation we
+        # cannot give from a unit. Pre-creating all nine destinations as empty
+        # directories was enough to trigger it and left the folder unadded.
+        #
+        # The daemon creates any destination it needs during its first sync, so
+        # the only case that requires us to make one up front is a real home
+        # directory whose contents we are migrating into it.
         ${lib.concatMapStrings (sub: ''
           target="$root/${sub}"
           link="$home/${sub}"
 
-          mkdir -p "$target"
-
           if [ -L "$link" ]; then
-            # Already a link — make sure it points where we want.
+            # Already a link — make sure it points where we want. The target
+            # is created only if the link's destination is missing, so a
+            # synced-but-empty directory is not resurrected as ours.
             if [ "$(readlink "$link")" != "$target" ]; then
               echo "resilio: relinking $link -> $target"
               rm -f "$link"
+              install -d -m 2775 -o ${resilioUser} -g ${rslsyncGroup} "$target"
               ln -s "$target" "$link"
             fi
           elif [ -d "$link" ]; then
@@ -108,6 +166,7 @@ _: {
             # anything already synced, then replace it with the link.
             if [ -n "$(ls -A "$link" 2>/dev/null)" ]; then
               echo "resilio: migrating contents of $link -> $target"
+              install -d -m 2775 -o ${resilioUser} -g ${rslsyncGroup} "$target"
               # --backup preserves a pre-existing synced file instead of
               # losing it; the incoming home copy becomes file~1~ in the
               # backup dir rather than overwriting.
@@ -122,6 +181,9 @@ _: {
             # destroy it. Surfaces in the activation log.
             echo "resilio: WARNING: $link exists and is not a directory; leaving it alone" >&2
           else
+            # Nothing there yet. Link without creating the target: the daemon
+            # will build it from the share, and creating it ourselves would
+            # be the non-empty condition above.
             ln -s "$target" "$link"
           fi
 
@@ -165,7 +227,15 @@ _: {
         trap 'rm -f "$tmp"' EXIT
         ${pkgs.secretspec}/bin/secretspec run -P production -S resilio -- \
           ${pkgs.bash}/bin/bash -c 'printf %s "$RESILIO_SYNCED_FILES_TOKEN"' > "$tmp"
-        install -m 0400 -o root -g root "$tmp" ${lib.escapeShellArg keyFile}
+        # Group-readable by rslsync, NOT root-only. nixpkgs' create-resilio-config
+        # runs as ExecStartPre in a unit with User=rslsync, so it reads the
+        # secret file as the unprivileged service user. A 0400 root:root file
+        # makes its `cat` fail with EACCES, and — because the generated config
+        # is built with a shell loop rather than set -e — the failure was silent:
+        # the daemon started happily with "secret": "" and simply never synced.
+        # 0440 root:rslsync keeps the value off every other account while letting
+        # the one consumer read it.
+        install -m 0440 -o root -g ${rslsyncGroup} "$tmp" ${lib.escapeShellArg keyFile}
       '';
     in
     {
@@ -192,6 +262,8 @@ _: {
           # Keep the trees off the wider network: Resilio meshes directly on the
           # LAN, which is what we want, but nothing here should reach the open
           # internet except the tracker/relay rendezvous it needs to find peers.
+          # Those are live and reachable (see docs/research/resilio-sync-nixos.md):
+          # trackers on :4000, relays on :3000/:3001, all reachable over IPv4.
           useUpnp = false;
           downloadLimit = 0;
           uploadLimit = 0;
@@ -226,12 +298,25 @@ _: {
           after = [
             "resilio-populate-key.service"
             "resilio-migrate-home.service"
+            # The stock module only sets `after = [ "network.target" ]`, which
+            # systemd reaches *before* interfaces, DHCP, and a usable resolver.
+            # The daemon fetches its tracker/relay list from config.resilio.com
+            # over HTTPS at startup, so starting that early can leave it with no
+            # tracker list and a cached DNS failure — the failure mode is a
+            # daemon that looks healthy, opens its listen sockets, and then
+            # dials nothing. Same treatment modules/features/secrets.nix gives
+            # host-secrets-populate.
+            "network-online.target"
+          ];
+          wants = [
+            "resilio-migrate-home.service"
+            "network-online.target"
           ];
           requires = [ "resilio-populate-key.service" ];
-          wants = [ "resilio-migrate-home.service" ];
           # The generated config is written to /run/rslsync by ExecStartPre,
-          # which needs the key file to exist first.
-          unitConfig.ConditionPathExists = "/run/secrets";
+          # which reads the key file as the rslsync user — so the service must
+          # not start until that file exists with the right group and mode.
+          unitConfig.ConditionPathExists = keyFile;
         };
 
         systemd.services.resilio-populate-key = {
@@ -267,12 +352,21 @@ _: {
           };
         };
 
-        # Direct peer connections on the LAN. Resilio meshes directly rather
-        # than proxying through a server, so the listening port has to be
-        # reachable from the other peers; it is confined to the local network
-        # because nothing here forwards it (and use_upnp is off, so the daemon
-        # will not try to punch it open on the router itself).
+        # Direct peer connections. Resilio meshes peer-to-peer rather than
+        # proxying through a server, so the listening port has to be reachable
+        # from the other peers.
+        #
+        # BOTH protocols, and UDP is the one that matters. Resilio's peer
+        # transport is uTP-over-UDP: a live peer listens on the same port in
+        # both protocols (`TCP *:<port>` and `UDP *:<port>`), and the daemon's
+        # outbound connections to other peers are UDP, not TCP. Opening only
+        # TCP looks correct and does nothing, because no peer ever dials it.
+        # The stock module opens no ports at all, so this is ours to get right.
+        #
+        # Confined to the LAN by omission: nothing here forwards either port,
+        # and use_upnp is off, so the daemon will not punch a hole itself.
         networking.firewall.allowedTCPPorts = [ listeningPort ];
+        networking.firewall.allowedUDPPorts = [ listeningPort ];
 
         # The tree root is owned by the operator, group rslsync; the ACLs from
         # applyPerms (applied at activation) make it group-writable. The daemon's
@@ -280,6 +374,11 @@ _: {
         # definition creates.
         systemd.tmpfiles.rules = [
           "d ${resilioDirectory} 2775 ${resilioUser} ${rslsyncGroup} -"
+          # storagePath is a *subdirectory* of the daemon's home, and Resilio
+          # refuses to start when it is missing ("Storage path specified in
+          # config file does not exist"), so it has to be created explicitly —
+          # the module's `createHome` only makes the parent.
+          "d /var/lib/rslsync/.sync 0700 rslsync rslsync -"
         ];
 
         system.activationScripts.resilioPerms = {
