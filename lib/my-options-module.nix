@@ -1,6 +1,6 @@
 # Shared options module providing config.my.* for host metadata.
 # Following the dendritic pattern: capability flags defined centrally.
-{lib, ...}: {
+{ lib, ... }: {
   options.my = {
     # Identity
     hostName = lib.mkOption {
@@ -87,7 +87,7 @@
     };
     accessSubnetRoutes = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [];
+      default = [ ];
       description = "CIDR ranges to advertise when accessEnableSubnetRouting is enabled (e.g. [ \"192.168.1.0/24\" ]).";
     };
     accessEnableFallbackSSH = lib.mkOption {
@@ -128,47 +128,49 @@
     # vanishes at the next rebuild. Each entry here is re-applied idempotently
     # by lpadmin at boot instead.
     printers = lib.mkOption {
-      type = lib.types.listOf (lib.types.submodule {
-        options = {
-          name = lib.mkOption {
-            type = lib.types.str;
-            description = "CUPS queue name (as shown in print dialogs).";
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            name = lib.mkOption {
+              type = lib.types.str;
+              description = "CUPS queue name (as shown in print dialogs).";
+            };
+            uri = lib.mkOption {
+              type = lib.types.str;
+              description = ''
+                Device URI. For an IPP Everywhere printer use
+                ipp://<host-or-ip>/ipp/print; a literal IP is preferred because
+                CUPS resolves <name>.local mDNS names unreliably.
+              '';
+            };
+            description = lib.mkOption {
+              type = lib.types.str;
+              default = "";
+              description = "Human-readable description shown in print dialogs.";
+            };
+            location = lib.mkOption {
+              type = lib.types.str;
+              default = "";
+              description = "Free-form location string.";
+            };
+            isDefault = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Make this queue the system default destination.";
+            };
+            drivers = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ "everywhere" ];
+              description = ''
+                PPD source passed to lpadmin -m. The default "everywhere"
+                selects the driverless IPP Everywhere PPD and is correct for any
+                printer advertising IPP Everywhere (HP LaserJet 2016+).
+              '';
+            };
           };
-          uri = lib.mkOption {
-            type = lib.types.str;
-            description = ''
-              Device URI. For an IPP Everywhere printer use
-              ipp://<host-or-ip>/ipp/print; a literal IP is preferred because
-              CUPS resolves <name>.local mDNS names unreliably.
-            '';
-          };
-          description = lib.mkOption {
-            type = lib.types.str;
-            default = "";
-            description = "Human-readable description shown in print dialogs.";
-          };
-          location = lib.mkOption {
-            type = lib.types.str;
-            default = "";
-            description = "Free-form location string.";
-          };
-          isDefault = lib.mkOption {
-            type = lib.types.bool;
-            default = false;
-            description = "Make this queue the system default destination.";
-          };
-          drivers = lib.mkOption {
-            type = lib.types.listOf lib.types.str;
-            default = ["everywhere"];
-            description = ''
-              PPD source passed to lpadmin -m. The default "everywhere"
-              selects the driverless IPP Everywhere PPD and is correct for any
-              printer advertising IPP Everywhere (HP LaserJet 2016+).
-            '';
-          };
-        };
-      });
-      default = [];
+        }
+      );
+      default = [ ];
       description = "Declarative CUPS printer queues, re-applied at boot.";
     };
 
@@ -177,6 +179,56 @@
       type = lib.types.bool;
       default = false;
       description = "Enable zmx session persistence tool.";
+    };
+
+    # Resilio Sync feature (NixOS desktops only).
+    #
+    # The nixpkgs service module is NixOS-only, so this flag is meaningless on
+    # the Darwin hosts — the macs run Resilio from the upstream Homebrew cask
+    # and configure it by hand. It is also not wanted on lumquat, which has no
+    # interactive user account to own the synced tree (the daemon there would
+    # run as `rslsync` with nobody to read the result).
+    resilio = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable Resilio Sync for this desktop's Synced Files tree.";
+    };
+    resilioDeviceName = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = ''
+        Name other peers see for this node. Empty means use the hostname
+        (my.hostName); the macs show up as `miracle_max`/`bergamot`, so a
+        short, stable, distinctive name is worth setting explicitly.
+      '';
+    };
+    resilioUser = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = ''
+        The interactive user who owns the synced tree. The NixOS service runs
+        the daemon as the `rslsync` system user, so the shared folder has to be
+        group-writable by that user while remaining the operator's own files —
+        this is the user whose home holds the tree.
+      '';
+    };
+    resilioDirectory = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = ''
+        Absolute path to the synced folder root (the local mirror of the
+        remote "Synced Files" folder). Its subdirectories are symlinked into
+        the owner's home by `resilioHomeLinks`.
+      '';
+    };
+    resilioHomeLinks = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = ''
+        Subdirectory names of `resilioDirectory` to symlink into the owner's
+        home, replacing a same-named real directory. The remote folder's
+        top-level layout is the source of truth (see modules/features/resilio.nix).
+      '';
     };
 
     # Memory feature (Mnemosyne)
@@ -197,8 +249,13 @@
       description = "Enable desktop-workstation configuration (graphical session, desktop power/user defaults).";
     };
     desktopSessions = lib.mkOption {
-      type = lib.types.listOf (lib.types.enum ["gnome" "niri"]);
-      default = [];
+      type = lib.types.listOf (
+        lib.types.enum [
+          "gnome"
+          "niri"
+        ]
+      );
+      default = [ ];
       description = ''
         The graphical sessions this host offers at the login screen, named by
         compositor or desktop environment. Distinct from the display manager
@@ -211,7 +268,10 @@
       '';
     };
     desktopDefaultSession = lib.mkOption {
-      type = lib.types.enum ["gnome" "niri"];
+      type = lib.types.enum [
+        "gnome"
+        "niri"
+      ];
       default = "gnome";
       description = ''
         The session the display manager starts when nobody chooses one. Must
