@@ -33,11 +33,22 @@
 # file, and the service module is pointed at that file with `secretFile` (which
 # is what keeps the value out of the store — passing `secret` instead would
 # put it in a world-readable store path).
+# The owner license is the load-bearing detail. Without one, this daemon adds a
+# shared folder in the *stopped* state and never attempts a single peer
+# connection: it binds its listen sockets, walks the tree and looks entirely
+# healthy, so the symptom is indistinguishable from a firewall, DNS or routing
+# fault. Installing the license flips `stopped: 1 -> 0` and connections begin
+# immediately. It is applied with the rslsync `--license` flag, because the Web
+# UI's licensing page cannot actually install the file -- its picker opens on a
+# fixed directory that is neither editable nor navigable -- and because a CLI
+# flag is reproducible from a module where a GUI click is not.
 #
-# Web UI note: nixpkgs asserts `enableWebUI -> sharedFolders == []`, because a
-# config-file shared folder overrides anything the UI added. We want a declared
-# folder, so the UI stays off; the daemon still exposes its own API on
-# 127.0.0.1:8888 for status (the macs run the same way).
+# The Web UI stays off. Resilio makes a config-file folder list and the UI
+# mutually exclusive (upstream's sample config: "if you set shared folders in
+# config file WebUI will be DISABLED"), which nixpkgs encodes as
+# `enableWebUI -> sharedFolders == []`. Nothing here needs the UI: the license
+# comes from the flag above, and un-stopping a folder is runtime state the
+# config file cannot express either way.
 _: {
   my.modules.nixos.resilio =
     {
@@ -67,6 +78,11 @@ _: {
       # services.resilio.sharedFolders.secret value, which would be written to
       # the world-readable Nix store.
       keyFile = "/run/secrets/resilio-synced-files-token";
+
+      # The owner license, resolved the same way and staged next to the key.
+      # rslsync reads it from a path we control (--license), so it never needs
+      # to live under storagePath where a wiped store would lose it.
+      licenseFile = "/run/secrets/resilio-license-key";
 
       # Directories the daemon must be able to *traverse* to reach the synced
       # tree. Path resolution walks one component at a time, so a mode-0700
@@ -236,6 +252,43 @@ _: {
         # 0440 root:rslsync keeps the value off every other account while letting
         # the one consumer read it.
         install -m 0440 -o root -g ${rslsyncGroup} "$tmp" ${lib.escapeShellArg keyFile}
+
+        # The license, same treatment. It is consumed by the `--license` flag
+        # below rather than by the generated config. Unlike the key it is NOT
+        # secret-on-the-wire (it is signed, not an access credential), but it
+        # carries the licensee's name, so it stays off world-readable paths.
+        ${pkgs.secretspec}/bin/secretspec run -P production -S resilio -- \
+          ${pkgs.bash}/bin/bash -c 'printf %s "$RESILIO_LICENSE_KEY"' > "$tmp"
+        install -m 0440 -o root -g ${rslsyncGroup} "$tmp" ${lib.escapeShellArg licenseFile}
+      '';
+
+      # Apply the owner license. This has to run before the daemon starts, and
+      # it has to run as the daemon's own user against the daemon's own storage,
+      # because the license is written into storagePath/License/.
+      #
+      # Why this exists at all: without a license the daemon adds a shared folder
+      # in the *stopped* state and then never attempts a peer connection. It
+      # binds its listen sockets, scans the tree and looks entirely healthy —
+      # which is indistinguishable from a firewall or DNS problem, and is what
+      # made this opaque for so long. Installing the license flips
+      # `stopped: 1 -> 0` and peer connections begin immediately.
+      #
+      # The Web UI would normally do this, but its licensing page cannot install
+      # the file (the picker's directory is not editable and cannot navigate), so
+      # the CLI flag is the only workable route -- and it is the reproducible one.
+      applyLicense = pkgs.writeShellScript "resilio-apply-license" ''
+        set -euo pipefail
+        # Already installed: pick up the stored license rather than re-applying.
+        # `--license` is idempotent in practice, but re-running it on every boot
+        # would rewrite storagePath for no reason, so skip once it is present.
+        if [ -e /var/lib/rslsync/.sync/License ]; then
+          echo "resilio: license already installed"
+          exit 0
+        fi
+        ${pkgs.resilio-sync}/bin/rslsync \
+          --license ${lib.escapeShellArg licenseFile} \
+          --storage /var/lib/rslsync/.sync
+        echo "resilio: license applied"
       '';
     in
     {
@@ -270,8 +323,19 @@ _: {
           checkForUpdates = false;
           encryptLAN = true;
 
-          # The declared folder comes from this config file, which is what the
-          # nixpkgs module requires the UI to be off for.
+          # The declared folder comes from this config file, and Resilio's own
+          # behaviour is that a config-file folder list and the Web UI are
+          # mutually exclusive -- upstream's sample config says so plainly
+          # ("if you set shared folders in config file WebUI will be DISABLED"),
+          # and it is literal: with a folder declared, a `webui` block added to
+          # the generated config is ignored and nothing binds the port. nixpkgs
+          # encodes that as `enableWebUI -> sharedFolders == []`.
+          #
+          # The UI is not needed here anyway. Its one indispensable function was
+          # installing the owner license, and the `--license` flag does that
+          # reproducibly (see resilio-apply-license above); it is also no use for
+          # un-stopping a folder, since that is a runtime state the config file
+          # cannot express.
           enableWebUI = false;
 
           directoryRoot = resilioDirectory;
@@ -302,6 +366,7 @@ _: {
           after = [
             "resilio-populate-key.service"
             "resilio-migrate-home.service"
+            "resilio-apply-license.service"
             # The stock module only sets `after = [ "network.target" ]`, which
             # systemd reaches *before* interfaces, DHCP, and a usable resolver.
             # The daemon fetches its tracker/relay list from config.resilio.com
@@ -316,11 +381,34 @@ _: {
             "resilio-migrate-home.service"
             "network-online.target"
           ];
-          requires = [ "resilio-populate-key.service" ];
+          requires = [
+            "resilio-populate-key.service"
+            "resilio-apply-license.service"
+          ];
           # The generated config is written to /run/rslsync by ExecStartPre,
           # which reads the key file as the rslsync user — so the service must
           # not start until that file exists with the right group and mode.
           unitConfig.ConditionPathExists = keyFile;
+        };
+
+        # Applies the owner license into storagePath before the daemon starts.
+        # Runs as rslsync because that is the user that will own and read the
+        # resulting License/ directory.
+        systemd.services.resilio-apply-license = {
+          description = "Apply the Resilio owner license";
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "resilio-populate-key.service"
+            "var-lib-rslsync.mount"
+          ];
+          requires = [ "resilio-populate-key.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            User = "rslsync";
+            Group = rslsyncGroup;
+            ExecStart = applyLicense;
+          };
         };
 
         systemd.services.resilio-populate-key = {
