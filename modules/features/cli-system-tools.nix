@@ -15,7 +15,6 @@ _: {
           cachix # binary cache management
           chezmoi
           ctop
-          dgop
           duf
           fastfetch
           figlet
@@ -31,6 +30,9 @@ _: {
           nvtopPackages.full
           procs
           tokei
+        ])
+        ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (with pkgs; [
+          dgop
         ])
         # macOS-only system tools (no Linux build in nixpkgs).
         ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin (with pkgs; [
