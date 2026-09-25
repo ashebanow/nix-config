@@ -244,6 +244,13 @@
         The port must be the peer's **fixed** listening port -- a peer left on
         the default random port has no stable address to name here, so pinning
         it on that peer is a prerequisite, not an optional tidy-up.
+
+        UNUSED as of the move to UI-managed folders: the folder (and therefore
+        its known-hosts list) is no longer declared in the generated config, so
+        nothing reads this. Retained because it is the natural home for the
+        value if the folder ever becomes declarative again; a host that sets it
+        today would get no effect, which is a trap worth deleting rather than
+        leaving, so it is kept only with this note attached.
       '';
     };
 

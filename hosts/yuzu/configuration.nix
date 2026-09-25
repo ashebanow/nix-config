@@ -46,24 +46,12 @@
     "personal_wiki"
   ];
 
-  # Dial the peers directly instead of discovering them. Resilio's own
-  # tracker/relay machinery is still up, but this daemon never dials out at all
-  # (see docs/research/resilio-sync-nixos.md), and LAN discovery cannot bridge
-  # these hosts anyway: yuzu is 10.40.0.240/24 while the macs are 10.40.60.0/24,
-  # so the multicast never crosses. known_hosts sidesteps all of it.
-  #
-  # LAN addresses deliberately, not hostnames: `bergamot` resolves to its
-  # Tailscale address on this host, and Resilio does not traverse Tailscale.
-  # These are DHCP leases, so they move if the router reassigns them.
-  #
-  # Every port here is 4444, the same fixed port yuzu listens on -- a peer left
-  # on Resilio's default random port has no stable address to name, which is why
-  # pinning it in each mac's Resilio preferences is a prerequisite for this
-  # list to do anything.
-  my.resilioKnownHosts = [
-    "10.40.60.74:4444" # bergamot
-    "10.40.60.97:4444" # miracle_max
-  ];
+  # The shared folder itself is NOT declared here. Resilio will not bind its
+  # Web UI while a folder is declared in the config file, and a config-declared
+  # folder cannot be put into the connecting state (that is runtime state the
+  # daemon overrides), so the folder -- its key, its path and its known_hosts --
+  # is added once through the UI at http://127.0.0.1:8888. Peers to name there:
+  # 10.40.60.74 (bergamot) and 10.40.60.97 (miracle_max), both on port 4444.
 
   # CUPS, for the networked colour LaserJet. Both the service and the queue are
   # declarative (see modules/features/printing.nix).

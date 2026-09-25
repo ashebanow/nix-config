@@ -33,22 +33,19 @@
 # file, and the service module is pointed at that file with `secretFile` (which
 # is what keeps the value out of the store — passing `secret` instead would
 # put it in a world-readable store path).
-# The owner license is the load-bearing detail. Without one, this daemon adds a
-# shared folder in the *stopped* state and never attempts a single peer
-# connection: it binds its listen sockets, walks the tree and looks entirely
-# healthy, so the symptom is indistinguishable from a firewall, DNS or routing
-# fault. Installing the license flips `stopped: 1 -> 0` and connections begin
-# immediately. It is applied with the rslsync `--license` flag, because the Web
-# UI's licensing page cannot actually install the file -- its picker opens on a
-# fixed directory that is neither editable nor navigable -- and because a CLI
-# flag is reproducible from a module where a GUI click is not.
+# The owner license is required before the daemon will connect to anything.
+# Without one it adds a shared folder in the *stopped* state and never attempts
+# a peer connection: it binds its listen sockets, walks the tree, and looks
+# entirely healthy, so the symptom is indistinguishable from a firewall, DNS or
+# routing fault. It is applied with the rslsync `--license` flag, because the
+# Web UI's licensing page cannot install the file (its picker opens on a fixed,
+# non-navigable directory) and because a flag is reproducible from a module
+# where a GUI click is not. An identity must exist first -- `--license` fails
+# with SE_SM_NO_IDENTITY otherwise -- so applyLicense creates one if absent.
 #
-# The Web UI stays off. Resilio makes a config-file folder list and the UI
-# mutually exclusive (upstream's sample config: "if you set shared folders in
-# config file WebUI will be DISABLED"), which nixpkgs encodes as
-# `enableWebUI -> sharedFolders == []`. Nothing here needs the UI: the license
-# comes from the flag above, and un-stopping a folder is runtime state the
-# config file cannot express either way.
+# The Web UI is enabled and the shared folder is NOT declared here; Resilio
+# makes those mutually exclusive, and a config-declared folder cannot be put
+# into the connecting state (see the service block below for the full account).
 _: {
   my.modules.nixos.resilio =
     {
@@ -116,10 +113,18 @@ _: {
         # about the path, with no mention of permissions). Grant traverse-only
         # on each ancestor between $HOME and the tree root rather than loosening
         # the home's mode or adding rslsync to the operator's primary group:
-        # --x is exactly the access needed, and it is scoped to the one group.
+        # `rx`, not `x`. Traverse-only is enough for the daemon to follow a
+        # path to the tree, but not for the Web UI: its folder picker calls
+        # getdir(dir) to *enumerate* a directory, and that needs read. Without
+        # it the call returns `{"folders":[]}` -- an empty listing rather than
+        # an error -- so the picker renders a directory with nothing in it and
+        # no way to navigate, which reads as a broken dialog. Observed directly:
+        # `getdir /home/ashebanow/Synced Files` returned an empty list while the
+        # home had only `x`, and listed its contents immediately once `r` was
+        # added.
         ${lib.concatMapStrings (dir: ''
           if [ -d ${lib.escapeShellArg dir} ]; then
-            ${pkgs.acl}/bin/setfacl -m "g:${rslsyncGroup}:x" ${lib.escapeShellArg dir}
+            ${pkgs.acl}/bin/setfacl -m "g:${rslsyncGroup}:rx" ${lib.escapeShellArg dir}
           fi
         '') (treeAncestors home resilioDirectory)}
 
@@ -278,16 +283,55 @@ _: {
       # the CLI flag is the only workable route -- and it is the reproducible one.
       applyLicense = pkgs.writeShellScript "resilio-apply-license" ''
         set -euo pipefail
-        # Already installed: pick up the stored license rather than re-applying.
-        # `--license` is idempotent in practice, but re-running it on every boot
-        # would rewrite storagePath for no reason, so skip once it is present.
+        # Already installed: nothing to do. `--license` writes storagePath/License
+        # once, so this keeps a reboot from rewriting it.
         if [ -e /var/lib/rslsync/.sync/License ]; then
           echo "resilio: license already installed"
           exit 0
         fi
-        ${pkgs.resilio-sync}/bin/rslsync \
-          --license ${lib.escapeShellArg licenseFile} \
-          --storage /var/lib/rslsync/.sync
+
+        # An identity has to exist before a license can be attached to it.
+        # `--license` on a bare storage fails with `SE_SM_NO_IDENTITY` -- and,
+        # like the pid-file refusal below, still exits 0 while printing nothing
+        # useful, so the failure is invisible unless the output is inspected.
+        # Observed directly: identical command, identical file, succeeded once
+        # an identity existed and installed nothing before that.
+        if [ ! -e /var/lib/rslsync/.sync/.SyncUser* ]; then
+          echo "resilio: creating storage identity"
+          ${pkgs.resilio-sync}/bin/rslsync \
+            --identity ${lib.escapeShellArg deviceName} \
+            --storage /var/lib/rslsync/.sync >/dev/null 2>&1 || true
+        fi
+
+        # `--license` refuses to run while a daemon holds the pid file, and --
+        # this is the part that hides the problem -- it still exits 0 when it
+        # bails out that way, printing only "Can't lock pid file" on stdout. A
+        # script that trusted the exit status reported success while installing
+        # nothing. So capture the output and treat the refusal as fatal here,
+        # where systemd will surface it instead of letting the daemon start
+        # unlicensed and silently refuse to connect to any peer.
+        if ! out=$(${pkgs.resilio-sync}/bin/rslsync \
+                  --license ${lib.escapeShellArg licenseFile} \
+                  --storage /var/lib/rslsync/.sync 2>&1); then
+          echo "resilio: license install failed: $out" >&2
+          exit 1
+        fi
+        case "$out" in
+          *"already running"*)
+            echo "resilio: refusing to run --license while a daemon holds the pid file" >&2
+            exit 1
+            ;;
+          *"NO_IDENTITY"*)
+            echo "resilio: identity was not created; cannot attach the license" >&2
+            exit 1
+            ;;
+        esac
+
+        # Verify rather than trusting the exit status, for the same reason.
+        if [ ! -e /var/lib/rslsync/.sync/License ]; then
+          echo "resilio: --license exited 0 but installed nothing (output: $out)" >&2
+          exit 1
+        fi
         echo "resilio: license applied"
       '';
     in
@@ -306,6 +350,18 @@ _: {
             assertion = config.users.users ? ${resilioUser};
             message = "my.resilioUser (${resilioUser}) is not a user declared on this host.";
           }
+          {
+            # The folder is managed through the Web UI, so known hosts are set
+            # there too and this option has no effect. Failing loudly rather
+            # than letting a host set a value that silently does nothing.
+            assertion = config.my.resilioKnownHosts == [ ];
+            message = ''
+              my.resilioKnownHosts is set but has no effect: the shared folder is
+              no longer declared in the generated config (Resilio will not bind
+              its Web UI while one is), so known hosts are configured in the UI
+              at http://127.0.0.1:8888 instead. Remove the option from this host.
+            '';
+          }
         ];
 
         services.resilio = {
@@ -323,50 +379,50 @@ _: {
           checkForUpdates = false;
           encryptLAN = true;
 
-          # The declared folder comes from this config file, and Resilio's own
-          # behaviour is that a config-file folder list and the Web UI are
-          # mutually exclusive -- upstream's sample config says so plainly
-          # ("if you set shared folders in config file WebUI will be DISABLED"),
-          # and it is literal: with a folder declared, a `webui` block added to
-          # the generated config is ignored and nothing binds the port. nixpkgs
-          # encodes that as `enableWebUI -> sharedFolders == []`.
+          # The Web UI is ENABLED, and the shared folder is deliberately NOT
+          # declared here. Resilio makes the two mutually exclusive: a
+          # config-file folder list disables the UI (upstream's sample config:
+          # "if you set shared folders in config file WebUI will be DISABLED"),
+          # which nixpkgs encodes as `enableWebUI -> sharedFolders == []`. It is
+          # literal -- with a folder declared, a `webui` block is ignored and
+          # nothing binds the port.
           #
-          # The UI is not needed here anyway. Its one indispensable function was
-          # installing the owner license, and the `--license` flag does that
-          # reproducibly (see resilio-apply-license above); it is also no use for
-          # un-stopping a folder, since that is a runtime state the config file
-          # cannot express.
-          enableWebUI = false;
+          # The folder is therefore added once through the UI and lives in the
+          # daemon's storage rather than in the Nix store. That costs us
+          # declarativeness for the folder, its known_hosts and its initial sync
+          # mode, and buys the one thing the config file provably cannot set: a
+          # folder's connect state. Resilio keeps that as runtime state
+          # (`stopped` in sync.dat) and overrides any `stopped`/`sync_level` given
+          # in the folder block, so a config-declared folder lands `stopped: 1`
+          # and the daemon never dials a peer. Verified on this host, and the
+          # reason the declarative approach kept looking like a network fault.
+          enableWebUI = true;
 
-          directoryRoot = resilioDirectory;
+          # Explicit IPv4 loopback. The nixpkgs default is `[::1]`, and this host
+          # has no usable IPv6 (`::1` is not even bindable: "Cannot assign
+          # requested address"), so the default leaves the UI unreachable.
+          httpListenAddr = "127.0.0.1";
+          httpListenPort = 8888;
+
+          # The UI's folder picker starts *at* directory_root and lists its
+          # contents, so the root itself is never among the selectable entries.
+          # Pointing this at the tree therefore makes the tree unpickable -- the
+          # picker browses inside it and can only offer its children, which is
+          # the "I can create subfolders but cannot choose the folder I want"
+          # symptom. It has to be the tree's PARENT so the tree appears in the
+          # listing. nixpkgs' option docs call this the "default directory to add
+          # folders in", which is the same thing.
+          directoryRoot = dirOf resilioDirectory;
           storagePath = "/var/lib/rslsync/.sync";
 
-          # secretFile, not secret — the latter would put the key in the Nix
-          # store. The module's jq pass substitutes it into the generated config
-          # at start time.
-          sharedFolders = [
-            {
-              secretFile = keyFile;
-              directory = resilioDirectory;
-              useRelayServer = true;
-              useTracker = true;
-              useDHT = true;
-              searchLAN = true;
-              useSyncTrash = true;
-              # Not `inherit (config.my) resilioKnownHosts` — that would emit the
-              # key under the option's name, and the module reads `knownHosts`.
-              # The daemon ignores unrecognised folder keys silently, so the
-              # wrong spelling would look correct and do nothing.
-              knownHosts = config.my.resilioKnownHosts;
-            }
-          ];
+          # Nothing to declare: see above. The folder is added via the UI.
+          sharedFolders = [ ];
         };
 
         systemd.services.resilio = {
           after = [
-            "resilio-populate-key.service"
+            "resilio-populate-secrets.service"
             "resilio-migrate-home.service"
-            "resilio-apply-license.service"
             # The stock module only sets `after = [ "network.target" ]`, which
             # systemd reaches *before* interfaces, DHCP, and a usable resolver.
             # The daemon fetches its tracker/relay list from config.resilio.com
@@ -381,38 +437,37 @@ _: {
             "resilio-migrate-home.service"
             "network-online.target"
           ];
-          requires = [
-            "resilio-populate-key.service"
-            "resilio-apply-license.service"
-          ];
+          requires = [ "resilio-populate-secrets.service" ];
+
+          # The license has to be applied BEFORE the daemon starts, not merely
+          # alongside it: `rslsync --license` refuses to touch the storage while
+          # any daemon holds the pid file. As a separate unit that only `After=`
+          # the daemon, systemd happily runs it *after* resilio has come up, and
+          # the flag then no-ops. An ExecStartPre in this unit is serialised by
+          # systemd against the start itself, which is the ordering that is
+          # actually needed.
+          #
+          # Deliberately NOT `+`-prefixed. `+` runs it as root, and everything
+          # rslsync writes into storagePath would then be root-owned -- the
+          # daemon itself runs as the `rslsync` user and then cannot write its
+          # own pid file ("Can't open pid file ... Permission denied"), which
+          # fails the unit. It runs as the unit's User, which is the same user
+          # that owns that tree.
+          serviceConfig.ExecStartPre = [ "${applyLicense}" ];
+
           # The generated config is written to /run/rslsync by ExecStartPre,
-          # which reads the key file as the rslsync user — so the service must
-          # not start until that file exists with the right group and mode.
+          # which reads the secret files as the rslsync user — so the service
+          # must not start until they exist with the right group and mode.
           unitConfig.ConditionPathExists = keyFile;
         };
 
-        # Applies the owner license into storagePath before the daemon starts.
-        # Runs as rslsync because that is the user that will own and read the
-        # resulting License/ directory.
-        systemd.services.resilio-apply-license = {
-          description = "Apply the Resilio owner license";
-          wantedBy = [ "multi-user.target" ];
-          after = [
-            "resilio-populate-key.service"
-            "var-lib-rslsync.mount"
-          ];
-          requires = [ "resilio-populate-key.service" ];
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            User = "rslsync";
-            Group = rslsyncGroup;
-            ExecStart = applyLicense;
-          };
-        };
-
-        systemd.services.resilio-populate-key = {
-          description = "Resolve the Resilio Synced Files key from BWS";
+        # Resolves the folder key and the license from BWS into /run/secrets.
+        # The key has no consumer in the config any more (the folder is added
+        # through the UI), but it is still staged: it is the value that has to be
+        # pasted into the UI's "add folder" prompt, and having it in a known
+        # root-owned file beats copying it out of Bitwarden by hand.
+        systemd.services.resilio-populate-secrets = {
+          description = "Resolve the Resilio folder key and license from BWS";
           wantedBy = [ "multi-user.target" ];
           wants = [ "network-online.target" ];
           after = [ "network-online.target" ];
