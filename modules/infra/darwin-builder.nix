@@ -35,6 +35,14 @@
   # the dev shell.
   linearCliOverlay = import ../../lib/overlays/linear-cli.nix;
 
+  # devenv (BOX-245): nixpkgs is on 2.3.1, which bundles SecretSpec 0.20.0 and
+  # re-prompts for the macOS keychain on every `cd` because the item's
+  # change_acl list is sealed. 2.4.0 is the first release carrying SecretSpec
+  # 0.21.0 and its keyring fix. That overlay deliberately pins devenv ONLY and
+  # not `secretspec` — SecretSpec is vendored into devenv's workspace, so the
+  # bundled binary is the one that reads the keychain. See the overlay header.
+  devenvOverlay = import ../../lib/overlays/devenv.nix {inherit (inputs) devenvUnstable;};
+
   # Binary caches for the darwin hosts — same set as the NixOS hosts
   # (modules/infra/nix/caches.nix), minus flakehub and
   # install.determinate.systems which Determinate Nix's own nix.conf
@@ -106,10 +114,10 @@
             };
           }
           {
-            # Dev-workstation-only package overrides — see worktrunkOverlay
-            # and linearCliOverlay above for why these are here and not in
-            # the NixOS builder.
-            nixpkgs.overlays = [worktrunkOverlay linearCliOverlay];
+            # Dev-workstation-only package overrides — see worktrunkOverlay,
+            # linearCliOverlay, and devenvOverlay above for why these are here
+            # and not in the NixOS builder.
+            nixpkgs.overlays = [worktrunkOverlay linearCliOverlay devenvOverlay];
           }
           nix-homebrew.darwinModules.nix-homebrew
           {

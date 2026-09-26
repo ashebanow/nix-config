@@ -98,6 +98,23 @@
       url = "github:max-sixty/worktrunk/v0.78.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # devenv 2.4.0, ahead of our FlakeHub 0.2605 nixpkgs pin (BOX-245).
+    #
+    # A SECOND nixpkgs input, deliberately NOT applied to any host's package
+    # set wholesale — it exists to source one attribute, `devenv`, via
+    # lib/overlays/devenv.nix. Taking it from the branch rather than retargeting
+    # the whole pin keeps the blast radius to one package: the 0.2605 pin is
+    # what every host closure is built from, and moving it to chase a single
+    # CLI would pull an unbounded set of unrelated bumps along with it.
+    #
+    # Why 2.4.0 matters: it is the first release bundling SecretSpec 0.21.0,
+    # which fixes the sealed-keychain-ACL bug that made macOS re-prompt for the
+    # Cachix token on every `cd`. Full reasoning in the overlay header.
+    #
+    # Retired together with the overlay — see RETIRE ME there. Not
+    # `inputs.nixpkgs.follows`-ed, on purpose: following would defeat the point.
+    devenvUnstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs = inputs @ {flake-parts, ...}: let
