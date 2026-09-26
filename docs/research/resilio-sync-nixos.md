@@ -147,6 +147,14 @@ LAN-only before any peer handshake ever begins.
 
 `services.resilio.sharedFolders.<n>.knownHosts` in nixpkgs is a `listOf str` and is passed straight
 through, so `knownHosts = [ "10.40.60.74:4444" ];` (or the peer's fixed port) is the one-line change.
+
+**Setting the port on macOS is a verified UX trap (first-hand, 2026-09-25).** The Resilio desktop app
+gives you no Apply or OK button for the listening port — it is a bare text field in Preferences →
+Advanced. Editing it and closing the window **discards the change**. The sequence that actually
+sticks is: **pause the folder's sync, edit the port, quit the app, relaunch it.** Confirmed on
+`bergamot`, which then reported `TCP *:4444` and `UDP *:4444` in `lsof` and had released the previous
+random port (`46654`). Worth knowing before touching a second machine, because the failure is silent:
+the field shows the new number either way, and nothing reports that it was dropped.
 Note the repo's module currently hard-sets `knownHosts = [ ]` and mounts nothing else — that empty
 list is the hole.
 
@@ -396,6 +404,44 @@ Its only resolver interaction is **three requests to the nscd `hosts` database**
 traffic to port 53 at all, so it never reaches a nameserver. The single recurring diagnostic is
 `16TcpSocketWrapper::set_error[-1] 1 (hostname not found)`, emitted once at startup and once at
 shutdown, on a socket that is never retried.
+
+### ROOT CAUSE FOUND (2026-09-25, later the same day): the owner license
+
+The daemon had no owner license installed. **Without one it never attempts a
+peer connection at all** -- and, critically, it gives no indication that this is
+why. It binds its listen sockets, scans the folder, logs no error, and simply
+never dials. That is the exact shape of every observation in this section.
+
+The evidence is a single state field in `storagePath/.sync/sync.dat`:
+
+    before the license:  ...pausedi0e7:stoppedi1e...
+    after  the license:  ...pausedi0e7:stoppedi0e...
+
+`stopped: 1` means the folder is not connected. Adding `stopped` or `sync_level`
+to the shared-folders block in `config.json` is *accepted silently and then
+overridden*, so this cannot be fixed declaratively -- it has to be licensed.
+Within seconds of installing the license, peer tunnels opened:
+
+    Found peer ... 10.40.60.74:4444 transport:TCP version: 3.1.2
+    best tunnel now is 10.40.60.74:4444<->10.40.0.240:52908/TCP (TLS-PSK)
+
+**The Web UI's licensing page cannot install the file.** It opens a folder
+picker on a fixed, non-editable directory with no way to navigate, so a license
+sitting in `~/Downloads` is unreachable. The CLI is the workable route and is
+also the reproducible one:
+
+    rslsync --license <path> --storage <storage_path>
+
+which writes `storagePath/License/<slot>/license.bin` plus a bare-base32 key
+file. Applied from the module (see `resilio-apply-license` in
+`modules/features/resilio.nix`), run as the `rslsync` user before the daemon.
+
+**This invalidates the ranked list below**, which is why it is left in place
+rather than deleted: every item on it was a hypothesis about a daemon that was
+never permitted to dial out. The local network, DNS, firewall and IPv6 were all
+fine. The `known_hosts` recommendation in §2 turned out to be correct and does
+work -- the tunnel above is to a `known_hosts` entry -- but it was not the
+blocker.
 
 ### What this means
 

@@ -230,6 +230,29 @@
         top-level layout is the source of truth (see modules/features/resilio.nix).
       '';
     };
+    resilioKnownHosts = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "10.40.60.74:4444" ];
+      description = ''
+        Peers to dial directly, as `host:port`, bypassing tracker, relay, DHT
+        and LAN discovery entirely. Use literal LAN addresses: a name is
+        resolved by the OS, and on a host whose name resolves to a Tailscale
+        address this would hand Resilio an address it cannot use, since it does
+        not traverse Tailscale.
+
+        The port must be the peer's **fixed** listening port -- a peer left on
+        the default random port has no stable address to name here, so pinning
+        it on that peer is a prerequisite, not an optional tidy-up.
+
+        UNUSED as of the move to UI-managed folders: the folder (and therefore
+        its known-hosts list) is no longer declared in the generated config, so
+        nothing reads this. Retained because it is the natural home for the
+        value if the folder ever becomes declarative again; a host that sets it
+        today would get no effect, which is a trap worth deleting rather than
+        leaving, so it is kept only with this note attached.
+      '';
+    };
 
     # Memory feature (Mnemosyne)
     memory = lib.mkOption {

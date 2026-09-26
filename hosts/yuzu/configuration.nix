@@ -46,6 +46,13 @@
     "personal_wiki"
   ];
 
+  # The shared folder itself is NOT declared here. Resilio will not bind its
+  # Web UI while a folder is declared in the config file, and a config-declared
+  # folder cannot be put into the connecting state (that is runtime state the
+  # daemon overrides), so the folder -- its key, its path and its known_hosts --
+  # is added once through the UI at http://127.0.0.1:8888. Peers to name there:
+  # 10.40.60.74 (bergamot) and 10.40.60.97 (miracle_max), both on port 4444.
+
   # CUPS, for the networked colour LaserJet. Both the service and the queue are
   # declarative (see modules/features/printing.nix).
   my.printing = true;
