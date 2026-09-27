@@ -10,7 +10,6 @@ _: {
       home.packages = with pkgs; [
         charm
         crush
-        deja
         temurin-bin
         vscode
         zed-editor
