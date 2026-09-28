@@ -11,6 +11,10 @@
   my.base = true;
   my.baseUsername = "podman";
   my.baseTimezone = "America/Los_Angeles";
+  my.cliProductivityTools = true;
+  my.cliSecurityTools = true;
+  my.cliSystemTools = true;
+  my.cliTools = true;
   my.llm = true;
   my.llmServe = true;
   my.bifrostServe = true;
