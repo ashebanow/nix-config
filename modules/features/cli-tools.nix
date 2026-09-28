@@ -24,7 +24,9 @@ _: {
         just
         neovim
         ripgrep
+        unzip
         wget
+        zip
         zoxide
       ];
     };
