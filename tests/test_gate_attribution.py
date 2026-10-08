@@ -335,7 +335,11 @@ class TestProviderAccess(unittest.TestCase):
 
 
 class TestExpectedClients(unittest.TestCase):
-    """One key per client tool, per the design's D2."""
+    """One key per client tool, per the design's D2.
+
+    Zed's Delta tool is a separate attribution identity from the Zed editor
+    itself, so a request can be traced to the tool that sent it.
+    """
 
     def test_all_client_keys_are_declared(self):
         cfg_path = (
@@ -347,7 +351,7 @@ class TestExpectedClients(unittest.TestCase):
         cfg = json.loads(cfg_path.read_text())
         keys = cfg.get("governance", {}).get("virtual_keys", [])
         names = {k.get("name") for k in keys}
-        expected = {"pi", "hermes", "zed", "raycast", "openwebui", "gate"}
+        expected = {"pi", "hermes", "zed", "zed-delta", "raycast", "openwebui", "gate"}
         self.assertEqual(
             expected,
             names,

@@ -86,6 +86,7 @@ services:
       - VK_PI=${VK_PI}
       - VK_HERMES=${VK_HERMES}
       - VK_ZED=${VK_ZED}
+      - VK_ZED_DELTA=${VK_ZED_DELTA}
       - VK_RAYCAST=${VK_RAYCAST}
       - VK_OPENWEBUI=${VK_OPENWEBUI}
       - VK_GATE=${VK_GATE}

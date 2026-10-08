@@ -298,8 +298,10 @@ LiteLLM proxy.
 - **Access**: Tailscale is the perimeter — the gateway binds loopback inside the
   sidecar netns, and nothing is on a host port. Client attribution is by
   **bifrost virtual keys** (BOX-149): the gateway knows one key per client tool
-  (`pi`, `hermes`, `zed`, `raycast`, `openwebui`, plus `gate` for the
-  reliability gate) and records it as `virtual_key_name` on every log row, so
+  (`pi`, `hermes`, `zed`, `zed-delta`, `raycast`, `openwebui`, plus `gate` for
+  the reliability gate; Zed's Delta tool is its own identity, so a request can
+  be attributed to the tool and not just the editor) and records it as
+  `virtual_key_name` on every log row, so
   the log view can filter by origin. Values are randomly generated and held in
   BWS; `bifrost-config.json` references them by `env.VK_*` indirection, so no
   key value is in git. They are **recorded but not enforced** —
