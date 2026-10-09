@@ -214,6 +214,12 @@ case ResponsesOutputMessageContentTypeText:
 
 ### No released version fixes this — do not upgrade for it
 
+**Filed upstream: [maximhq/bifrost#8196](https://github.com/maximhq/bifrost/issues/8196)**
+(2026-10-08). The draft text lives in
+`docs/drafts/bifrost-issue-responses-multipart-output-text.md`. No PR opened yet —
+waiting on a maintainer to confirm the intended mapping before proposing the
+one-line fix.
+
 **The bug is present in every release after v2.0.0, and on `main` and `dev`.**
 The `case` list above is unchanged in `transports/v2.0.0`, `v2.1.0`, `v2.2.0`,
 `v2.2.6`, `main`, and `dev`. No `output_text` case has ever been added.
@@ -231,8 +237,9 @@ bug (#7074/#7075, Bedrock Responses `input_text` mistagging). Not this one.
 
 Options, cheapest first:
 
-1. **File upstream.** No issue exists, the defect is one missing `case`, and the
-   reproducer below is 3 lines. Highest-value action.
+1. **File upstream.** **DONE — [#8196](https://github.com/maximhq/bifrost/issues/8196).**
+   No issue existed, the defect is one missing `case`, and the reproducer is 3
+   lines.
 2. **Patch and run a locally-built image** if a fix is wanted before upstream
    responds. Note the build/publish burden of a forked gateway image.
 3. **Upgrade to v2.2.6 only for other reasons** — not for this. It also carries
@@ -362,6 +369,11 @@ gateway log — do not mistake those rows for real Delta traffic.
 
 ## Related
 
+- **[maximhq/bifrost#8196](https://github.com/maximhq/bifrost/issues/8196)** — the
+  upstream report for this bug (filed 2026-10-08). Watch it for a fix; when it
+  lands, re-run `scripts/bifrost-responses-translation-probe.py` to confirm.
+- `docs/drafts/bifrost-issue-responses-multipart-output-text.md` — the filed
+  issue text, plus filing notes.
 - `docs/box-149-per-client-attribution.md` — the VK design; D5 records the
   Zed-client limits.
 - `docs/architecture.md` — gateway access model, client key list.
