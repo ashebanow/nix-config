@@ -41,7 +41,10 @@
     # and Launchpad — without this, GUI apps installed via home.packages
     # are technically present but undiscoverable (Spotlight doesn't
     # index the symlinks Nix creates).
-    mac-app-util.url = "github:hraban/mac-app-util";
+    mac-app-util = {
+        url = "github:hraban/mac-app-util";
+        inputs.nixpkgs.follows = "nixpkgs";  # temporarily override nixpkgs url to get SBCL v2.6.6
+    };
 
     # NixOS hardware quirks
     nixos-hardware.url = "github:nixos/nixos-hardware";

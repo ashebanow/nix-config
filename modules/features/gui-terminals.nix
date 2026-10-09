@@ -17,8 +17,8 @@ _: {
           then ghostty-bin
           else ghostty
         )
-        kitty
         warp-terminal
+        wezterm
         tmux
         zmx
       ];
