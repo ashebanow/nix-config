@@ -77,6 +77,67 @@ update-worktrunk:
     nix flake lock
     echo "now on $latest — review \`git diff flake.nix flake.lock\`"
 
+# Refresh the claude-code pin to Anthropic's current release.
+#
+# claude-code does not come from a flake input — nixpkgs' recipe takes its
+# release manifest as an overridable argument, and lib/overlays/claude-code.nix
+# feeds it a verbatim copy of Anthropic's own manifest for one release. So the
+# bump is not `nix flake update <input>`; it is re-fetching that one file.
+#
+# Reads the `latest` channel, NOT `stable`, and that is deliberate even though
+# `stable` sounds safer. Claude Code compares the running version against
+# `latest` (`claude doctor` → "Auto-update channel: latest"), and the two
+# pointers are permanently several releases apart. Pinning `stable` makes the
+# in-session update notice always true and therefore worthless; pinning
+# `latest` makes it mean "run this recipe". Full argument in the overlay
+# header — do not "harden" this to `stable` without reading it.
+#
+# The fetched body is validated before it replaces the pin. `curl -f` already
+# rejects a 404, but a truncated body or an HTML error page served with a 200
+# would otherwise be written straight into the manifest, and the breakage would
+# surface much later as a confusing eval or hash-mismatch error. The version
+# re-check also catches the channel pointer advancing between the two
+# requests, which would leave a manifest whose version disagrees with the
+# release directory it came from.
+#
+# Re-fetch the claude-code manifest from Anthropic's latest channel
+[group('nix')]
+update-claude-code:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    base="https://downloads.claude.ai/claude-code-releases"
+    manifest="lib/overlays/claude-code-manifest.json"
+    [[ -f "$manifest" ]] || { echo "error: $manifest is missing (overlay removed or renamed?)" >&2; exit 1; }
+    channel="$(curl -fsSL "$base/latest")"
+    [[ "$channel" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+      echo "error: latest channel returned '$channel', which is not a version" >&2
+      exit 1
+    }
+    current="$(jq -r '.version' "$manifest")"
+    if [[ "$current" == "$channel" ]]; then
+      echo "claude-code already on $channel"
+      exit 0
+    fi
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+    curl -fsSL "$base/$channel/manifest.zst.json" --output "$tmp"
+    # The two platform keys our hosts resolve to: aarch64-darwin (bergamot,
+    # miraclemax) and x86_64-linux (yuzu). A manifest missing either one would
+    # evaluate fine and then fail with a bare "attribute missing" at build.
+    jq -e --arg v "$channel" '
+      .version == $v
+      and ([.platforms["darwin-arm64"], .platforms["linux-x64"]]
+           | all(type == "object"
+                 and (.binary | type == "string")
+                 and (.checksum | test("^[0-9a-f]{64}$"))))
+    ' "$tmp" >/dev/null || {
+      echo "error: manifest for $channel is not the expected shape — inspect $base/$channel/manifest.zst.json" >&2
+      exit 1
+    }
+    cp "$tmp" "$manifest"
+    echo "claude-code: $current -> $channel"
+    echo "review \`git diff $manifest\`, then \`just switch\`"
+
 # Format all Nix files
 [group('nix')]
 fmt:

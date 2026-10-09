@@ -43,6 +43,14 @@
   # bundled binary is the one that reads the keychain. See the overlay header.
   devenvOverlay = import ../../lib/overlays/devenv.nix {inherit (inputs) devenvUnstable;};
 
+  # claude-code: nixpkgs trails the CLI's several-releases-a-week cadence (our
+  # pin is 2.1.272 against Anthropic's 2.1.296). This overlay swaps in
+  # Anthropic's own release manifest so `pkgs.claude-code` — installed by
+  # modules/features/cli-ai-tools.nix via home.packages — is current, and
+  # shims `claude update` so it explains the Nix workflow rather than quietly
+  # installing a second native copy under ~/.local. See the overlay header.
+  claudeCodeOverlay = import ../../lib/overlays/claude-code.nix;
+
   # Binary caches for the darwin hosts — same set as the NixOS hosts
   # (modules/infra/nix/caches.nix), minus flakehub and
   # install.determinate.systems which Determinate Nix's own nix.conf
@@ -115,9 +123,10 @@
           }
           {
             # Dev-workstation-only package overrides — see worktrunkOverlay,
-            # linearCliOverlay, and devenvOverlay above for why these are here
-            # and not in the NixOS builder.
-            nixpkgs.overlays = [worktrunkOverlay linearCliOverlay devenvOverlay];
+            # linearCliOverlay, devenvOverlay, and claudeCodeOverlay above for
+            # why these are here and not (or, for claude-code, also) in the
+            # NixOS builder.
+            nixpkgs.overlays = [worktrunkOverlay linearCliOverlay devenvOverlay claudeCodeOverlay];
           }
           nix-homebrew.darwinModules.nix-homebrew
           {
