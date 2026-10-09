@@ -9,7 +9,6 @@ _: {
     config = lib.mkIf config.my.cliAiTools {
       home.packages = with pkgs; [
         claude-code
-        herdr
         llmfit
         opencode
         # pi-coding-agent
