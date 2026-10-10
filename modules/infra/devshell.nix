@@ -36,6 +36,19 @@
     # dev-tool policy as pi/worktrunk: in the shell on every host, in a
     # host closure only on the Darwin workstations.
     linearPkgs = pkgs.extend (import ../../lib/overlays/linear-cli.nix);
+
+    # claude-code is pinned to Anthropic's release channel and shimmed by
+    # lib/overlays/claude-code.nix, but `unfreePkgs` above is a fresh
+    # `import pkgs.path` and so carries NO overlays. Without this extend the
+    # shell's `claude` is stock nixpkgs (2.1.272 against the pin's 2.1.296)
+    # and unshimmed — and because the shell's PATH sits ahead of
+    # /etc/profiles/per-user, it *shadows* the pinned one the host actually
+    # installs. That is a worse failure than a stale shell tool: `just
+    # update-claude-code && just switch` then reports success while every
+    # shell session keeps running the old binary. Extend the unfree set rather
+    # than `pkgs`, because claude-code is unfree and that is where the
+    # allowUnfree config lives.
+    claudePkgs = unfreePkgs.extend (import ../../lib/overlays/claude-code.nix);
   in {
     devShells.default = pkgs.mkShell {
       name = "lumquat-dev";
@@ -55,7 +68,7 @@
 
       packages = with pkgs; [
         unfreePkgs.bws
-        unfreePkgs.claude-code
+        claudePkgs.claude-code
         dig
         gh
         git
