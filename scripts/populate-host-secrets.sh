@@ -59,6 +59,28 @@ write_user() {
   echo "wrote $path (owner $owner)"
 }
 
+# write_key <env-var> <path> <owner>: like write_user, but normalizes the value
+# for a consumer that parses it as a key file (ssh, age, ...). BWS items are
+# entered by hand, so they routinely arrive without a trailing newline — and
+# OpenSSH rejects such a key outright with "invalid format" — and occasionally
+# with CRLF line endings. Strip carriage returns and always terminate with a
+# single newline. Optional, like the other user-readable secrets.
+write_key() {
+  local var="$1" path="$2" owner="$3"
+  if [[ -z "${!var:-}" ]]; then
+    echo "$var is empty/absent — skipping $path (optional dev secret)"
+    rm -f "$path"
+    return 0
+  fi
+  umask 077
+  local tmp="$path.tmp"
+  printf '%s\n' "${!var}" | tr -d '\r' > "$tmp"
+  chown "$owner:root" "$tmp"
+  chmod 0400 "$tmp"
+  mv -f "$tmp" "$path"
+  echo "wrote $path (owner $owner)"
+}
+
 case "${1:-host}" in
   host)
     [[ -n "${2:-}" ]] || fail "host mode needs the node's tailscale variable name as its second argument"
