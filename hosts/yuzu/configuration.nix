@@ -87,6 +87,14 @@
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
 
+  # The Realtek USB ethernet dongle (enp1s0u2u3, r8152) links up but never gets
+  # a DHCP lease. NetworkManager auto-generates an autoconnect profile for it
+  # and retries activation every ~45s forever, which means NM never reaches
+  # "startup complete" — so nm-online -s (NetworkManager-wait-online) times out
+  # and any activation that restarts sysinit-reactivation.target fails. Keep NM
+  # away from the interface entirely; it is not used for routing.
+  networking.networkmanager.unmanaged = [ "interface-name:enp1s0u2u3" ];
+
   # CPU governor is set centrally in base.nix (schedutil).
   # Override here only if yuzu needs a different governor:
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
