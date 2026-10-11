@@ -47,7 +47,11 @@ ATTRIBUTION_DEADLINE_S = float(os.environ.get("GATE_ATTRIBUTION_DEADLINE_S", "30
 # both remote checks silently rotted when the config was rewritten for native providers
 # (BOX-156). Keep these in step with compose/llm/bifrost-config.json.
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash"
-ANTHROPIC_MODEL = "anthropic/claude-haiku-4-5-20251001"
+# Was claude-haiku-4-5-20251001, dropped from the config when its earliest
+# retirement date hit October 15, 2026 and nothing used it. Sonnet 5 replaces it: still
+# declared, cheaper than Opus/Fable, and the capabilities the round trip needs
+# (tool use + reasoning) are the ones Haiku's line lags on anyway.
+ANTHROPIC_MODEL = "anthropic/claude-sonnet-5"
 
 # --------------------------------------------------------------------------- io
 
