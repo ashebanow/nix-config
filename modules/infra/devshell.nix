@@ -73,6 +73,7 @@
         gh
         git
         home-manager
+				jq
         linearPkgs.linear-cli
         mcp-nixos
         nil
