@@ -94,7 +94,7 @@ services:
       # its `config` table (ENABLE_PERSISTENT_CONFIG=true), so an existing install
       # keeps whatever the UI saved. Changing this list for a live instance means
       # editing the connection in the UI or clearing the `openai.*` config rows.
-      - 'OPENAI_API_CONFIGS={"0":{"enable":true,"prefix_id":"","tags":[],"model_ids":["qwen-latest","deepseek/deepseek-v4-pro","deepseek/deepseek-v4-flash","anthropic/claude-haiku-4-5-20251001","anthropic/claude-sonnet-5","anthropic/claude-opus-5","anthropic/claude-fable-5-1","gemini/gemini-3.7-flash","gemini/gemini-3.6-flash","gemini/gemini-3.5-flash","gemini/gemini-3.5-flash-lite"]}}'
+      - 'OPENAI_API_CONFIGS={"0":{"enable":true,"prefix_id":"","tags":[],"model_ids":["qwen-latest","deepseek/deepseek-v4-pro","deepseek/deepseek-v4-flash","deepseek/deepseek-flash","anthropic/claude-sonnet-5","anthropic/claude-opus-5","anthropic/claude-fable-5-1","anthropic/claude-mythos-5","anthropic/claude-mythos-5-1","anthropic/claude-haiku-5-5","anthropic/claude-sonnet-5-5","anthropic/claude-opus-5-5","gemini/gemini-3.8-flash","gemini/gemini-3.7-flash","gemini/gemini-3.6-flash","gemini/gemini-3.5-flash-lite","gemini/gemini-nano-banana-2.1","gemini/gemini-3-pro-image"]}}'
       # Session-signing key — same BWS value as before, honest name. See header.
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
     volumes:
