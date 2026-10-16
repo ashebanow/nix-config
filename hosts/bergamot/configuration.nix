@@ -54,6 +54,7 @@
     # kitty/pinta/signal/slack/visual-studio-code/vlc/warp/zed all
     # moved to gui-* modules.
     casks = [
+      "1password" # must live in /Applications for browser and CLI integration
       # "arto" # no nixpkgs package found
       "bitwarden" # nixpkgs version uses dangerous version of electron
       "claude" # Claude desktop app — no nixpkgs package found

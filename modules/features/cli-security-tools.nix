@@ -27,4 +27,18 @@ _: {
         ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [pkgs.libsecret];
     };
   };
+
+  # 1Password CLI on NixOS goes through the system module rather than
+  # home.packages alone: programs._1password installs `op` behind a setgid
+  # wrapper (onepassword-cli group), which the desktop app's CLI integration
+  # requires. https://www.1password.dev/cli/get-started#nixos
+  my.modules.nixos.cli-security-tools = {
+    lib,
+    config,
+    ...
+  }: {
+    config = lib.mkIf config.my.cliSecurityTools {
+      programs._1password.enable = true;
+    };
+  };
 }

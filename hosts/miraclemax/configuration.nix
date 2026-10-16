@@ -52,6 +52,7 @@
     # font-monaspice-nerd-font dropped entirely — looks like a typo/
     # duplicate of font-monaspace-nerd-font (which did migrate).
     casks = [
+      "1password" # must live in /Applications for browser and CLI integration
       # "arto" # no nixpkgs package found
       "bitwarden" # nixpkgs version uses dangerous version of electron
       "claude" # Claude desktop app — no nixpkgs package found
