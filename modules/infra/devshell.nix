@@ -74,6 +74,14 @@
           # or a broken upstream extension bricks startup. Default it to
           # offline — extensions in .pi/npm/ keep working. To (re)sync them,
           # e.g. on a fresh clone: `PI_OFFLINE= pi` once.
+          #
+          # It also suppresses pi's own version check, which makes
+          # `pi update --all` fail with "Could not determine latest pi
+          # version." — that message is this variable, not a network or
+          # permissions problem. `pi update` is not how pi moves here anyway:
+          # this shell's pi comes from the pi-nix overlay below and lives in
+          # the read-only store, so it updates with `nix flake update pi-nix`
+          # + a rebuild, never in place.
           export PI_OFFLINE="''${PI_OFFLINE:-1}"
         '';
 
