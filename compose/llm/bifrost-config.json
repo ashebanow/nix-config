@@ -6,6 +6,11 @@
   },
   "source_of_truth": "config.json",
   "governance": {
+    "auth_config": {
+      "is_enabled": true,
+      "admin_username": "admin",
+      "admin_password": "env.BIFROST_ADMIN_PASSWORD"
+    },
     "virtual_keys": [
       {
         "id": "vk-pi",

@@ -16,6 +16,7 @@ Run:  python3 -m unittest discover -s tests -v
 
 from __future__ import annotations
 
+import base64
 import json
 import pathlib
 import sys
@@ -46,6 +47,7 @@ class _StubHandler(BaseHTTPRequestHandler):
 
     rows: list = []
     seen_headers: list = []
+    seen_get_headers: list = []
 
     def log_message(self, *a):  # silence
         pass
@@ -64,6 +66,7 @@ class _StubHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         from urllib.parse import parse_qs, urlparse
 
+        type(self).seen_get_headers.append(dict(self.headers))
         q = parse_qs(urlparse(self.path).query)
         rows = list(type(self).rows)
         vk = (q.get("virtual_key_name") or [None])[0]
@@ -85,6 +88,7 @@ class AttributionTestCase(unittest.TestCase):
     def setUp(self):
         _StubHandler.rows = list(self.rows)
         _StubHandler.seen_headers = []
+        _StubHandler.seen_get_headers = []
         self.server = HTTPServer(("127.0.0.1", 0), _StubHandler)
         self.base_url = f"http://127.0.0.1:{self.server.server_port}"
         t = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -174,6 +178,55 @@ class TestVKIsNotAuthorization(AttributionTestCase):
         self.assertNotIn(
             gate.GATE_VK, auth, "the VK must not be carried on Authorization"
         )
+
+
+class TestLogsReadAsDashboardAdmin(AttributionTestCase):
+    """Since v2.3.0 /api is locked without dashboard auth, so /api/logs must carry
+    the admin credential — and inference requests must never carry it."""
+
+    rows = [_row("gate")]
+
+    def setUp(self):
+        super().setUp()
+        saved = gate.ADMIN_PASSWORD
+        gate.ADMIN_PASSWORD = "Test-Passw0rd!"
+        self.addCleanup(setattr, gate, "ADMIN_PASSWORD", saved)
+
+    def test_logs_request_carries_basic_admin_auth(self):
+        gate.CHECKS["attribution"](self.base_url)
+        expected = "Basic " + base64.b64encode(
+            f"{gate.ADMIN_USERNAME}:Test-Passw0rd!".encode()
+        ).decode()
+        for hdrs in self.__class__._get_headers():
+            self.assertEqual(hdrs.get("authorization"), expected)
+
+    def test_inference_request_does_not_carry_admin_auth(self):
+        gate.CHECKS["attribution"](self.base_url)
+        hdrs = {k.lower(): v for k, v in self.headers_seen()[0].items()}
+        self.assertNotIn("authorization", hdrs)
+
+    @staticmethod
+    def _get_headers():
+        seen = [{k.lower(): v for k, v in h.items()} for h in _StubHandler.seen_get_headers]
+        assert seen, "the attribution check made no /api/logs request"
+        return seen
+
+
+class TestDashboardAuthConfig(unittest.TestCase):
+    """config.json must enable dashboard auth with an env-indirected password and
+    the username the gate authenticates as."""
+
+    def test_auth_config_matches_gate_and_commits_no_password(self):
+        cfg_path = (
+            pathlib.Path(__file__).resolve().parent.parent
+            / "compose"
+            / "llm"
+            / "bifrost-config.json"
+        )
+        auth = json.loads(cfg_path.read_text())["governance"]["auth_config"]
+        self.assertTrue(auth["is_enabled"])
+        self.assertEqual(auth["admin_username"], gate.ADMIN_USERNAME)
+        self.assertTrue(auth["admin_password"].startswith("env."))
 
 
 class TestDeclaredClientKeys(unittest.TestCase):

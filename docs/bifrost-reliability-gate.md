@@ -26,9 +26,36 @@ feels off.
 | `long-sustained-stream` | A multi-minute generation streamed to completion; asserts `[DONE]` with no silent gap > 30 s. LiteLLM hung mid-stream / tore the connection down. | Local model. ~5 min. |
 | `tool-roundtrip-anthropic` | Forced `get_weather` tool call → tool result fed back → final answer that used it, through the native Anthropic provider. | Remote. ~3 s. |
 | `tool-roundtrip-deepseek` | Same round trip through the DeepSeek provider. | Remote. ~2 s. |
-| `tool-roundtrip-deepseek-thinking` | Same round trip with thinking explicitly on (`reasoning_effort: high`) and the assistant's reasoning replayed on the follow-up turn. Asserts reasoning actually came back. | Remote. ~2 s. |
+| `tool-roundtrip-deepseek-thinking` | Same round trip with thinking explicitly on (`reasoning_effort: high`) and the assistant's reasoning replayed on the follow-up turn. Asserts reasoning actually came back. Uses a prompt that needs thought (resolve the city, then call the tool) and retries turn 1 up to 10 times, because DeepSeek's thinking is adaptive and skips trivial turns. | Remote. ~2 s, more on retries. |
 
 ## Run log
+
+### 2026-10-17 — bifrost v2.3.0 — **7/7 PASS**
+
+Full run on lumquat after the upgrade, with dashboard auth on; the thinking check was
+re-run alone after its fix (`0374837`) and passed.
+
+| check | result | detail |
+|---|---|---|
+| `attribution` | **PASS** | log row attributed to `gate` (`virtual_key_id=vk-gate`), read via `/api/logs` as the dashboard admin |
+| `stream-body-over-12kb` | **PASS** | 18 KB body, 239 chunks, 19.6 s |
+| `prompt-100k-tokens` | **PASS** | 527 KB body, 120 022 prompt_tokens, `finish=length`, 205 s (was ~830 s) |
+| `long-sustained-stream` | **PASS** | 3998 chunks, 16 064 chars, 333 s, max gap 0.5 s |
+| `tool-roundtrip-anthropic` | **PASS** | tool_call → result → "18°C" |
+| `tool-roundtrip-deepseek` | **PASS** | reasoning 72 chars, tool_call → result → "18°C" |
+| `tool-roundtrip-deepseek-thinking` | **PASS** (after fix) | first run failed: DeepSeek's adaptive thinking skipped reasoning on the bare prompt (1/8 tries); now uses a reasoning prompt plus up to 10 attempts |
+
+Three things broke on the way, none of them a serving regression:
+
+- **`just reliability-gate` never supplied `VK_GATE`**, so every check 401'd on a
+  placeholder key. The key now comes from `/run/secrets/vk-gate` (`dev` scope).
+- **v2.3.0 locks `/api`** without dashboard auth, so `attribution` 403'd. Dashboard auth
+  is now seeded from `config.json`, and the gate reads `/api/logs` over Basic auth.
+- **DeepSeek serves `deepseek-v4-flash` as `deepseek-flash`** (v2.3.0 records this as
+  `server_side_fallback_model`), and that model thinks adaptively. The thinking check
+  asserted reasoning on a prompt that needed none.
+
+The 4× faster prefill is not from the gateway; it reflects the local model stack.
 
 ### 2026-09-11 — bifrost v2.0.0 — **6/6 PASS**
 

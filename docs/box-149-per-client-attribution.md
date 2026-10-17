@@ -219,7 +219,7 @@ six seeded from `bifrost-config.json` and recorded as `virtual_key_name`:
 | Zed | macOS keychain (manual, per-machine; `setup-zed-attribution`) | `Authorization` | yes (macOS) |
 | Open WebUI | `secretspec run` (its own scope); volume re-seeded | `Authorization` | yes |
 | Raycast | chezmoi `bitwardenSecrets` in `providers.yaml.tmpl` | `Authorization` | yes |
-| gate | environment (`VK_GATE`) | `x-bf-vk` | yes |
+| gate | environment (`VK_GATE`), else `/run/secrets/vk-gate` on NixOS hosts | `x-bf-vk` | yes |
 
 **The one design gap to carry forward:** three clients (Zed, Raycast, Open
 WebUI) send the key on `Authorization`, which is where bifrost accepts a VK
