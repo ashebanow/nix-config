@@ -29,7 +29,7 @@ let
   deferredDarwinModules = builtins.attrValues config.my.modules.darwin;
   deferredHmModules = builtins.attrValues config.my.modules.home-manager;
 
-  # worktrunk (wt) is three releases behind nixpkgs, and the agent-plugin
+  # worktrunk (wt): nixpkgs still ships 0.74.0, and the agent-plugin
   # commands (`wt config plugins pi|codex|opencode`) only exist from 0.77.0.
   # Apply the pinned-release overlay to every Darwin workstation's pkgs so
   # `pkgs.worktrunk` — installed by modules/features/cli-vcs-tools.nix via

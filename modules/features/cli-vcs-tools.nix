@@ -28,7 +28,7 @@ _: {
           svu
           # nixpkgs' worktrunk is 0.74.0 and lacks `wt config plugins pi`.
           # On the Darwin workstations the worktrunk overlay
-          # (lib/overlays/worktrunk.nix) makes this 0.77.0; lumquat leaves the
+          # (lib/overlays/worktrunk.nix) makes this 0.80.0; lumquat leaves the
           # dev shell as the only place worktrunk exists, and this flag is off
           # there.
           worktrunk
