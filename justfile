@@ -141,7 +141,7 @@ update-claude-code:
 # Format all Nix files
 [group('nix')]
 fmt:
-    nix develop .# -c nixfmt .
+    nix develop .# -c treefmt
 
 # Run the lumquat configuration in a VM (build first, then boot it) —
 # only NixOS config in this flake, so no need to derive the hostname.
