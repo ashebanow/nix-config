@@ -60,7 +60,7 @@ services:
       "
 
   bifrost:
-    image: docker.io/maximhq/bifrost:v2.0.0
+    image: docker.io/maximhq/bifrost:v2.3.0
     container_name: bifrost-app
     network_mode: "service:tailscale"
     depends_on:

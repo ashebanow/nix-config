@@ -1,7 +1,53 @@
 # Handoff — Zed Delta ↔ bifrost Responses API round-trip failure
 
-**Status:** root cause **confirmed** from gateway ground truth. No fix applied.
-**Written:** end of the lumquat session, 2026-10-08.
+**Status:** **fixed upstream and released in `transports/v2.3.0` (2026-10-13).**
+Image bumped `v2.0.0` → `v2.3.0` on branch `fix/bifrost-v2.3.0`; **not yet
+deployed** — see "Update 2026-10-17" directly below.
+**Written:** end of the lumquat session, 2026-10-08; updated 2026-10-17.
+
+## Update 2026-10-17 — upstream fix shipped
+
+- [#8208](https://github.com/maximhq/bifrost/pull/8208) (external contributor)
+  added the missing `case ResponsesOutputMessageContentTypeText` to
+  `ToChatMessages`, merged to `dev` on 2026-10-10, closing #8196.
+- It ships in **`transports/v2.3.0`** (2026-10-13). Verified: the `case` is at
+  `core/schemas/mux.go:990` at that tag, and the release notes list #8196. The
+  image `docker.io/maximhq/bifrost:v2.3.0` exists (multi-arch).
+- The "No released version fixes this" section below is therefore **out of date**
+  — keep it only as history.
+
+### Upgrade checklist for v2.0.0 → v2.3.0 (against our small config)
+
+Our config has no MCP, plugins, semantic cache, OAuth, routing rules or object
+storage, so most of the long breaking-changes list does not apply. The items
+that do:
+
+1. **`enforce_auth_on_inference` default flipped to `true` (v2.2.x).** We set it
+   explicitly to `false`, so behaviour should not change — **verify after
+   deploy** that anonymous Delta traffic is still served (BOX-193 owns the
+   decision to turn it on).
+2. **`setup_token` / dashboard-auth requirements on the management API.** We
+   run with dashboard auth off. Check that the web UI over the tailnet still
+   loads and that VK config edits still work; secret-reference and
+   private-target operations now need real auth or `X-Bifrost-Setup-Token`.
+3. **Compat: reasoning-only models are routed to Responses** — now on by
+   default. Watch `deepseek-v4-flash` behaviour; the opt-out is
+   `compat.force_reasoning_only_models_to_responses: false`.
+4. **DB migrations (VK budgets/rate limits, governance reconciliation)** run on
+   the `bifrost` named volume at first start. **Rolling back to v2.0.0 after
+   that is not guaranteed.** Snapshot first:
+   `podman cp bifrost-app:/app/data/config.db …` (and `logs.db`, with their
+   `-wal`/`-shm` files) — copy, never open them in place as the host user (see
+   the sqlite read-only trap memory).
+5. **Gateway request id header** is now `x-bifrost-request-id`. Only matters if
+   a script reads the old header.
+
+Post-deploy verification:
+
+```bash
+scripts/bifrost-responses-translation-probe.py   # must now exit 0
+just reliability-gate                            # serving smoke test
+```
 **Supersedes:** the earlier version of this file, whose two hypotheses are both
 falsified (see "What this session killed").
 
