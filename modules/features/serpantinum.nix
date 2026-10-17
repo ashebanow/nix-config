@@ -109,6 +109,26 @@
               position = "top";
               style = "solid";
             };
+
+            # Pin the location so the weather widget never IP-geolocates.
+            #
+            # Serpantinum's weather lookup starts by discovering where it is: it
+            # asks ipapi.co, then ip-api.com (over PLAINTEXT HTTP), then
+            # ipwho.is, disclosing the host's public IP to each in turn. Setting
+            # latitude/longitude here short-circuits all three — the geolocation
+            # path is only taken when coordinates are absent. This is the one
+            # network behaviour in the shell worth suppressing by default rather
+            # than leaving to a first-run click; see
+            # docs/research/serpantinum-security-review.md (F-4).
+            general = {
+              location = {
+                city = "Pleasanton";
+                timezone = "America/Los_Angeles";
+                latitude = 37.6624;
+                longitude = -121.8747;
+              };
+              weatherUnit = "imperial";
+            };
           };
         };
 

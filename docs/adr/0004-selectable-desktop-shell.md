@@ -157,3 +157,38 @@ bumped deliberately (which `flake.lock` already gives) and not for an overlay.
   changing the switch, not to make a switch a clean round-trip.
 - **The DMS `dms/*.kdl` notes in ADR 0003 still apply**, unchanged, whenever
   `desktopShell = "dank"`.
+
+## Security review (2026-10-17)
+
+Because Serpantinum is young and has few users, it was reviewed for malware,
+exfiltration and unsafe code before being made selectable. Full report and
+evidence: `docs/research/serpantinum-security-review.md`.
+
+**Verdict: no malware, backdoor, obfuscation, RCE or credential access.** No
+reads of `~/.ssh`/`~/.gnupg`/`~/.aws`/browser stores/keyrings, no `eval` of
+network data, no `base64 -d | sh`, no runtime package fetching, and the flake
+has no fixed-output derivations. The ~50 `bash -c` string concatenations are
+unsafe-by-construction but every interpolant traced to local data — no MPRIS
+title, notification body, weather JSON or SSID reaches a shell string.
+
+Three findings were acted on or deliberately accepted:
+
+- **Installer telemetry (undisclosed in their README) is not reachable from
+  Nix.** `install/` is excluded by `lib.fileset` in `nix/package.nix`, so the
+  store path contains no telemetry endpoint. Real criticism of their installer,
+  no risk to this host.
+- **IP geolocation is suppressed by default here.** Weather fetched without
+  coordinates discloses the public IP to three providers, one over plaintext
+  HTTP. `programs.serpantinum.settings.general.location` is therefore pinned, so
+  that code path is never taken.
+- **The window-title database is accepted.** `focus_daemon.py` keeps a local
+  SQLite record of every app and window title at per-minute granularity. Its
+  only socket is `AF_UNIX` to Hyprland's IPC — no network import at all — so it
+  is a forensic artifact, not an exfiltration path. Disable via `wellbeing.*`
+  settings if that record is unwanted.
+
+Also noted: `serpantinum-wallpapers` is a mandatory input of their flake
+(150MB) passed to an argument the HM module ignores, so it is locked but never
+fetched. `wallpaperDir` is left at its default — `~/Pictures/Wallpapers`, the
+Resilio-synced tree on yuzu — deliberately, so the operator's own wallpaper
+archive is the one in use.
