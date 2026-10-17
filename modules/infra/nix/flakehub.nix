@@ -17,12 +17,13 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   config = lib.mkIf (config.determinate.enable && (config.my.access || config.my.llm)) {
     systemd.services.flakehub-nixd-auth = {
       description = "Authenticate determinate-nixd to FlakeHub";
-      wantedBy = ["multi-user.target"];
-      wants = ["host-secrets-populate.service"];
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "host-secrets-populate.service" ];
       after = [
         "host-secrets-populate.service"
         "nix-daemon.service"
@@ -33,7 +34,9 @@
         # Same determinate-nixd binary the determinate module runs as the
         # daemon (from the determinate flake input, not nixpkgs). The token
         # file is written by host-secrets-populate.service.
-        ExecStart = "${inputs.determinate.packages.${pkgs.stdenv.system}.default}/bin/determinate-nixd auth login token --token-file /run/secrets/flakehub-token";
+        ExecStart = "${
+          inputs.determinate.packages.${pkgs.stdenv.system}.default
+        }/bin/determinate-nixd auth login token --token-file /run/secrets/flakehub-token";
         # Token may be rotated between switches; retry hourly until OK.
         Restart = "on-failure";
         RestartSec = "1h";

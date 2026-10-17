@@ -12,16 +12,18 @@
 #        nix-hash --flat --type sha256 /path/to/model.gguf | nix-to-sri
 #   3. Fill in sha256 below → model becomes a Nix derivation
 #   4. All machines share from Nix cache at LAN speed
-{lib, ...}: let
+{ lib, ... }:
+let
   inherit (lib) optionalString;
-in rec {
+in
+rec {
   # Promoted models with SHA256 hashes — fetched via pkgs.fetchurl.
   # Nix verifies integrity and caches the result.
   #
   # Qwen3.8-27B is currently unpromoted (experimental -hf path); once stable,
   # compute the SHA256 on lumquat and add it here (see promotion workflow in
   # the header comment).
-  ggufs = {};
+  ggufs = { };
 
   # Model metadata — used when model is not yet promoted to ggufs.
   # llama.cpp downloads on demand via -hf flag.
@@ -72,16 +74,18 @@ in rec {
 
   # Fetch a model file via Nix (if promoted) or return null (use -hf fallback).
   # Adapted from qmx/dotfiles modules/home-manager/llama-swap/default.nix
-  fetchModel = {
-    pkgs,
-    hfRef,
-  }: let
-    gguf = ggufs.${hfRef} or null;
-  in
-    if gguf != null && gguf ? sha256
-    then
+  fetchModel =
+    {
+      pkgs,
+      hfRef,
+    }:
+    let
+      gguf = ggufs.${hfRef} or null;
+    in
+    if gguf != null && gguf ? sha256 then
       pkgs.fetchurl {
         inherit (gguf) url sha256;
       }
-    else null;
+    else
+      null;
 }

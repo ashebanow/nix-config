@@ -19,6 +19,6 @@
 #
 # Retiring: drop this overlay and the flake input once nixpkgs unstable ships
 # >= 0.78.0 (BOX-190).
-{worktrunk}: final: _prev: {
+{ worktrunk }: final: _prev: {
   worktrunk = worktrunk.packages.${final.stdenv.hostPlatform.system}.worktrunk;
 }

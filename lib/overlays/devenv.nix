@@ -62,7 +62,7 @@
 # brings devenv >= 2.4.0 in on its own. Once it does, delete this file and the
 # `devenvUnstable` input in flake.nix, and confirm the bundled secretSpec is
 # >= 0.21 with `secretspec --version`. Tracked in BOX-245.
-{devenvUnstable}:
+{ devenvUnstable }:
 final: _prev: {
   devenv = devenvUnstable.legacyPackages.${final.stdenv.hostPlatform.system}.devenv;
 }

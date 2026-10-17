@@ -4,8 +4,8 @@
 # scope rule). chezmoi still owns all dotfiles/config files. Capability
 # flags (my.cliXxx/guiXxx) live in ./capabilities.nix, not here — see
 # that file for why.
-{lib, ...}: {
-  imports = [./capabilities.nix];
+{ lib, ... }: {
+  imports = [ ./capabilities.nix ];
 
   my.base = true;
   my.hostName = "bergamot";

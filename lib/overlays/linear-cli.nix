@@ -43,7 +43,8 @@
 # below and re-vendors the agent skill in the dotfiles repo, which is pinned
 # to the same tag. Do not bump one without the other. The recipe finds the
 # hash lines by the `target = "..."` line above each, so keep that shape.
-final: _prev: let
+final: _prev:
+let
   version = "2.6.0";
 
   # Release asset per system; hashes are the SRI form of upstream's
@@ -62,8 +63,9 @@ final: _prev: let
   inherit (final.stdenv.hostPlatform) system;
   asset =
     assets.${system}
-    or (throw "linear-cli: no upstream release binary is pinned for ${system}; add it to lib/overlays/linear-cli.nix");
-in {
+      or (throw "linear-cli: no upstream release binary is pinned for ${system}; add it to lib/overlays/linear-cli.nix");
+in
+{
   linear-cli = final.stdenvNoCC.mkDerivation {
     pname = "linear-cli";
     inherit version;
@@ -99,7 +101,12 @@ in {
         tail -c "$plen" linear > linear.payload
         patchelf \
           --set-interpreter ${final.stdenv.cc.bintools.dynamicLinker} \
-          --set-rpath ${final.lib.makeLibraryPath [final.stdenv.cc.cc.lib final.glibc]} \
+          --set-rpath ${
+            final.lib.makeLibraryPath [
+              final.stdenv.cc.cc.lib
+              final.glibc
+            ]
+          } \
           linear.elf
         cat linear.elf linear.payload > linear
         rm linear.elf linear.payload
@@ -134,7 +141,7 @@ in {
       license = licenses.isc;
       mainProgram = "linear";
       platforms = builtins.attrNames assets;
-      sourceProvenance = [sourceTypes.binaryNativeCode];
+      sourceProvenance = [ sourceTypes.binaryNativeCode ];
     };
   };
 }

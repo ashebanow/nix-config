@@ -6,7 +6,8 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   nix = {
     # Use the latest Nix for all features (default only — may be overridden
     # by Determinate Nix's module at higher priority when enabled)
@@ -63,7 +64,10 @@
       #
       # Deliberately not mkForce: remote-builder.nix adds "remotebuild" to this
       # same list at normal priority, and both definitions merge.
-      trusted-users = ["root" "@wheel"];
+      trusted-users = [
+        "root"
+        "@wheel"
+      ];
     };
   };
 

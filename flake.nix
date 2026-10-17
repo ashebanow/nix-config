@@ -42,8 +42,8 @@
     # are technically present but undiscoverable (Spotlight doesn't
     # index the symlinks Nix creates).
     mac-app-util = {
-        url = "github:hraban/mac-app-util";
-        inputs.nixpkgs.follows = "nixpkgs";  # temporarily override nixpkgs url to get SBCL v2.6.6
+      url = "github:hraban/mac-app-util";
+      inputs.nixpkgs.follows = "nixpkgs"; # temporarily override nixpkgs url to get SBCL v2.6.6
     };
 
     # NixOS hardware quirks
@@ -130,10 +130,12 @@
     devenvUnstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = inputs @ {flake-parts, ...}: let
-    import-tree = import inputs.import-tree;
-  in
-    flake-parts.lib.mkFlake {inherit inputs;} {
+  outputs =
+    inputs@{ flake-parts, ... }:
+    let
+      import-tree = import inputs.import-tree;
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [
         # Auto-discover all feature modules
         (import-tree ./modules/features)
@@ -146,6 +148,9 @@
         ./modules/infra/darwin-builder.nix
       ];
 
-      systems = ["x86_64-linux" "aarch64-darwin"];
+      systems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
     };
 }

@@ -96,45 +96,51 @@
 # NOT self-terminating, unlike the other overlays here: it is not bridging a
 # gap until nixpkgs catches up. It decouples this one tool's cadence from the
 # nixpkgs pin and keeps the update prompt honest. Keep it.
-final: prev: let
+final: prev:
+let
   unwrapped = prev.claude-code.override {
     manifest = final.lib.importJSON ./claude-code-manifest.json;
   };
-in {
+in
+{
   claude-code-unwrapped = unwrapped;
 
   claude-code =
-    final.runCommand "claude-code-${unwrapped.version}" {
-      inherit (unwrapped) version;
-      meta = unwrapped.meta // {mainProgram = "claude";};
-      passthru = {inherit unwrapped;};
-    } ''
-      mkdir -p "$out/bin"
-      cat > "$out/bin/claude" <<'SHIM'
-      #!${final.runtimeShell}
-      if [ "$#" -gt 0 ]; then
-        case "$1" in
-          update | upgrade)
-            echo "claude-code here is managed by Nix, so 'claude $1' cannot replace it:" >&2
-            echo "the binary lives in the read-only store. Running it anyway would install a" >&2
-            echo "second, native copy under ~/.local/share/claude/versions/ that this one" >&2
-            echo "would then shadow on PATH." >&2
-            echo >&2
-            echo "To upgrade, in your nix-config checkout:" >&2
-            echo >&2
-            echo "    just update-claude-code && just switch" >&2
-            echo >&2
-            echo "That re-fetches Anthropic's latest-channel manifest into" >&2
-            echo "lib/overlays/claude-code-manifest.json and rebuilds." >&2
-            echo >&2
-            echo "If you really do want a separate native install, 'claude install' is not" >&2
-            echo "intercepted — but it is what creates the two-install confusion above." >&2
-            exit 1
-            ;;
-        esac
-      fi
-      exec ${unwrapped}/bin/claude "$@"
-      SHIM
-      chmod +x "$out/bin/claude"
-    '';
+    final.runCommand "claude-code-${unwrapped.version}"
+      {
+        inherit (unwrapped) version;
+        meta = unwrapped.meta // {
+          mainProgram = "claude";
+        };
+        passthru = { inherit unwrapped; };
+      }
+      ''
+        mkdir -p "$out/bin"
+        cat > "$out/bin/claude" <<'SHIM'
+        #!${final.runtimeShell}
+        if [ "$#" -gt 0 ]; then
+          case "$1" in
+            update | upgrade)
+              echo "claude-code here is managed by Nix, so 'claude $1' cannot replace it:" >&2
+              echo "the binary lives in the read-only store. Running it anyway would install a" >&2
+              echo "second, native copy under ~/.local/share/claude/versions/ that this one" >&2
+              echo "would then shadow on PATH." >&2
+              echo >&2
+              echo "To upgrade, in your nix-config checkout:" >&2
+              echo >&2
+              echo "    just update-claude-code && just switch" >&2
+              echo >&2
+              echo "That re-fetches Anthropic's latest-channel manifest into" >&2
+              echo "lib/overlays/claude-code-manifest.json and rebuilds." >&2
+              echo >&2
+              echo "If you really do want a separate native install, 'claude install' is not" >&2
+              echo "intercepted — but it is what creates the two-install confusion above." >&2
+              exit 1
+              ;;
+          esac
+        fi
+        exec ${unwrapped}/bin/claude "$@"
+        SHIM
+        chmod +x "$out/bin/claude"
+      '';
 }

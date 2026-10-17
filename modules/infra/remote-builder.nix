@@ -9,22 +9,26 @@
   config,
   pkgs,
   ...
-}: let
+}:
+let
   pubKeyFile = ./remotebuild.pub;
-in {
+in
+{
   # Dedicated system user for remote build authentication
   users.users.remotebuild = {
     isSystemUser = true;
     group = "remotebuild";
     useDefaultShell = true;
-    openssh.authorizedKeys.keyFiles =
-      lib.optionals (builtins.pathExists pubKeyFile) [pubKeyFile];
+    openssh.authorizedKeys.keyFiles = lib.optionals (builtins.pathExists pubKeyFile) [ pubKeyFile ];
   };
 
-  users.groups.remotebuild = {};
+  users.groups.remotebuild = { };
 
   # Grant build access. Includes @wheel so admins retain Nix trust.
-  nix.settings.trusted-users = ["remotebuild" "@wheel"];
+  nix.settings.trusted-users = [
+    "remotebuild"
+    "@wheel"
+  ];
 
   # Optimize Nix for a build machine
   nix = {

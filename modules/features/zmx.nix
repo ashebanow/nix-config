@@ -4,16 +4,18 @@
 # rather than the upstream flake input — the upstream flake's zig pin
 # lags its code and fails to build in the sandbox.
 _: {
-  my.modules.nixos.zmx = {
-    lib,
-    config,
-    pkgs,
-    ...
-  }: {
-    config = lib.mkIf config.my.zmx {
-      environment.systemPackages = [
-        pkgs.zmx
-      ];
+  my.modules.nixos.zmx =
+    {
+      lib,
+      config,
+      pkgs,
+      ...
+    }:
+    {
+      config = lib.mkIf config.my.zmx {
+        environment.systemPackages = [
+          pkgs.zmx
+        ];
+      };
     };
-  };
 }

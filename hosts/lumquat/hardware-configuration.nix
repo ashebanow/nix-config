@@ -6,7 +6,8 @@
   pkgs,
   modulesPath,
   ...
-}: {
+}:
+{
   imports = [
     (modulesPath + "/installer/scan/not-detected.nix")
   ];
@@ -26,9 +27,9 @@
     "radeon"
     "r8169" # Realtek 2.5GbE — needed for initrd networking (future Tang)
   ];
-  boot.initrd.kernelModules = ["amdgpu"];
-  boot.kernelModules = ["kvm-amd"];
-  boot.extraModulePackages = [];
+  boot.initrd.kernelModules = [ "amdgpu" ];
+  boot.kernelModules = [ "kvm-amd" ];
+  boot.extraModulePackages = [ ];
 
   # Strix Halo kernel params for LLM GPU passthrough
   # See: https://github.com/hellas-ai/nix-strix-halo
@@ -65,25 +66,27 @@
   boot.initrd.luks.devices = {
     luks-root = {
       device = "/dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470";
-      crypttabExtraOpts = ["tpm2-device=auto"];
+      crypttabExtraOpts = [ "tpm2-device=auto" ];
     };
   };
 
   # Activation-time check: warn if TPM2 enrollment is missing.
   # Enrollment is a one-time per-machine step that cannot be fully declarative
   # (see NixOS wiki: "This cannot be performed in a fully declarative way").
-  system.activationScripts.checkLuksTpm2 = let
-    luksDevice = "/dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470";
-  in ''
-    if [ -e ${luksDevice} ] && ! ${pkgs.cryptsetup}/bin/cryptsetup luksDump ${luksDevice} 2>/dev/null | grep -q 'systemd-tpm2'; then
-      echo >&2
-      echo >&2 "  ⚠  WARNING: No systemd-tpm2 token found on ${luksDevice}"
-      echo >&2 "  TPM2 auto-unlock will NOT work."
-      echo >&2 "  To enroll: sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=0 ${luksDevice}"
-      echo >&2 "  (Existing passphrase keyslot is preserved as fallback.)"
-      echo >&2
-    fi
-  '';
+  system.activationScripts.checkLuksTpm2 =
+    let
+      luksDevice = "/dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470";
+    in
+    ''
+      if [ -e ${luksDevice} ] && ! ${pkgs.cryptsetup}/bin/cryptsetup luksDump ${luksDevice} 2>/dev/null | grep -q 'systemd-tpm2'; then
+        echo >&2
+        echo >&2 "  ⚠  WARNING: No systemd-tpm2 token found on ${luksDevice}"
+        echo >&2 "  TPM2 auto-unlock will NOT work."
+        echo >&2 "  To enroll: sudo systemd-cryptenroll --wipe-slot=tpm2 --tpm2-device=auto --tpm2-pcrs=0 ${luksDevice}"
+        echo >&2 "  (Existing passphrase keyslot is preserved as fallback.)"
+        echo >&2
+      fi
+    '';
 
   # Filesystems
   fileSystems = {
@@ -97,7 +100,7 @@
     };
   };
 
-  swapDevices = [];
+  swapDevices = [ ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

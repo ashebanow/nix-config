@@ -35,7 +35,10 @@ _: {
   # Manager evaluates its own `config.my` (see the file header and CONTEXT.md).
   # niri is the default session; GNOME stays installed and selectable as the
   # emergency session (docs/adr/0003).
-  my.desktopSessions = ["niri" "gnome"];
+  my.desktopSessions = [
+    "niri"
+    "gnome"
+  ];
   my.desktopDefaultSession = "niri";
   my.dankMaterialShell = true;
 }

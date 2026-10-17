@@ -9,27 +9,29 @@
 # per-project shell — uv and rustup. Language-specific tooling (linters, LSPs,
 # framework package managers) stays devenv-only and is NOT listed here.
 _: {
-  my.modules.home-manager.cli-build-essentials = {
-    lib,
-    pkgs,
-    config,
-    ...
-  }: {
-    config = lib.mkIf config.my.cliBuildEssentials {
-      home.packages = with pkgs; [
-        devenv # per-project dev shells (moved from nix profile)
-        direnv
-        gcc
-        gnumake
-        lld
-        llvm
-        nix-direnv # direnv integration for nix flakes/devShells
-        nodejs
-        rustup # manages its own toolchains under ~/.rustup; see the NixOS half
-        uv
-      ];
+  my.modules.home-manager.cli-build-essentials =
+    {
+      lib,
+      pkgs,
+      config,
+      ...
+    }:
+    {
+      config = lib.mkIf config.my.cliBuildEssentials {
+        home.packages = with pkgs; [
+          devenv # per-project dev shells (moved from nix profile)
+          direnv
+          gcc
+          gnumake
+          lld
+          llvm
+          nix-direnv # direnv integration for nix flakes/devShells
+          nodejs
+          rustup # manages its own toolchains under ~/.rustup; see the NixOS half
+          uv
+        ];
+      };
     };
-  };
 
   # rustup needs nix-ld to work at all, which is why it is in this module rather
   # than a shell module of its own.
@@ -46,13 +48,15 @@ _: {
   # (Verified against a foreign binary with its RPATH stripped, not assumed.)
   # Append to programs.nix-ld.libraries if a toolchain ever needs more — the
   # missing library is named in the loader's own error.
-  my.modules.nixos.cli-build-essentials = {
-    lib,
-    config,
-    ...
-  }: {
-    config = lib.mkIf config.my.cliBuildEssentials {
-      programs.nix-ld.enable = true;
+  my.modules.nixos.cli-build-essentials =
+    {
+      lib,
+      config,
+      ...
+    }:
+    {
+      config = lib.mkIf config.my.cliBuildEssentials {
+        programs.nix-ld.enable = true;
+      };
     };
-  };
 }
