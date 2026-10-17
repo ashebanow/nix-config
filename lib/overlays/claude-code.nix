@@ -4,17 +4,17 @@
 # ## Why the pin exists
 #
 # Claude Code ships several releases a week; a nixpkgs bump is a weekly-at-best
-# event that drags every other package with it. Our locked nixpkgs (flake.lock
-# rev e554fab) has 2.1.272 against Anthropic's 2.1.296 the day this landed, and
-# chasing the CLI by moving the nixpkgs pin means rebuilding every host closure
-# to advance one tool.
+# event that drags every other package with it. The locked nixpkgs (flake.lock
+# rev c5c4a43) has 2.1.292 against the pin's 2.1.302, and chasing the CLI by
+# moving the nixpkgs pin means rebuilding every host closure to advance one
+# tool.
 #
 # ## Why the `latest` channel and not `stable`
 #
 # Anthropic publishes two pointers — `.../claude-code-releases/latest` and
-# `.../stable` — and they are several releases apart by design (2.1.296 vs
-# 2.1.287 when this was written; the @anthropic-ai/claude-code npm dist-tags
-# carry the same split).
+# `.../stable` — and they are several releases apart by design; the
+# @anthropic-ai/claude-code npm dist-tags carry the same split. Do not trust a
+# version quoted here: fetch both pointers and read them.
 #
 # `stable` is the more conservative build and was the first thing tried here.
 # It was wrong, for a reason that only shows up at runtime: Claude Code
@@ -63,8 +63,9 @@
 # <path>: it was not created by the native installer ... so this update will
 # not overwrite it", but that notice is easy to miss, and the result is two
 # installs many releases apart, sharing ~/.claude state, with PATH order
-# silently deciding which one runs. That is exactly how this config ended up
-# running 2.1.272 while ~/.local/bin/claude pointed at 2.1.296.
+# silently deciding which one runs. That is exactly how this config once ended
+# up running a nixpkgs build while ~/.local/bin/claude pointed at a native one
+# several releases newer.
 #
 # So `claude` here is a shim over `claude-code-unwrapped` (the same
 # shim-over-unwrapped shape lib/overlays/linear-cli.nix uses) that intercepts

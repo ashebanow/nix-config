@@ -44,7 +44,7 @@
       # claude-code is pinned to Anthropic's release channel and shimmed by
       # lib/overlays/claude-code.nix, but `unfreePkgs` above is a fresh
       # `import pkgs.path` and so carries NO overlays. Without this extend the
-      # shell's `claude` is stock nixpkgs (2.1.272 against the pin's 2.1.296)
+      # shell's `claude` is stock nixpkgs (2.1.292 against the pin's 2.1.302)
       # and unshimmed — and because the shell's PATH sits ahead of
       # /etc/profiles/per-user, it *shadows* the pinned one the host actually
       # installs. That is a worse failure than a stale shell tool: `just

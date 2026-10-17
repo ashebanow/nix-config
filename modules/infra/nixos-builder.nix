@@ -27,7 +27,7 @@ let
     (import ../../lib/overlays/worktrunk.nix { inherit (inputs) worktrunk; })
     (import ../../lib/overlays/linear-cli.nix)
     # claude-code tracks Anthropic's release channel directly instead of the
-    # nixpkgs pin's 2.1.272, and shims `claude update` to point at
+    # nixpkgs pin's 2.1.292, and shims `claude update` to point at
     # `just update-claude-code`. Reaches yuzu via cli-ai-tools.nix; lumquat
     # leaves cliAiTools off, so it stays out of that closure. See the header.
     (import ../../lib/overlays/claude-code.nix)

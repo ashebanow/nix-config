@@ -52,8 +52,8 @@ let
   # bundled binary is the one that reads the keychain. See the overlay header.
   devenvOverlay = import ../../lib/overlays/devenv.nix { inherit (inputs) devenvUnstable; };
 
-  # claude-code: nixpkgs trails the CLI's several-releases-a-week cadence (our
-  # pin is 2.1.272 against Anthropic's 2.1.296). This overlay swaps in
+  # claude-code: nixpkgs trails the CLI's several-releases-a-week cadence (it
+  # ships 2.1.292 against the pin's 2.1.302). This overlay swaps in
   # Anthropic's own release manifest so `pkgs.claude-code` — installed by
   # modules/features/cli-ai-tools.nix via home.packages — is current, and
   # shims `claude update` so it explains the Nix workflow rather than quietly
