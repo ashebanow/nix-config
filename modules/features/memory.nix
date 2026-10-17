@@ -128,7 +128,7 @@ _: {
           wantedBy = [ "multi-user.target" ];
           path = [
             pkgs.podman-compose
-            pkgs.podman
+            config.virtualisation.podman.package
             pkgs.secretspec
             pkgs.bws
           ];
@@ -145,6 +145,7 @@ _: {
             ];
             ExecStartPre = pkgs.writeShellScript "memory-build-image" ''
               set -e
+              export XDG_RUNTIME_DIR="/run/user/$(id -u)"
               # Always rebuild to pick up Dockerfile changes
               echo "Building mnemosyne-memory image..."
               podman build -t mnemosyne-memory:latest -f /etc/memory/Dockerfile /etc/memory

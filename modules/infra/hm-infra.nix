@@ -31,6 +31,13 @@
 {
   my.cliTools = true;
 
+  # Headless server counterpart to `documentation.enable = false` in
+  # hosts/lumquat/configuration.nix: Home Manager's `manual.manpages.enable`
+  # defaults to true independently and evaluates `nixosOptionsDoc` (`options.json`),
+  # triggering the Nix >= 2.31 "store path without a proper context" warning on
+  # every build (NixOS/nixpkgs#485682).
+  manual.manpages.enable = false;
+
   home.packages = [ pkgs.chezmoi ]; # nixpkgs chezmoi 2.72.0
 
   home.activation.chezmoiApply = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

@@ -143,6 +143,10 @@ _: {
           ];
           wants = [ "network-online.target" ];
           wantedBy = [ "multi-user.target" ];
+          # Use config.virtualisation.podman.package rather than pkgs.podman:
+          # the NixOS podman module wraps podman with /run/wrappers/bin in PATH
+          # so rootless podman can find the setuid newuidmap/newgidmap helpers.
+          path = [ config.virtualisation.podman.package ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = "yes";
@@ -151,8 +155,8 @@ _: {
           };
           script = ''
             export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-            ${pkgs.podman}/bin/podman network exists llm-internal \
-              || ${pkgs.podman}/bin/podman network create llm-internal
+            podman network exists llm-internal \
+              || podman network create llm-internal
           '';
         };
 
@@ -205,7 +209,7 @@ _: {
           # down/up and does not touch it, so logins survive. (BOX-139.)
           restartTriggers = [ "${../../compose/llm/openwebui-compose.yml}" ];
           path = [
-            pkgs.podman
+            config.virtualisation.podman.package
             pkgs.podman-compose
             pkgs.secretspec
             pkgs.bws

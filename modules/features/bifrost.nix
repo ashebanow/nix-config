@@ -59,7 +59,7 @@ _: {
             "${../../compose/llm/bifrost-config.json}"
           ];
           path = [
-            pkgs.podman
+            config.virtualisation.podman.package
             pkgs.podman-compose
             pkgs.secretspec
             pkgs.bws
