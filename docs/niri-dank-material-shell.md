@@ -1,5 +1,16 @@
 # niri + DankMaterialShell on yuzu
 
+> **Superseded in part.** This file is the implementation plan for BOX-210 and
+> is kept as the record of that work. The shell is no longer selected by
+> `my.dankMaterialShell` (a boolean), and DMS's packages, layer-rules and
+> `dms/*.kdl` includes no longer live in `niri.nix`. Shells are now chosen by
+> `my.desktopShell = "dank" | "noctalia" | "serpantinum" | null`, and each
+> shell's module owns its own tooling — see
+> `docs/adr/0004-selectable-desktop-shell.md`. Everything below about DMS
+> *itself* (why the flake, why `niri.service`, why `dms setup` cannot run
+> against a Home-Manager-owned config) still applies whenever
+> `desktopShell = "dank"`.
+
 Design record and implementation plan. The decisions and their rejected
 alternatives are in `docs/adr/0003-niri-and-dank-material-shell.md`; the
 vocabulary is in `CONTEXT.md`. This file is the *how*.

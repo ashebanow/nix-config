@@ -1,8 +1,9 @@
 # Desktop feature — common plumbing for a host with a graphical session, and
 # the single place that decides the display manager and which sessions the host
 # offers. Session-specific configuration lives in its own module (gnome.nix,
-# niri.nix); a shell on top of a session (DankMaterialShell) has its own module
-# and its own capability flag, because a shell is not a session.
+# niri.nix); the shell drawn on top of a session is `my.desktopShell` and has
+# its own module per shell (dank-material-shell.nix, noctalia.nix,
+# serpantinum.nix), because a shell is not a session and only one may be active.
 #
 # The sessions themselves are data: my.desktopSessions and
 # my.desktopDefaultSession, set in hosts/<host>/capabilities.nix so the Home
@@ -49,8 +50,16 @@ _: {
               message = "my.desktopSessions is set but my.desktop is false — the session plumbing is gated on my.desktop.";
             }
             {
-              assertion = config.my.dankMaterialShell -> lib.elem "niri" config.my.desktopSessions;
-              message = "my.dankMaterialShell is true but niri is not in my.desktopSessions.";
+              # A shell needs a compositor to draw on. Every shell here is written
+              # against niri, so selecting one without niri in the session list is
+              # a build error rather than a session that starts with no bar.
+              assertion = config.my.desktopShell != null -> lib.elem "niri" config.my.desktopSessions;
+              message = ''
+                my.desktopShell is "${toString config.my.desktopShell}" but niri is not in
+                my.desktopSessions (${lib.concatStringsSep ", " config.my.desktopSessions}).
+                Every shell in this config draws on the niri session; add "niri" or clear
+                my.desktopShell.
+              '';
             }
           ];
         }

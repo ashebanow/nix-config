@@ -40,5 +40,11 @@ _: {
     "gnome"
   ];
   my.desktopDefaultSession = "niri";
-  my.dankMaterialShell = true;
+
+  # The shell drawn on top of niri. One master switch, and each shell's module
+  # enables itself when it matches — see lib/my-options-module.nix and
+  # docs/adr/0004. Values: "dank" (DankMaterialShell), "noctalia",
+  # "serpantinum", or null for a bare niri session. Do not enable two: they
+  # would both claim org.freedesktop.Notifications and both draw a bar.
+  my.desktopShell = "dank";
 }

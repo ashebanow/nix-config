@@ -59,6 +59,31 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Noctalia v5 — an alternative shell on the same niri session (BOXs
+    # tracked in docs/adr/0004). Two pins here need explaining:
+    #
+    # * `cachix` rather than `main`. Noctalia is C++23; without its cache you
+    #   compile the whole shell on every bump. The `cachix` branch tracks the
+    #   newest commit CI has *already* cached, so a `nix flake update noctalia`
+    #   can never land on a commit the substituter has not seen yet.
+    # * NO `inputs.nixpkgs.follows`. Noctalia's own docs say so explicitly: the
+    #   follows changes the derivation hash and silently disables the cache,
+    #   which is exactly the cost the branch pin exists to avoid. A second
+    #   nixpkgs in the lockfile is the price; nothing else in this config
+    #   consumes it.
+    noctalia = {
+      url = "github:noctalia-dev/noctalia/cachix";
+    };
+
+    # Serpantinum — the third shell choice. Not in nixpkgs, so the flake is the
+    # only source. `master` is its default branch (there is no `main`), and it
+    # publishes no binary cache, so this pins either a `quickshell` build we
+    # already have or a fresh one.
+    serpantinum = {
+      url = "github:ilyamiro/serpantinum";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Zed Delta — official Linux binary distribution packaged for Nix
     # (x86_64-linux and aarch64-linux only; macOS installs Delta outside Nix).
     # Shares our nixpkgs so Delta's runtime RPATH / LD_LIBRARY_PATH matches the
