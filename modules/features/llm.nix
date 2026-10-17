@@ -99,6 +99,11 @@ _: {
               ]
           )
           ++ [
+            # Report the container name as the model id. Without it /v1/models
+            # returns the GGUF repo id, which bifrost's key whitelist does not
+            # name, so list_models filtered the local model out of every picker.
+            "--alias"
+            name
             "--host"
             "0.0.0.0"
             "--port"
