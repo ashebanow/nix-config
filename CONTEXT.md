@@ -48,9 +48,12 @@ _Avoid_: window manager, WM.
 
 **shell**:
 The layer drawn on top of a compositor — bar, launcher, notifications,
-clipboard, lock screen. DankMaterialShell is one, and it is why this config
-needs no separate bar, launcher or notification daemon.
-_Avoid_: desktop, bar.
+clipboard, lock screen, OSD. Selected by `my.desktopShell`
+(`"dank"`, `"noctalia"`, `"serpantinum"`, or `null` for a bare compositor);
+exactly one at a time, because they all claim the same D-Bus names. Each shell
+has its own module under `modules/features/`, and that module — not the
+compositor's — installs the optional dependencies its features call out to.
+_Avoid_: desktop, bar, DE.
 
 **display manager**:
 The program that presents the login screen and launches the chosen session —

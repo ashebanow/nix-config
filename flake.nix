@@ -50,12 +50,50 @@
     nixos-hardware.url = "github:nixos/nixos-hardware";
 
     # DankMaterialShell — its own flake rather than nixpkgs' programs.dms-shell,
-    # which trails DMS's release cadence (1.6.1 against 1.6.2 when this landed).
+    # which trails DMS's release cadence (1.6.2 in nixpkgs against the flake's
+    # 1.6.3, re-checked 2026-10-17; it was 1.6.1 vs 1.6.2 when this landed).
     # `stable` is a branch, so flake.lock is what actually pins it; bump with
     # `nix flake update dms`. The flake no longer ships quickshell, so
     # pkgs.quickshell is used either way. See docs/adr/0003.
     dms = {
       url = "github:AvengeMedia/DankMaterialShell/stable";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Noctalia v5 — an alternative shell on the same niri session (see
+    # docs/adr/0004). Three things here need explaining:
+    #
+    # * `cachix` rather than `main`. Noctalia is C++23; without its cache you
+    #   compile the whole shell on every bump. The `cachix` branch tracks the
+    #   newest commit CI has *already* cached, so a `nix flake update noctalia`
+    #   can never land on a commit the substituter has not seen yet. (At the
+    #   time of writing the two branches happen to be the same commit.)
+    # * NO `inputs.nixpkgs.follows`. Noctalia's own docs say so explicitly: the
+    #   follows changes the derivation hash and silently disables the cache,
+    #   which is exactly the cost the branch pin exists to avoid. A second
+    #   nixpkgs in the lockfile is the price; nothing else in this config
+    #   consumes it.
+    # * Why a flake at all when nixpkgs has `pkgs.noctalia`: nixpkgs is a minor
+    #   behind and, more to the point, the flake's homeModules.default is the
+    #   module that provides a declarative `programs.noctalia.settings`. See
+    #   "Version position" in docs/adr/0004 before deciding to drop this input;
+    #   it is deliberately NOT an overlay for the cache reason above.
+    noctalia = {
+      url = "github:noctalia-dev/noctalia/cachix";
+    };
+
+    # Serpantinum — the third shell choice. Not in nixpkgs (nothing to overlay
+    # onto), so the flake is the only source. `master` is its default branch
+    # (there is no `main`), and it publishes no binary cache.
+    #
+    # `follows` IS set here, unlike Noctalia: Serpantinum has no cache to break,
+    # and following keeps its `quickshell` the same one the rest of the system
+    # uses. That is also the drift risk worth knowing about — there is no version
+    # pin between Serpantinum and quickshell, so a nixpkgs bump can break it with
+    # no upstream signal. Bump deliberately, and test the session before trusting
+    # it (docs/adr/0004).
+    serpantinum = {
+      url = "github:ilyamiro/serpantinum";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

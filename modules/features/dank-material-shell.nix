@@ -1,6 +1,8 @@
 # DankMaterialShell — the bar, launcher, notification centre, clipboard, lock
 # screen and settings UI for the niri session. It is a shell, not a session, so
-# it has its own capability flag rather than an entry in my.desktopSessions.
+# it is selected by `my.desktopShell = "dank"` rather than by an
+# entry in `my.desktopSessions` (see docs/adr/0004, and docs/adr/0003 for why
+# DMS specifically).
 #
 # Home Manager scope, from DMS's own flake rather than nixpkgs'
 # programs.dms-shell — see docs/adr/0003, which also records why the NixOS
@@ -36,14 +38,15 @@
     in
     {
       # Imported unconditionally, then gated with mkIf. A conditional import
-      # (`lib.optional config.my.dankMaterialShell …`) recurses: the module system
-      # collects `imports` before it can settle `config`, and the flake's module
-      # reads config in turn. The flake's module is inert until `enable = true`, so
-      # hosting it on a host without DMS costs only the evaluation of the dms-shell
-      # derivation — not a build, and not a closure entry.
+      # (`lib.optional config.my.desktopShellIsDankMaterialShell …`) recurses: the
+      # module system collects `imports` before it can settle `config`, and the
+      # flake's module reads config in turn. The flake's module is inert until
+      # `enable = true`, so hosting it on a host without DMS costs only the
+      # evaluation of the dms-shell derivation — not a build, and not a closure
+      # entry.
       imports = [ inputs.dms.homeModules.dank-material-shell ];
 
-      config = lib.mkIf config.my.dankMaterialShell {
+      config = lib.mkIf config.my.desktopShellIsDankMaterialShell {
         programs.dank-material-shell = {
           enable = true;
 
@@ -68,12 +71,56 @@
           "gtk-4.0/settings.ini".text = settingsIni;
         };
 
-        # GTK3 apps otherwise look like plain GTK3 next to the GTK4/libadwaita ones
-        # DMS's dynamic theming recolours. DMS's own System Check looks for a theme
-        # dir with both variants (it warns when only one is present); the nixpkgs
-        # package ships exactly the two it wants, and home.packages puts them on
-        # XDG_DATA_DIRS, which is where the check looks.
-        home.packages = [ pkgs.adw-gtk3 ];
+        # DMS's optional-feature set, as its own System Check enumerates it.
+        # These are the tools DMS shells out to and does **not** bundle:
+        #
+        #   grim/slurp   region capture for DMS's screenshot UI
+        #   satty        annotate/redact after capture
+        #   wl-clipboard DMS's clipboard history and any copy/paste it drives
+        #   playerctl    the media widget and the XF86AudioPlay/Next/Prev binds
+        #   brightnessctl the XF86MonBrightness binds
+        #   adw-gtk3     GTK3 apps otherwise look like plain GTK3 beside the GTK4
+        #                ones DMS's dynamic theming recolours. DMS's System Check
+        #                wants a theme dir with both `adw-gtk3` and
+        #                `adw-gtk3-dark`, which is what the nixpkgs package ships;
+        #                home.packages puts them on XDG_DATA_DIRS, where the check
+        #                looks.
+        #
+        # brightnessctl is also installed by niri.nix (a compositor-level XF86
+        # concern); listing it again is a no-op union, and it keeps this module's
+        # dependency story readable on its own.
+        home.packages = with pkgs; [
+          grim
+          slurp
+          satty
+          wl-clipboard
+          playerctl
+          brightnessctl
+          adw-gtk3
+        ];
+
+        # DMS is a Quickshell shell: Quickshell's layer surfaces live in the
+        # `quickshell` namespace, and its blurred-wallpaper layer is
+        # `dms:blurwallpaper`. Both must sit behind the overview backdrop for the
+        # wallpaper to show through the way DMS expects. The `include` lines come
+        # last so DMS's binds win over niri's upstream defaults.
+        wayland.windowManager.niri.extraConfig = ''
+          layer-rule {
+              match namespace="^quickshell$"
+              place-within-backdrop true
+          }
+
+          layer-rule {
+              match namespace="dms:blurwallpaper"
+              place-within-backdrop true
+          }
+
+          // optional=true: these do not exist until `dms setup` has run once.
+          include optional=true "dms/colors.kdl"
+          include optional=true "dms/layout.kdl"
+          include optional=true "dms/alttab.kdl"
+          include optional=true "dms/binds.kdl"
+        '';
       };
     };
 
@@ -89,7 +136,7 @@
       ...
     }:
     {
-      config = lib.mkIf config.my.dankMaterialShell {
+      config = lib.mkIf config.my.desktopShellIsDankMaterialShell {
         programs.dsearch.enable = true;
         programs.dsearch.systemd.target = "graphical-session.target";
 

@@ -1,6 +1,9 @@
 # Shared options module providing config.my.* for host metadata.
 # Following the dendritic pattern: capability flags defined centrally.
-{ lib, ... }: {
+#
+# `config` is in scope because the desktop-shell predicates are derived from
+# `my.desktopShell` rather than set independently — see the shell option below.
+{ lib, config, ... }: {
   options.my = {
     # Identity
     hostName = lib.mkOption {
@@ -290,6 +293,42 @@
         evaluates its own `config.my` instance (see CONTEXT.md).
       '';
     };
+    # Location for desktop-shell weather/widgets. Optional; a host that leaves
+    # it null gets no weather configuration at all, and a shell that would
+    # IP-geolocate will do so (see modules/features/serpantinum.nix).
+    #
+    # Set in capabilities.nix, like `desktopShell`, because the consumers are
+    # Home Manager modules and `my.baseTimezone` is NixOS-scope only.
+    desktopShellLocation = lib.mkOption {
+      type = lib.types.nullOr (
+        lib.types.submodule {
+          options = {
+            city = lib.mkOption {
+              type = lib.types.str;
+              description = "City name shown by weather widgets.";
+            };
+            timezone = lib.mkOption {
+              type = lib.types.str;
+              description = "IANA timezone for the location.";
+            };
+            latitude = lib.mkOption {
+              type = lib.types.float;
+              description = "Latitude in decimal degrees.";
+            };
+            longitude = lib.mkOption {
+              type = lib.types.float;
+              description = "Longitude in decimal degrees.";
+            };
+          };
+        }
+      );
+      default = null;
+      description = ''
+        Location used by desktop-shell weather widgets, and whatever else a
+        shell wants to know where the machine is. Purely presentational: it is
+        not the system timezone (`baseTimezone` is, and that is NixOS-scope).
+      '';
+    };
     desktopDefaultSession = lib.mkOption {
       type = lib.types.enum [
         "gnome"
@@ -301,14 +340,61 @@
         appear in `desktopSessions`; desktop.nix asserts that.
       '';
     };
-    dankMaterialShell = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
+    # ── Shell on top of the niri session ────────────────────────────────
+    #
+    # One master switch, not three booleans. `desktopShell` names the shell the
+    # host installs and starts; each shell's module (dank-material-shell.nix,
+    # noctalia.nix, serpantinum.nix) enables itself when this equals its own
+    # name, so the choice is exclusive by construction — two shells would both
+    # claim org.freedesktop.Notifications and both draw a bar. See
+    # docs/adr/0004.
+    #
+    # `null` means "no shell": the compositor runs bare. That is a real choice
+    # (a niri-only debug session), so it is not an error.
+    desktopShell = lib.mkOption {
+      type = lib.types.nullOr (
+        lib.types.enum [
+          "dank"
+          "noctalia"
+          "serpantinum"
+        ]
+      );
+      default = null;
+      example = "noctalia";
       description = ''
-        Enable DankMaterialShell, the shell drawn on top of the niri session
-        (see docs/adr/0003). It is a shell, not a session, so it has its own
-        flag rather than an entry in `desktopSessions`.
+        The desktop shell drawn on top of the niri session: bar, launcher,
+        notifications, clipboard, lock screen and OSD. A shell is not a
+        session, so this is separate from `desktopSessions`.
+
+        Exactly one shell may be selected. Each shell lives in its own module
+        and installs the optional dependencies its own features need
+        (screenshots, clipboard, media keys, brightness) with its
+        upstream-recommended tools.
+
+        Set in the host's capabilities.nix, not configuration.nix: the shells
+        are configured by Home Manager modules, and Home Manager evaluates its
+        own `config.my` instance (see CONTEXT.md).
       '';
+    };
+    # Convenience predicates for the shell modules. Derived, not settable: the
+    # point of the master switch is that a host never sets these.
+    desktopShellIsDankMaterialShell = lib.mkOption {
+      type = lib.types.bool;
+      readOnly = true;
+      default = config.my.desktopShell == "dank";
+      description = "Derived from `desktopShell`; do not set.";
+    };
+    desktopShellIsNoctalia = lib.mkOption {
+      type = lib.types.bool;
+      readOnly = true;
+      default = config.my.desktopShell == "noctalia";
+      description = "Derived from `desktopShell`; do not set.";
+    };
+    desktopShellIsSerpantinum = lib.mkOption {
+      type = lib.types.bool;
+      readOnly = true;
+      default = config.my.desktopShell == "serpantinum";
+      description = "Derived from `desktopShell`; do not set.";
     };
 
     # Secrets (secretspec + BWS) — shared paths used by every secret consumer.

@@ -10,10 +10,13 @@ choice had a ready-made alternative, so each is recorded here.
 
 We decided:
 
-- **DMS comes from its upstream flake** (`github:AvengeMedia/DankMaterialShell/stable`,
-  v1.6.2 at the time of writing), not from nixpkgs' `programs.dms-shell`
-  (1.6.1). The flake tracks DMS's own release cadence; the cost is a
-  from-source Go build and one more input.
+- **DMS comes from its upstream flake** (`github:AvengeMedia/DankMaterialShell/stable`),
+  not from nixpkgs' `programs.dms-shell`. At the time of this decision that was
+  the flake's v1.6.2 against nixpkgs' 1.6.1. Re-checked 2026-10-17: the flake
+  pin (flake.lock rev `4a87e82`) resolves to tag **v1.6.3**, and nixpkgs
+  unstable is on **1.6.2** — the gap is now one patch, not one minor, but the
+  flake is still ahead. The flake tracks DMS's own release cadence; the cost is
+  a from-source Go build and one more input.
 - **The flake's home-manager module is used, not its NixOS module**, and
   **no declarative `settings` are set**. DMS's `settings.json` stays owned by
   the DMS GUI at runtime, which is the "vanilla install" this work was asked
@@ -38,11 +41,15 @@ We decided:
 
 ## Considered options
 
-**nixpkgs `programs.dms-shell`.** Rejected: it is a patch behind and it is DMS's
-release cadence we would be waiting on, not nixpkgs'. The rejected option stays
-cheap — the native module installs the same upstream package, so switching back
-is a module swap, not a reimplementation. Note the flake no longer ships
-Quickshell, so `pkgs.quickshell` (0.3.1) is used either way.
+**nixpkgs `programs.dms-shell`.** Rejected: at the time it was a patch behind,
+and it is DMS's release cadence we would be waiting on, not nixpkgs'. As of
+2026-10-17 the gap is 1.6.2 (nixpkgs) against 1.6.3 (our flake pin) — narrower
+than when this was decided, and worth re-measuring before treating it as the
+reason to keep the input; the from-source build cost is now the stronger
+argument. The rejected option stays cheap — the native module installs the same
+upstream package, so switching back is a module swap, not a reimplementation.
+Note the flake no longer ships Quickshell, so `pkgs.quickshell` (0.3.1) is used
+either way.
 
 **DankGreeter instead of GDM.** Rejected: `services.displayManager.dms-greeter`
 drives greetd, so it replaces GDM rather than joining it, and GNOME started from

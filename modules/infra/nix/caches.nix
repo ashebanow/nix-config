@@ -18,7 +18,8 @@ let
     "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
     "pi.cachix.org-1:lGeoGJaZ5ZDabuRzkcD5EBTNnDM4HJ1vqeOxlWk1Flk="
   ];
-in {
+in
+{
   nix.settings = {
     inherit substituters;
     trusted-substituters = substituters;

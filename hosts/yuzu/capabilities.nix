@@ -40,5 +40,24 @@ _: {
     "gnome"
   ];
   my.desktopDefaultSession = "niri";
-  my.dankMaterialShell = true;
+
+  # Where the weather widget thinks it is. Set here — not derived from
+  # my.baseTimezone — because baseTimezone is NixOS-scope only (it is set in
+  # configuration.nix) and Home Manager evaluates its own config.my, so deriving
+  # from it here silently yields the option's America/New_York default. The
+  # coordinates exist to keep the widget off Serpantinum's IP-geolocation path
+  # (see modules/features/serpantinum.nix), not as a fact other modules read.
+  my.desktopShellLocation = {
+    city = "San Jose";
+    timezone = "America/Los_Angeles";
+    latitude = 37.3382;
+    longitude = -121.8863;
+  };
+
+  # The shell drawn on top of niri. One master switch, and each shell's module
+  # enables itself when it matches — see lib/my-options-module.nix and
+  # docs/adr/0004. Values: "dank" (DankMaterialShell), "noctalia",
+  # "serpantinum", or null for a bare niri session. Do not enable two: they
+  # would both claim org.freedesktop.Notifications and both draw a bar.
+  my.desktopShell = "dank";
 }
