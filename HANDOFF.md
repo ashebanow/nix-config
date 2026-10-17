@@ -1,6 +1,6 @@
 # Handoff — Zed Delta ↔ bifrost Responses API round-trip failure
 
-**Status:** **fixed upstream and released in `transports/v2.3.0` (2026-10-13).**
+**Status:** **fixed and deployed** — bifrost v2.3.0 on lumquat, reliability gate 7/7 (2026-10-17).
 Image bumped `v2.0.0` → `v2.3.0` on branch `fix/bifrost-v2.3.0`; **not yet
 deployed** — see "Update 2026-10-17" directly below.
 **Written:** end of the lumquat session, 2026-10-08; updated 2026-10-17.
