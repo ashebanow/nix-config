@@ -59,7 +59,7 @@ Tailscale auth key is issued per node, so the host scope is per node
 |-------|---------|----------|
 | `host-lumquat` | `LUMQUAT_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
 | `host-yuzu` | `YUZU_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
-| `dev` | `LINEAR_API_KEY`, `VK_PI` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
+| `dev` | `LINEAR_API_KEY`, `VK_PI`, `VK_HERMES` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
 | `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `bifrost-compose.service` |
