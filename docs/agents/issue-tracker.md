@@ -37,10 +37,10 @@ shell-mangled.
 
 | Operation        | Command                                                                                                                                                                                                                                           |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Fetch a ticket   | `linear issue view BOX-<n> --json` (fields: `description`, `state.name`, `labels.nodes[].name`, `parent`, `children.nodes[]`, `assignee`)                                                                                                         |
-| Read its history | `linear issue comment list BOX-<n> --json` (`.nodes[]`, newest first: `body`, `user`, `createdAt`)                                                                                                                                                |
-| List tickets     | `linear issue query --team BOX --project Nix-Config --state unstarted --state started --json --limit 0` — `--state` takes state **types** (`triage`, `backlog`, `unstarted`, `started`, `completed`, `canceled`), never names; repeat it to union |
-| Create a ticket  | `linear issue create --no-interactive --project Nix-Config --title "…" --description-file body.md` (`--label <name>` repeatable; `--parent BOX-<n>` for a sub-issue; `--state Todo`)                                                              |
+| Fetch a ticket   | `linear issue view BOX-<n> --json` (fields: `description`, `state.name`, `labels[].name`, `parent`, `children[]`, `assignee`)                                                                                                                       |
+| Read its history | `linear issue comment list BOX-<n> --json` (an array, newest first: `body`, `user`, `createdAt`)                                                                                                                                                   |
+| List tickets     | `linear issue query --team BOX --project Nix-Config --state unstarted --state started --json --limit all` — `--state` takes state **types** (`triage`, `backlog`, `unstarted`, `started`, `completed`, `canceled`), never names; repeat it to union |
+| Create a ticket  | `linear issue create --no-input --project Nix-Config --title "…" --description-file body.md` (`--label <name>` repeatable; `--parent BOX-<n>` for a sub-issue; `--state Todo`)                                                                      |
 | Comment          | `linear issue comment add BOX-<n> --body-file note.md`                                                                                                                                                                                            |
 | Labels           | `linear issue update BOX-<n> --add-label "Ready For Agent"` / `--remove-label …` (by name; `--label` _replaces_ the whole set). Inventory: `linear label list`                                                                                    |
 | Priority         | `linear issue update BOX-<n> --priority <1-4>` (1 urgent … 4 low). Triage always sets one — see `docs/agents/triage-labels.md`                                                                                                                       |
@@ -49,6 +49,22 @@ shell-mangled.
 | Claim / assign   | `linear issue update BOX-<n> --assignee self` (`--unassign` to release)                                                                                                                                                                           |
 | Block            | `linear issue relation add BOX-<a> blocked-by BOX-<b>` (also `blocks`, `related`, `duplicate`); `linear issue relation list BOX-<a>` to inspect                                                                                                   |
 | Anything else    | `linear api` with a heredoc GraphQL query (`linear schema` for the types)                                                                                                                                                                         |
+
+**`--json` is arrays all the way down (3.0.0+).** Every `--json` list is a plain JSON array —
+no `{ nodes, pageInfo }` wrapper, no `totalCount` — and every nested connection inside a
+viewed entity is a plain array too, so `issue view --json` gives `labels[]`, `children[]`,
+`comments[]`, not `.nodes[]`. JQ accordingly: `.[]` for a list, `.labels[].name` inside an
+issue. The one exception is `linear api`, which returns Linear's raw GraphQL response and
+keeps the `{ nodes }` shape you wrote in the query — the wayfinder frontier query below still
+uses it.
+
+**`--limit` never takes `0`.** It is a positive number or `all`; `0` is a usage error
+(exit 2). Lists that are not explicitly limited default to 50 (`issue list`, `issue query`,
+`document list`), so pass `--limit all` when you mean "everything".
+
+**Non-interactive is `--no-input`.** `--no-interactive` was removed in 3.0.0. It still
+happens to parse because the argument parser accepts an unambiguous prefix, but that is an
+accident of abbreviation that any future flag could take away — write `--no-input`.
 
 **Labels and states.** The workspace labels are `Ready For Agent`, `Deferred`, `Feature`,
 `Bug`, `Improvement`, plus the team's `wayfinder:*`. Triage roles map through
@@ -78,7 +94,7 @@ Code and such in blocks is different, it doesn't wrap.
 
 ## When a skill says "publish to the issue tracker"
 
-`linear issue create --no-interactive --project Nix-Config --title "…" --description-file …`.
+`linear issue create --no-input --project Nix-Config --title "…" --description-file …`.
 For a set of tickets, create blockers first so each `relation add` can name a real id.
 
 ## When a skill says "fetch the relevant ticket"
@@ -97,9 +113,9 @@ unblocked when every blocker is in a `completed` or `canceled` state — read th
 Used by `/wayfinder`. The **map** is one issue; **child** tickets are its Linear sub-issues.
 
 - **Map**: an issue with the `wayfinder:map` label holding the Notes / Decisions-so-far / Fog
-  body. `linear issue view BOX-<map> --json` lists its children under `children.nodes[]`
+  body. `linear issue view BOX-<map> --json` lists its children under `children[]`
   (identifier, title, state name).
-- **Child ticket**: `linear issue create --no-interactive --project Nix-Config --parent
+- **Child ticket**: `linear issue create --no-input --project Nix-Config --parent
 BOX-<map> --label wayfinder:<type> --title "…" --description-file …` with `<type>` one of
   `research` / `prototype` / `grilling` / `task`.
 - **Blocking**: `linear issue relation add BOX-<child> blocked-by BOX-<other>`.
@@ -123,7 +139,9 @@ BOX-<map> --label wayfinder:<type> --title "…" --description-file …` with `<
   A child is on the frontier when `state.type` is `unstarted`/`started`/`backlog`/`triage`,
   `assignee` is null, and no `inverseRelations` node has `type == "blocks"` with an `issue`
   whose `state.type` is outside `completed`/`canceled`. `children.nodes` comes back newest
-  first; map order is the reverse, so take the _last_ frontier match.
+  first — note the `{ nodes }` wrapper here is from the GraphQL query itself, not the CLI's
+  `--json` shaping, which is why this one keeps it; map order is the reverse, so take the
+  _last_ frontier match.
 
 - **Claim**: `linear issue update BOX-<child> --assignee self --state "In Progress"` — the
   session's first write.
