@@ -395,14 +395,40 @@ def _long_sustained_stream(base_url):
     return True, f"{r['chunks']} chunks, {len(r['text'])} chars, {r['elapsed']:.0f}s, max gap {r['gap']:.1f}s"
 
 
-def _tool_roundtrip(base_url, model, reasoning_effort=None, require_reasoning=False):
+PARIS_PROMPT = "Use the get_weather tool for Paris, then tell me the temperature."
+
+# A turn that needs thought before the tool call. DeepSeek's thinking is adaptive:
+# on the bare Paris prompt it skipped reasoning on 7 of 8 tries (2026-10-17), and
+# this prompt drew reasoning on 8 of 8. The answer is Berlin ("Germany" is longest).
+REASONING_PROMPT = (
+    "I'm planning a trip. The city I need is the capital of the country whose name, in "
+    "English, has the most letters among France, Germany and Italy. Work out which city "
+    "that is, then use the get_weather tool for it and tell me the temperature."
+)
+
+# Turn-1 attempts allowed for reasoning to appear before require_reasoning fails. Only
+# the presence of reasoning is retried; an HTTP error or a bad tool call fails at once.
+REASONING_ATTEMPTS = 10
+
+
+def _tool_roundtrip(
+    base_url,
+    model,
+    reasoning_effort=None,
+    require_reasoning=False,
+    prompt=PARIS_PROMPT,
+    city="paris",
+    attempts=1,
+):
     """Two-turn tool call: force a function call, feed the result back, expect a
     final text answer that used it. Returns (ok, note).
 
     With `reasoning_effort` set, thinking is turned on explicitly and the assistant's
     reasoning is replayed back to the gateway on turn 2 — the shape the agent clients
     send. `require_reasoning` additionally asserts the model returned reasoning at all,
-    so a check can't pass by having thinking quietly switched off."""
+    so a check can't pass by having thinking quietly switched off. Because the model
+    may skip thinking on any single turn, turn 1 is retried up to `attempts` times
+    until reasoning appears; a path that strips reasoning still fails every attempt."""
     tools = [
         {
             "type": "function",
@@ -417,7 +443,7 @@ def _tool_roundtrip(base_url, model, reasoning_effort=None, require_reasoning=Fa
             },
         }
     ]
-    msgs = [{"role": "user", "content": "Use the get_weather tool for Paris, then tell me the temperature."}]
+    msgs = [{"role": "user", "content": prompt}]
 
     def payload():
         body = {"model": model, "messages": msgs, "tools": tools, "max_tokens": 512}
@@ -425,21 +451,26 @@ def _tool_roundtrip(base_url, model, reasoning_effort=None, require_reasoning=Fa
             body["reasoning_effort"] = reasoning_effort
         return body
 
-    status, raw, _ = _request(base_url, "/v1/chat/completions", payload(), timeout=120)
-    if status != 200:
-        return False, f"turn 1 HTTP {status}: {raw[:200]!r}"
-    try:
-        m = json.loads(raw)["choices"][0]["message"]
-        call = m["tool_calls"][0]
-        args = json.loads(call["function"]["arguments"])
-    except (json.JSONDecodeError, KeyError, IndexError) as e:
-        return False, f"turn 1: no usable tool_call ({e}); got {raw[:200]!r}"
-    if call["function"]["name"] != "get_weather" or "paris" not in json.dumps(args).lower():
-        return False, f"turn 1: wrong tool call {call['function']['name']}({args})"
-
-    reasoning = m.get("reasoning_content")
-    if require_reasoning and not reasoning:
-        return False, "turn 1: thinking requested but no reasoning_content came back"
+    for attempt in range(1, attempts + 1):
+        status, raw, _ = _request(base_url, "/v1/chat/completions", payload(), timeout=120)
+        if status != 200:
+            return False, f"turn 1 HTTP {status}: {raw[:200]!r}"
+        try:
+            m = json.loads(raw)["choices"][0]["message"]
+            call = m["tool_calls"][0]
+            args = json.loads(call["function"]["arguments"])
+        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            return False, f"turn 1: no usable tool_call ({e}); got {raw[:200]!r}"
+        if call["function"]["name"] != "get_weather" or city not in json.dumps(args).lower():
+            return False, f"turn 1: wrong tool call {call['function']['name']}({args})"
+        reasoning = m.get("reasoning_content")
+        if reasoning or not require_reasoning:
+            break
+    else:
+        return False, (
+            f"turn 1: thinking requested but no reasoning_content came back "
+            f"in {attempts} attempt(s)"
+        )
 
     assistant = {"role": "assistant", "content": m.get("content"), "tool_calls": m["tool_calls"]}
     if reasoning:
@@ -459,6 +490,8 @@ def _tool_roundtrip(base_url, model, reasoning_effort=None, require_reasoning=Fa
     if "18" not in final:
         return False, f"turn 2: answer did not use the tool result: {final[:120]!r}"
     prefix = f"reasoning {len(reasoning)} chars, " if reasoning else ""
+    if attempt > 1:
+        prefix += f"attempt {attempt}/{attempts}, "
     return True, f"{prefix}tool_call → result → {final[:60]!r}"
 
 
@@ -485,7 +518,13 @@ def _tool_roundtrip_deepseek_thinking(base_url):
     because it never turns thinking on — which is how the gate reported 5/5 while this
     path went untested (BOX-156)."""
     return _tool_roundtrip(
-        base_url, DEEPSEEK_MODEL, reasoning_effort="high", require_reasoning=True
+        base_url,
+        DEEPSEEK_MODEL,
+        reasoning_effort="high",
+        require_reasoning=True,
+        prompt=REASONING_PROMPT,
+        city="berlin",
+        attempts=REASONING_ATTEMPTS,
     )
 
 

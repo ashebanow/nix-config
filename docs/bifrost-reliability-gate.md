@@ -26,7 +26,7 @@ feels off.
 | `long-sustained-stream` | A multi-minute generation streamed to completion; asserts `[DONE]` with no silent gap > 30 s. LiteLLM hung mid-stream / tore the connection down. | Local model. ~5 min. |
 | `tool-roundtrip-anthropic` | Forced `get_weather` tool call → tool result fed back → final answer that used it, through the native Anthropic provider. | Remote. ~3 s. |
 | `tool-roundtrip-deepseek` | Same round trip through the DeepSeek provider. | Remote. ~2 s. |
-| `tool-roundtrip-deepseek-thinking` | Same round trip with thinking explicitly on (`reasoning_effort: high`) and the assistant's reasoning replayed on the follow-up turn. Asserts reasoning actually came back. | Remote. ~2 s. |
+| `tool-roundtrip-deepseek-thinking` | Same round trip with thinking explicitly on (`reasoning_effort: high`) and the assistant's reasoning replayed on the follow-up turn. Asserts reasoning actually came back. Uses a prompt that needs thought (resolve the city, then call the tool) and retries turn 1 up to 10 times, because DeepSeek's thinking is adaptive and skips trivial turns. | Remote. ~2 s, more on retries. |
 
 ## Run log
 
