@@ -228,12 +228,11 @@ secrets-check reason="operator: manual manifest check":
 # Run the bifrost reliability gate — the size/duration conditions that made
 # LiteLLM unusable, plus tool-calling round trips. Pass a base URL to gate a
 # different deployment (default: the served gateway hostname).
-# VK_GATE comes from the secretspec `bifrost` scope over the operator route, so
-# this requires BWS_ACCESS_TOKEN in the environment. Without the key the script
-# falls back to a placeholder that the gateway rejects with 401 on every check.
+# The gate's key is VK_GATE from the environment, else /run/secrets/vk-gate
+# (written by host-secrets-populate on NixOS hosts), so no BWS token is needed.
 [group('llm')]
 reliability-gate base_url="https://ai.fluffy-walleye.ts.net":
-    SECRETSPEC_REASON="operator: bifrost reliability gate" secretspec run -f secretspec.toml -p bws -P production -S bifrost -- python3 scripts/bifrost-reliability-gate.py {{base_url}}
+    python3 scripts/bifrost-reliability-gate.py {{base_url}}
 
 # ===== TOOL PINS =====
 

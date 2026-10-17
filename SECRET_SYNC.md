@@ -59,7 +59,7 @@ Tailscale auth key is issued per node, so the host scope is per node
 |-------|---------|----------|
 | `host-lumquat` | `LUMQUAT_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
 | `host-yuzu` | `YUZU_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
-| `dev` | `LINEAR_API_KEY`, `VK_PI`, `VK_HERMES` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
+| `dev` | `LINEAR_API_KEY`, `VK_PI`, `VK_HERMES`, `VK_GATE` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
 | `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `bifrost-compose.service` |
@@ -134,6 +134,9 @@ neither subprocess sees the other scope), which writes:
 - `/run/secrets/vk-pi` (0400, owned by `my.baseUsername`) → read by the `pi`
   gateway attribution wrapper (`~/.config/shell/attribution.sh`) when launching
   `pi` on a NixOS host without a user-level `BWS_ACCESS_TOKEN`.
+- `/run/secrets/vk-gate` (0400, owned by `my.baseUsername`) → read by
+  `scripts/bifrost-reliability-gate.py` (`just reliability-gate`) when
+  `VK_GATE` is not already in the environment.
 
 `dev` secrets are optional: an absent value skips the file with a notice and
 does not fail the unit. Why operator tools get their secrets this way rather

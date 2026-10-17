@@ -35,7 +35,25 @@ LOCAL_MODEL = "qwen-latest"
 # value is read from the environment (secretspec `bifrost` scope); the name is
 # what the gateway records and what the attribution check asserts on.
 GATE_VK_NAME = "gate"
-GATE_VK = os.environ.get("VK_GATE", "sk-bf-gate")
+# Headless hosts hold no user-level BWS token, so there the key comes from
+# /run/secrets/vk-gate, written by host-secrets-populate from the `dev` scope
+# (docs/adr/0001). The placeholder exists only so the unit tests import cleanly;
+# the gateway rejects it with 401 on every check.
+GATE_VK_FILE = "/run/secrets/vk-gate"
+GATE_VK_PLACEHOLDER = "sk-bf-gate"
+
+
+def _read_gate_vk() -> str:
+    if os.environ.get("VK_GATE"):
+        return os.environ["VK_GATE"]
+    try:
+        with open(GATE_VK_FILE) as f:
+            return f.read().strip() or GATE_VK_PLACEHOLDER
+    except OSError:
+        return GATE_VK_PLACEHOLDER
+
+
+GATE_VK = _read_gate_vk()
 
 # How long the attribution check waits for the log write to land. The log is
 # written asynchronously relative to the response, so a small grace period is
@@ -477,6 +495,13 @@ def main(argv=None):
         unknown = [n for n in selected if n not in CHECKS]
         if unknown:
             p.error(f"unknown check(s): {', '.join(unknown)}")
+
+    if GATE_VK == GATE_VK_PLACEHOLDER:
+        print(
+            f"warning: no gate key — VK_GATE is unset and {GATE_VK_FILE} is missing; "
+            "every check will fail with 401",
+            file=sys.stderr,
+        )
 
     print(f"bifrost reliability gate → {args.base_url}\n")
     results = []
