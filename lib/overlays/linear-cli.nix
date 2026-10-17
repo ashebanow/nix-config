@@ -4,26 +4,28 @@
 # a CLI on PATH costs nothing until it is called.
 #
 # Why this exists: nixpkgs has no package for the CLI (`pkgs.linear` is the
-# desktop app's DMG, Darwin-only). Upstream is a Deno project; building it
-# from source under Nix means a deno2nix fork and a dependency hash to
-# refresh every release, which is what the y0usaf/linear-cli fork does and
-# what BOX-177 declined. Upstream ships `deno compile` binaries for both of
-# our systems, so this fetches those instead: two hashes, no toolchain.
+# desktop app's DMG, Darwin-only). Building it from source under Nix means a
+# language toolchain pin plus a dependency hash to refresh every release,
+# which is what the y0usaf/linear-cli fork does and what BOX-177 declined.
+# Upstream ships prebuilt binaries for both of our systems, so this fetches
+# those instead: two hashes, no toolchain.
 #
-# The Linux binary is a stock glibc executable (NEEDED: libc, libm, libdl,
-# librt, libpthread, libgcc_s; interp /lib64/ld-linux-x86-64.so.2), so it
-# needs the usual interpreter + rpath patch — but NOT autoPatchelfHook.
-# `deno compile` output is [ELF runtime][program payload][16-byte trailer];
-# the runtime finds its program at startup by reading its own file's last
-# 16 bytes (libsui 0.12: u32 magic 0x501e, u32 name hash, u64 offset back
-# from EOF) and slicing from EOF-offset. It is not an ELF section, and
-# patchelf, which only knows the ELF, appends its relocated sections after
-# the payload — the trailer is no longer at EOF and the binary dies with
-# "Could not find standalone binary section". So the install step splits
-# the payload off using that trailer, patches the bare ELF, and re-appends
-# the payload; the trailer's end-relative offset is then correct again.
-# The Darwin binary runs as shipped. Neither is stripped and the fixup
-# phase's own patchelf pass is disabled, for the same reason.
+# v3.0.0 is a rewrite in Rust (2.x was TypeScript run through `deno compile`),
+# which simplified this derivation. The 2.x Linux binary was
+# [ELF runtime][program payload][16-byte libsui trailer] and needed the
+# install step to split on that trailer, patchelf the bare ELF, and rejoin —
+# patchelf alone moved the trailer off EOF and the binary died with "Could
+# not find standalone binary section" (denoland/deno#19961). A Rust binary
+# keeps no program payload inside itself, so the 3.x Linux asset is a plain
+# dynamically linked PIE (NEEDED: libc.so.6, libgcc_s.so.1; interp
+# /lib64/ld-linux-x86-64.so.2) that takes a normal interpreter + rpath
+# patch. That split/patch/rejoin step and its libsui guard are gone; the
+# guard is what caught the change, and it fired before this was rewritten.
+#
+# The Darwin binary runs as shipped. Neither is stripped. ELF patching is
+# disabled in the fixup phase for the Linux build only, because patchelf has
+# already run in installPhase and nothing should get a second, post-prefetch
+# pass at it.
 #
 # The `linear` on PATH is a shim over `linear-unwrapped`. When
 # LINEAR_API_KEY is not already set and /run/secrets/linear-api-key is
@@ -45,18 +47,18 @@
 # hash lines by the `target = "..."` line above each, so keep that shape.
 final: _prev:
 let
-  version = "2.6.0";
+  version = "3.0.0";
 
   # Release asset per system; hashes are the SRI form of upstream's
-  # sha256.sum for the same tag.
+  # `.sha256` file for the same tag.
   assets = {
     aarch64-darwin = {
       target = "aarch64-apple-darwin";
-      hash = "sha256-uavdS1rsFEWeQ0oomSA3V96K6EfwVerk8frue7H7wHg=";
+      hash = "sha256-heuE55VUSld63Be5b4sAdxvOyU840mRC/X1WHNgjNvI=";
     };
     x86_64-linux = {
       target = "x86_64-unknown-linux-gnu";
-      hash = "sha256-u8udNlMIvDcooeyZE60YgPiMDOaHZzgyl+NIwFfzW40=";
+      hash = "sha256-UGSmOn5qi1iTpVDhOMCnujc6rWXUJd3msrZrUKbBAok=";
     };
   };
 
@@ -88,17 +90,9 @@ in
       runHook preInstall
 
       ${final.lib.optionalString final.stdenv.hostPlatform.isLinux ''
-        # Split [ELF][payload][trailer] on the libsui trailer, patch the ELF
-        # alone, rejoin. Sizes via wc/od so this needs nothing but coreutils.
-        size=$(wc -c < linear | tr -d ' ')
-        magic=$(tail -c 16 linear | head -c 4 | od -An -tu4 | tr -d ' ')
-        plen=$(tail -c 8 linear | od -An -tu8 | tr -d ' ')
-        if [ "$magic" != "20510" ]; then # 0x501e
-          echo "linear-cli: no libsui trailer at EOF (magic=$magic); upstream changed the deno compile layout — re-check lib/overlays/linear-cli.nix" >&2
-          exit 1
-        fi
-        head -c $((size - plen)) linear > linear.elf
-        tail -c "$plen" linear > linear.payload
+        # 3.x is a stock Rust binary — a plain ELF, no embedded program
+        # payload — so interpreter + rpath is all it needs (2.x's split on
+        # the libsui trailer is obsolete; see the header comment).
         patchelf \
           --set-interpreter ${final.stdenv.cc.bintools.dynamicLinker} \
           --set-rpath ${
@@ -107,17 +101,15 @@ in
               final.glibc
             ]
           } \
-          linear.elf
-        cat linear.elf linear.payload > linear
-        rm linear.elf linear.payload
-        # Trailer must be at EOF again with the same end-relative offset.
-        [ "$(tail -c 8 linear | od -An -tu8 | tr -d ' ')" = "$plen" ]
+          linear
       ''}
 
       install -Dm755 linear $out/bin/linear-unwrapped
       install -Dm644 LICENSE $out/share/licenses/linear-cli/LICENSE
       install -Dm644 README.md $out/share/doc/linear-cli/README.md
       install -Dm644 CHANGELOG.md $out/share/doc/linear-cli/CHANGELOG.md
+      # 3.x release archives ship the Rust dependency notices; 2.x did not.
+      install -Dm644 THIRD_PARTY_LICENSES.md $out/share/doc/linear-cli/THIRD_PARTY_LICENSES.md
 
       cat > $out/bin/linear <<SHIM
       #!${final.runtimeShell}
