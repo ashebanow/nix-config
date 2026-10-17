@@ -42,6 +42,22 @@ that do:
 5. **Gateway request id header** is now `x-bifrost-request-id`. Only matters if
    a script reads the old header.
 
+### Deployed 2026-10-17 — outcome
+
+- v2.3.0 deployed to lumquat; migrations ran cleanly. Anonymous inference is
+  still served (item 1 holds).
+- Item 2 bit: `/api` (dashboard, `/api/logs`) returned **403** — no dashboard
+  auth and no setup token. Fix on this branch: `governance.auth_config` in
+  `bifrost-config.json` (username `admin`, password `env.BIFROST_ADMIN_PASSWORD`
+  from BWS item `bifrost-admin-password`). Seeding from config.json needs no
+  setup token, and bifrost bcrypt-hashes the env value itself. Because
+  `enforce_auth_on_inference: false` is explicit, creating the first admin does
+  **not** flip inference enforcement on. The reliability gate reads `/api/logs`
+  over Basic auth with the same password (`/run/secrets/bifrost-admin-password`
+  on lumquat, via the `dev` scope).
+- `just reliability-gate` was also broken independently of the upgrade: it never
+  supplied `VK_GATE`. Now delivered via `/run/secrets/vk-gate` (`dev` scope).
+
 Post-deploy verification:
 
 ```bash

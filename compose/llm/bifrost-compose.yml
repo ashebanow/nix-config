@@ -90,6 +90,8 @@ services:
       - VK_RAYCAST=${VK_RAYCAST}
       - VK_OPENWEBUI=${VK_OPENWEBUI}
       - VK_GATE=${VK_GATE}
+      # Dashboard admin password, referenced by config.json governance.auth_config.
+      - BIFROST_ADMIN_PASSWORD=${BIFROST_ADMIN_PASSWORD}
     volumes:
       - bifrost-data:/app/data
       - /etc/bifrost/config.json:/app/data/config.json:ro

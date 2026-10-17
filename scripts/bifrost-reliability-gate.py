@@ -19,6 +19,7 @@ Exit code is 0 only if every selected check passes.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -43,17 +44,32 @@ GATE_VK_FILE = "/run/secrets/vk-gate"
 GATE_VK_PLACEHOLDER = "sk-bf-gate"
 
 
-def _read_gate_vk() -> str:
-    if os.environ.get("VK_GATE"):
-        return os.environ["VK_GATE"]
+def _read_secret(env_var: str, path: str) -> str:
+    """The value of `env_var`, else the contents of `path`, else ""."""
+    if os.environ.get(env_var):
+        return os.environ[env_var]
     try:
-        with open(GATE_VK_FILE) as f:
-            return f.read().strip() or GATE_VK_PLACEHOLDER
+        with open(path) as f:
+            return f.read().strip()
     except OSError:
-        return GATE_VK_PLACEHOLDER
+        return ""
 
 
-GATE_VK = _read_gate_vk()
+GATE_VK = _read_secret("VK_GATE", GATE_VK_FILE) or GATE_VK_PLACEHOLDER
+
+# Since v2.3.0 bifrost locks /api unless dashboard auth is configured, so the
+# attribution check reads /api/logs as the dashboard admin, over Basic auth.
+# Same delivery as the gate key: environment, else /run/secrets.
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD_FILE = "/run/secrets/bifrost-admin-password"
+ADMIN_PASSWORD = _read_secret("BIFROST_ADMIN_PASSWORD", ADMIN_PASSWORD_FILE)
+
+
+def _admin_headers() -> dict:
+    if not ADMIN_PASSWORD:
+        return {}
+    cred = base64.b64encode(f"{ADMIN_USERNAME}:{ADMIN_PASSWORD}".encode()).decode()
+    return {"Authorization": f"Basic {cred}"}
 
 # How long the attribution check waits for the log write to land. The log is
 # written asynchronously relative to the response, so a small grace period is
@@ -182,13 +198,12 @@ def _stream(base_url, path, payload, timeout):
 def _fetch_logs(base_url, params, timeout=30):
     """GET /api/logs with query params, return the `logs` list.
 
-    Bifrost serves this unauthenticated on this deployment (verified against
-    v2.0.0), so the gate needs no dashboard credential of its own. Raises on a
+    Authenticates as the dashboard admin (see ADMIN_PASSWORD). Raises on a
     non-2xx so a check reports a readable failure rather than an empty result.
     """
     query = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
     url = base_url.rstrip("/") + "/api/logs" + (f"?{query}" if query else "")
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    req = urllib.request.Request(url, headers={"Accept": "application/json", **_admin_headers()})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         obj = json.loads(resp.read())
     if isinstance(obj, dict):
@@ -500,6 +515,12 @@ def main(argv=None):
         print(
             f"warning: no gate key — VK_GATE is unset and {GATE_VK_FILE} is missing; "
             "every check will fail with 401",
+            file=sys.stderr,
+        )
+    if not ADMIN_PASSWORD:
+        print(
+            f"warning: no admin password — BIFROST_ADMIN_PASSWORD is unset and {ADMIN_PASSWORD_FILE} "
+            "is missing; the attribution check cannot read /api/logs",
             file=sys.stderr,
         )
 

@@ -14,6 +14,7 @@
 #     /run/secrets/linear-api-key      -> the `linear` CLI wrapper           (0400 <operator-user>)
 #     /run/secrets/vk-pi               -> `pi` gateway wrapper (attribution.sh) (0400 <operator-user>)
 #     /run/secrets/vk-gate             -> `just reliability-gate`             (0400 <operator-user>)
+#     /run/secrets/bifrost-admin-password -> `just reliability-gate` /api/logs (0400 <operator-user>)
 #
 # The tailscale key is per node, so its variable name (<HOST>_TAILSCALE_AUTH_KEY)
 # is passed in by the caller rather than hardcoded.
@@ -94,6 +95,7 @@ case "${1:-host}" in
     write_user LINEAR_API_KEY /run/secrets/linear-api-key "$2"
     write_user VK_PI /run/secrets/vk-pi "$2"
     write_user VK_GATE /run/secrets/vk-gate "$2"
+    write_user BIFROST_ADMIN_PASSWORD /run/secrets/bifrost-admin-password "$2"
     ;;
   *)
     fail "unknown mode '$1' (expected: host <HOST>_TAILSCALE_AUTH_KEY | dev <operator-user>)"
