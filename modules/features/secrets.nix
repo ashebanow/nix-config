@@ -57,11 +57,12 @@ _: {
         # user's tools. Runs once at boot, before tailscale autoconnect and
         # flakehub auth need the files.
         systemd.services.host-secrets-populate = {
-          description = "Populate host + dev secrets (tailscale, flakehub, linear) from BWS via secretspec";
+          description = "Populate host + dev secrets (tailscale, flakehub, linear, vk-pi) from BWS via secretspec";
           wantedBy = [ "multi-user.target" ];
           wants = [ "network-online.target" ];
           after = [ "network-online.target" ];
           before = lib.optionals config.my.access [ "tailscaled-autoconnect.service" ];
+          restartTriggers = [ "${../../secretspec.toml}" ];
           path = [
             pkgs.secretspec
             pkgs.bws # secretspec 0.17+ invokes the official bws CLI

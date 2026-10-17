@@ -59,7 +59,7 @@ Tailscale auth key is issued per node, so the host scope is per node
 |-------|---------|----------|
 | `host-lumquat` | `LUMQUAT_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
 | `host-yuzu` | `YUZU_TAILSCALE_AUTH_KEY`, `FLAKEHUB_TOKEN`, `CACHIX_AUTH_TOKEN` | `host-secrets-populate.service` (root) — root-only files |
-| `dev` | `LINEAR_API_KEY` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
+| `dev` | `LINEAR_API_KEY`, `VK_PI` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
 | `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY` | `bifrost-compose.service` |
@@ -122,7 +122,7 @@ host <HOST>_TAILSCALE_AUTH_KEY`, which writes:
 - `/run/secrets/tailscale-auth-key` (0600 root) → `services.tailscale.authKeyFile`
 - `/run/secrets/flakehub-token` (0600 root) → `flakehub-nixd-auth.service --token-file`
 
-### Dev secrets (linear) — operator-tool consumers
+### Dev secrets (linear, pi) — operator-tool consumers
 
 The same unit then runs a **second** `secretspec run -P production -S dev --
 scripts/populate-host-secrets.sh dev <operator-user>` (separate invocation, so
@@ -131,6 +131,9 @@ neither subprocess sees the other scope), which writes:
 - `/run/secrets/linear-api-key` (0400, owned by `my.baseUsername`) → read by the
   `linear` CLI's Nix wrapper (`lib/overlays/linear-cli.nix`) when
   `LINEAR_API_KEY` is not already in the environment.
+- `/run/secrets/vk-pi` (0400, owned by `my.baseUsername`) → read by the `pi`
+  gateway attribution wrapper (`~/.config/shell/attribution.sh`) when launching
+  `pi` on a NixOS host without a user-level `BWS_ACCESS_TOKEN`.
 
 `dev` secrets are optional: an absent value skips the file with a notice and
 does not fail the unit. Why operator tools get their secrets this way rather
@@ -186,10 +189,11 @@ fetch secrets from BWS — API keys are expected in the environment already:
   `FLAKEHUB_TOKEN` (item `NIX_FLAKEHUB_CACHE_TOKEN`), and more. `nix develop`
   inherits these from the parent shell.
 - **NixOS (lumquat)**: secrets reach systemd services via `secretspec` +
-  `LoadCredential` (above). The devshell still never talks to BWS; the one
-  secret an interactive tool needs there (`LINEAR_API_KEY`) is read from
-  `/run/secrets/linear-api-key` by the tool's own wrapper (dev scope, above),
-  so `nix develop` needs nothing in its parent environment.
+  `LoadCredential` (above). The devshell still never talks to BWS; the
+  secrets interactive tools need there (`LINEAR_API_KEY` for `linear`, `VK_PI`
+  for `pi`) are read from `/run/secrets/{linear-api-key,vk-pi}` by each tool's
+  wrapper (`dev` scope, above), so `nix develop` needs nothing in its parent
+  environment.
 
 ## Adding or rotating a secret
 

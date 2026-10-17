@@ -12,6 +12,7 @@
 #
 #   secretspec run -P production -S dev  -- populate-host-secrets.sh dev <operator-user>
 #     /run/secrets/linear-api-key      -> the `linear` CLI wrapper           (0400 <operator-user>)
+#     /run/secrets/vk-pi               -> `pi` gateway wrapper (attribution.sh) (0400 <operator-user>)
 #
 # The tailscale key is per node, so its variable name (<HOST>_TAILSCALE_AUTH_KEY)
 # is passed in by the caller rather than hardcoded.
@@ -90,6 +91,7 @@ case "${1:-host}" in
   dev)
     [[ -n "${2:-}" ]] || fail "dev mode needs the operator user as its second argument"
     write_user LINEAR_API_KEY /run/secrets/linear-api-key "$2"
+    write_user VK_PI /run/secrets/vk-pi "$2"
     ;;
   *)
     fail "unknown mode '$1' (expected: host <HOST>_TAILSCALE_AUTH_KEY | dev <operator-user>)"
