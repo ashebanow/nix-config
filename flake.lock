@@ -224,22 +224,6 @@
         "url": "https://install.determinate.systems/determinate-nixd/tag/v3.23.1/x86_64-linux"
       }
     },
-    "devenvUnstable": {
-      "locked": {
-        "lastModified": 1791456040,
-        "narHash": "sha256-H83yz/do+hjOO0uujHyH8RgtIQP2v7Mw+cLwcZK/xKc=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "e7439b6b14ad3cc35d05608ebca9bce01a25f5f8",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "dms": {
       "inputs": {
         "dank-qml-common": "dank-qml-common",
@@ -861,7 +845,6 @@
       "inputs": {
         "delta": "delta",
         "determinate": "determinate",
-        "devenvUnstable": "devenvUnstable",
         "dms": "dms",
         "flake-parts": "flake-parts_2",
         "home-manager": "home-manager",

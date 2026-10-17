@@ -44,14 +44,6 @@ let
   # the dev shell.
   linearCliOverlay = import ../../lib/overlays/linear-cli.nix;
 
-  # devenv (BOX-245): nixpkgs is on 2.3.1, which bundles SecretSpec 0.20.0 and
-  # re-prompts for the macOS keychain on every `cd` because the item's
-  # change_acl list is sealed. 2.4.0 is the first release carrying SecretSpec
-  # 0.21.0 and its keyring fix. That overlay deliberately pins devenv ONLY and
-  # not `secretspec` — SecretSpec is vendored into devenv's workspace, so the
-  # bundled binary is the one that reads the keychain. See the overlay header.
-  devenvOverlay = import ../../lib/overlays/devenv.nix { inherit (inputs) devenvUnstable; };
-
   # claude-code: nixpkgs trails the CLI's several-releases-a-week cadence (our
   # pin is 2.1.272 against Anthropic's 2.1.296). This overlay swaps in
   # Anthropic's own release manifest so `pkgs.claude-code` — installed by
@@ -135,13 +127,11 @@ let
         }
         {
           # Dev-workstation-only package overrides — see worktrunkOverlay,
-          # linearCliOverlay, devenvOverlay, and claudeCodeOverlay above for
-          # why these are here and not (or, for claude-code, also) in the
-          # NixOS builder.
+          # linearCliOverlay, and claudeCodeOverlay above for why these are
+          # here and not (or, for claude-code, also) in the NixOS builder.
           nixpkgs.overlays = [
             worktrunkOverlay
             linearCliOverlay
-            devenvOverlay
             claudeCodeOverlay
           ];
         }
