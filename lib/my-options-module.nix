@@ -412,7 +412,7 @@
     guiDevApps = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable development GUI apps (vscode, zed-editor).";
+      description = "Enable development GUI apps (vscode, zed-editor, delta).";
     };
     guiMediaApps = lib.mkOption {
       type = lib.types.bool;

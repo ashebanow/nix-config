@@ -59,6 +59,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Zed Delta — official Linux binary distribution packaged for Nix
+    # (x86_64-linux and aarch64-linux only; macOS installs Delta outside Nix).
+    # Shares our nixpkgs so Delta's runtime RPATH / LD_LIBRARY_PATH matches the
+    # host graphics stack (/run/opengl-driver Mesa/LLVM/glibc). Bump with
+    # `nix flake update delta`.
+    delta = {
+      url = "github:zed-industries/delta-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # pi coding agent — consumed as an overlay in the dev shell ONLY
     # (see modules/infra/devshell.nix), never in a host closure. The stock
     # nixpkgs pi-coding-agent trips over NixOS's read-only, non-FHS store;
