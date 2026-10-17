@@ -179,8 +179,16 @@ Three findings were acted on or deliberately accepted:
   no risk to this host.
 - **IP geolocation is suppressed by default here.** Weather fetched without
   coordinates discloses the public IP to three providers, one over plaintext
-  HTTP. `programs.serpantinum.settings.general.location` is therefore pinned, so
-  that code path is never taken.
+  HTTP. `programs.serpantinum.settings.general.location` is therefore populated
+  from `my.desktopShellLocation` (set in the host's `capabilities.nix`), so that
+  code path is never taken. The stanza is guarded: a host that leaves the option
+  null gets no `location` key at all, and the shell's own
+  `filterAttrsRecursive` drops the submodule's null fields. It is set in
+  `capabilities.nix` rather than derived from `my.baseTimezone` because that is
+  NixOS-scope only, and deriving it in the Home Manager scope silently yields
+  the option's `America/New_York` default — measured, not assumed.
+  Note the location is presentational only: it is not a claim about where the
+  host is, and nothing else reads it.
 - **The window-title database is accepted.** `focus_daemon.py` keeps a local
   SQLite record of every app and window title at per-minute granularity. Its
   only socket is `AF_UNIX` to Hyprland's IPC — no network import at all — so it

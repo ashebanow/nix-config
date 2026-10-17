@@ -120,14 +120,22 @@
             # network behaviour in the shell worth suppressing by default rather
             # than leaving to a first-run click; see
             # docs/research/serpantinum-security-review.md (F-4).
+            #
+            # The values come from my.desktopShellLocation, set in the host's
+            # capabilities.nix. Guarded, so a host that does not set it gets no
+            # location stanza at all rather than a wrong one.
             general = {
-              location = {
-                city = "Pleasanton";
-                timezone = "America/Los_Angeles";
-                latitude = 37.6624;
-                longitude = -121.8747;
-              };
               weatherUnit = "imperial";
+            }
+            // lib.optionalAttrs (config.my.desktopShellLocation != null) {
+              location = {
+                inherit (config.my.desktopShellLocation)
+                  city
+                  timezone
+                  latitude
+                  longitude
+                  ;
+              };
             };
           };
         };

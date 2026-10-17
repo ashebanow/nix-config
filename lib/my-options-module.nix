@@ -293,6 +293,42 @@
         evaluates its own `config.my` instance (see CONTEXT.md).
       '';
     };
+    # Location for desktop-shell weather/widgets. Optional; a host that leaves
+    # it null gets no weather configuration at all, and a shell that would
+    # IP-geolocate will do so (see modules/features/serpantinum.nix).
+    #
+    # Set in capabilities.nix, like `desktopShell`, because the consumers are
+    # Home Manager modules and `my.baseTimezone` is NixOS-scope only.
+    desktopShellLocation = lib.mkOption {
+      type = lib.types.nullOr (
+        lib.types.submodule {
+          options = {
+            city = lib.mkOption {
+              type = lib.types.str;
+              description = "City name shown by weather widgets.";
+            };
+            timezone = lib.mkOption {
+              type = lib.types.str;
+              description = "IANA timezone for the location.";
+            };
+            latitude = lib.mkOption {
+              type = lib.types.float;
+              description = "Latitude in decimal degrees.";
+            };
+            longitude = lib.mkOption {
+              type = lib.types.float;
+              description = "Longitude in decimal degrees.";
+            };
+          };
+        }
+      );
+      default = null;
+      description = ''
+        Location used by desktop-shell weather widgets, and whatever else a
+        shell wants to know where the machine is. Purely presentational: it is
+        not the system timezone (`baseTimezone` is, and that is NixOS-scope).
+      '';
+    };
     desktopDefaultSession = lib.mkOption {
       type = lib.types.enum [
         "gnome"
