@@ -84,6 +84,40 @@ the nixpkgs NixOS module is functionally close. The flake is used because its
 `homeModules.default` is the module that provides a declarative
 `programs.noctalia.settings`, and it is what upstream documents.
 
+**Putting the shells in an overlay.** Rejected, and deliberately: an overlay
+exists to change what an *attribute name* resolves to for the whole package set,
+or to patch a package nixpkgs ships wrongly. Neither applies. Only one shell is
+active at a time, so nothing else consumes the attribute; the two flake-only
+shells install through their own modules, which reference their own package
+internally, so there is no name to override; and Noctalia's package is already a
+module option (`programs.noctalia.package`), so pinning a different build is a
+setting, not an overlay. Overlaying Noctalia would additionally be *harmful*: it
+would build it against our nixpkgs pin, changing the derivation hash and
+breaking the Cachix cache that its `cachix` branch exists to hit. Compare
+`lib/overlays/worktrunk.nix` and `claude-code.nix`, which are overlays for the
+opposite reason — they replace a nixpkgs attribute that other modules consume by
+name.
+
+## Version position (checked 2026-10-17)
+
+Recorded because "why pin the flake at all" is the obvious follow-up question,
+and because the answer drifts without anyone noticing:
+
+| Shell | nixpkgs unstable | This config | |
+|---|---|---|---|
+| Noctalia | `pkgs.noctalia` **5.2.1** (nixpkgs pin is dated 2026-08-29) | **5.3.0** | flake ahead |
+| DankMaterialShell | `pkgs.dms-shell` **1.6.2** | **1.6.3** (lock rev = tag `v1.6.3`) | flake ahead by a patch |
+| Serpantinum | absent — not packaged | **2.2.12** (newest tag) | flake is the only source |
+
+Two things follow. First, ADR 0003's stated DMS gap ("1.6.1 against 1.6.2 when
+this landed") is now 1.6.2 against 1.6.3, i.e. one patch rather than one minor;
+that ADR is annotated accordingly, and the from-source build cost is now the
+stronger reason to keep the input than the version gap. Second, Serpantinum is
+the only shell with real drift risk: it is unpackaged, has no binary cache, and
+depends on `quickshell` with **no version pin between them**, so a nixpkgs bump
+can break it with no upstream signal. That is an argument for a pinned rev
+bumped deliberately (which `flake.lock` already gives) and not for an overlay.
+
 ## Consequences
 
 - **`nixpkgs` is NOT `follows`-ed for the `noctalia` input, on purpose.**
