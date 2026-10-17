@@ -83,32 +83,31 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # worktrunk (wt, the git-worktree CLI) — nixpkgs unstable is 0.74.0, three
-    # releases behind, and the agent integrations the workflow needs
-    # (`wt config plugins pi`, .codex, .opencode) only exist from 0.77.0.
+    # worktrunk (wt, the git-worktree CLI) — nixpkgs unstable ships 0.74.0, so
+    # the agent integrations the workflow needs (`wt config plugins pi`,
+    # .codex, .opencode — available from 0.77.0 on) are still missing from it.
     # Upstream publishes no `overlays` output, so lib/overlays/worktrunk.nix
     # wraps the package its own flake builds with crane under the nixpkgs
     # attribute name. That overlay reaches the dev shell on every host and
     # (Darwin only) the workstations' pkgs — lumquat's host closure never
     # carries worktrunk, matching pi.nix's dev-tool policy.
     #
-    # TEMPORARY RELEASE PIN (BOX-145). Both changes the fork carried are now in
-    # upstream's v0.78.0 — the Pi/oh-my-pi split (max-sixty/worktrunk#4135, the
-    # split we proposed; upstream closed our #4133 by landing it) and the
-    # `stdenv.hostPlatform.isDarwin` fix (#4132) — so the fork pin is gone and
-    # this reads upstream's tag directly. The fork's `nix-pin` branch is retired;
-    # nothing here should point at a fork branch again.
+    # TEMPORARY RELEASE PIN. Both changes the fork once carried are upstream: the
+    # Pi/oh-my-pi split (max-sixty/worktrunk#4135, the split we proposed;
+    # upstream closed our #4133 by landing it) and the
+    # `stdenv.hostPlatform.isDarwin` fix (#4132). The fork's `nix-pin` branch is
+    # retired; nothing here should point at a fork branch again.
     #
     # Pinned to the tag, NOT `main`: `main` runs ahead of releases with
     # release-please and would re-inherit the unreleased-commit churn this pin
-    # exists to avoid. `v0.78.0` is upstream's newest *published* release; a
-    # `Release v0.79.0` commit exists on `main` but the tag is not pushed, so
-    # there is nothing newer to point at.
+    # exists to avoid. `v0.80.0` is upstream's newest *published* release (tag
+    # and GitHub release both cut); bump it with `just update-worktrunk`, which
+    # picks the highest semver tag upstream publishes.
     #
     # This pin drops entirely once nixpkgs unstable ships >= 0.78.0 — then the
     # overlay in lib/overlays/worktrunk.nix goes too. Tracked in BOX-190.
     worktrunk = {
-      url = "github:max-sixty/worktrunk/v0.78.0";
+      url = "github:max-sixty/worktrunk/v0.80.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
