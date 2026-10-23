@@ -142,7 +142,7 @@
             include optional=true "dms/cursor.kdl"
             include optional=true "dms/input.kdl"
 
-            // ── Our only customisation: the monitor ──────────────────────���────
+            // ── Our only customisation: the monitor ──────────────────────────
             //
             // Matched by full "make model serial" as libdisplay-info reports them —
             // not by connector, and not by the EDID's raw "ACR". niri does not
