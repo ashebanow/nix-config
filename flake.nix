@@ -49,14 +49,26 @@
     # NixOS hardware quirks
     nixos-hardware.url = "github:nixos/nixos-hardware";
 
-    # DankMaterialShell — its own flake rather than nixpkgs' programs.dms-shell,
-    # which trails DMS's release cadence (1.6.2 in nixpkgs against the flake's
-    # 1.6.3, re-checked 2026-10-17; it was 1.6.1 vs 1.6.2 when this landed).
-    # `stable` is a branch, so flake.lock is what actually pins it; bump with
-    # `nix flake update dms`. The flake no longer ships quickshell, so
-    # pkgs.quickshell is used either way. See docs/adr/0003.
+    # DankMaterialShell, which renamed itself to **Dux Shell** in 2.0 and moved
+    # to its own org (`AvengeMedia/DankMaterialShell` -> `duxlabs-dev/dux-shell`).
+    # The flake is still the source rather than nixpkgs' programs.dms-shell,
+    # which trails the release cadence (1.6.2 in nixpkgs against the flake's
+    # v2.0.0, re-checked 2026-10-22). `stable` is a branch, so flake.lock is
+    # what actually pins it; bump with `nix flake update dms`. The flake no
+    # longer ships quickshell — 2.0 needs one built from source with features
+    # nixpkgs' 0.3.1 lacks, and it brings its own (see flake.nix of dux-shell,
+    # `mkDmsShell`) rather than using pkgs.quickshell. See docs/adr/0003 and
+    # docs/adr/0005.
     dms = {
-      url = "github:AvengeMedia/DankMaterialShell/stable";
+      url = "github:duxlabs-dev/dux-shell/stable";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Dux Files (dfiles) — the 2.0 file manager and an xdg-desktop-portal
+    # FileChooser backend. Not in nixpkgs at any version, so the flake is the
+    # only source. `follows` is safe: it publishes no binary cache to invalidate.
+    dux-files = {
+      url = "github:duxlabs-dev/dux-files";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
