@@ -94,20 +94,7 @@
       url = "github:noctalia-dev/noctalia/cachix";
     };
 
-    # Serpantinum — the third shell choice. Not in nixpkgs (nothing to overlay
-    # onto), so the flake is the only source. `master` is its default branch
-    # (there is no `main`), and it publishes no binary cache.
-    #
-    # `follows` IS set here, unlike Noctalia: Serpantinum has no cache to break,
-    # and following keeps its `quickshell` the same one the rest of the system
-    # uses. That is also the drift risk worth knowing about — there is no version
-    # pin between Serpantinum and quickshell, so a nixpkgs bump can break it with
-    # no upstream signal. Bump deliberately, and test the session before trusting
-    # it (docs/adr/0004).
-    serpantinum = {
-      url = "github:ilyamiro/serpantinum";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+
 
     # Zed Delta — official Linux binary distribution packaged for Nix
     # (x86_64-linux and aarch64-linux only; macOS installs Delta outside Nix).

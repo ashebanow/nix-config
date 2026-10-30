@@ -49,7 +49,7 @@ _Avoid_: window manager, WM.
 **shell**:
 The layer drawn on top of a compositor — bar, launcher, notifications,
 clipboard, lock screen, OSD. Selected by `my.desktopShell`
-(`"dank"`, `"noctalia"`, `"serpantinum"`, or `null` for a bare compositor);
+(`"dank"`, `"noctalia"`, or `null` for a bare compositor);
 exactly one at a time, because they all claim the same D-Bus names. Each shell
 has its own module under `modules/features/`, and that module — not the
 compositor's — installs the optional dependencies its features call out to.

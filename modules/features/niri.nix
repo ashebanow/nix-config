@@ -8,7 +8,6 @@
 #
 #   dank-material-shell.nix   modules/features/dank-material-shell.nix
 #   noctalia.nix              modules/features/noctalia.nix
-#   serpantinum.nix           modules/features/serpantinum.nix
 #
 # Everything shell-specific — its packages, its screenshot/clipboard/media
 # tooling, its niri layer-rules and includes — lives in that shell's own module
@@ -52,7 +51,6 @@
         # Packages every session needs regardless of which shell draws on it.
         # The shell modules add their own on top (e.g. Noctalia needs almost
         # nothing because its screenshots/clipboard/OSD are built in, while
-        # Serpantinum ships grim/satty/cliphist inside its own wrapper).
         home.packages = with pkgs; [
           brightnessctl # XF86MonBrightness keys — a sysfs tool, shell-agnostic
           gruvbox-plus-icons # the session icon theme, paired with the GDM gruvbox theme

@@ -4,10 +4,10 @@
 > is kept as the record of that work. The shell is no longer selected by
 > `my.dankMaterialShell` (a boolean), and DMS's packages, layer-rules and
 > `dms/*.kdl` includes no longer live in `niri.nix`. Shells are now chosen by
-> `my.desktopShell = "dank" | "noctalia" | "serpantinum" | null`, and each
+> `my.desktopShell = "dank" | "noctalia" | null`, and each
 > shell's module owns its own tooling — see
 > `docs/adr/0004-selectable-desktop-shell.md`. Everything below about DMS
-> *itself* (why the flake, why `niri.service`, why `dms setup` cannot run
+> _itself_ (why the flake, why `niri.service`, why `dms setup` cannot run
 > against a Home-Manager-owned config) still applies whenever
 > `desktopShell = "dank"`.
 >
@@ -21,7 +21,7 @@
 
 Design record and implementation plan. The decisions and their rejected
 alternatives are in `docs/adr/0003-niri-and-dank-material-shell.md`; the
-vocabulary is in `CONTEXT.md`. This file is the *how*.
+vocabulary is in `CONTEXT.md`. This file is the _how_.
 
 Work item: BOX-210 —
 https://linear.app/boxbow/issue/BOX-210/niri-dankmaterialshell-as-yuzus-default-session-gnome-kept-as-fallback
@@ -271,7 +271,7 @@ In `~/.local/share/chezmoi` (`.chezmoiroot` is `home`, so patterns match
 - Ignore them by adding `.config/niri.bak` and `.config/DankMaterialShell.bak`
   to the **existing `home/.chezmoiignore.tmpl`** — there is no plain
   `.chezmoiignore`, and the template already carries the machine-class host
-  gating for these trees. The new entries are deliberately *not* host-gated:
+  gating for these trees. The new entries are deliberately _not_ host-gated:
   these trees are retired for every host, not just for one class of host.
 - Delete: `private_dot_config/private_gtk-3.0/`,
   `private_dot_config/private_gtk-4.0/`, `hypr/`, `waybar/`, `swaync/`,
@@ -332,9 +332,10 @@ pre-existing drift, not part of this work.)
 
    Compositor detection is by binary presence (`niri` exists), not by the running
    session, so this works from GNOME. Only these four are needed: for niri, DMS's
-   `cursor` and `windowrules` specs deploy *empty* files (they are Hyprland-only),
+   `cursor` and `windowrules` specs deploy _empty_ files (they are Hyprland-only),
    and `outputs` is Home Manager's by design — see the ADR on why DMS's monitor
    settings UI therefore will not move this output.
+
 4. Log into niri from GDM and check, in this order:
    - `niri msg outputs` — confirm 3840×2160 @ ≈60 Hz and 150% scale. If the
      output stanza did not match, niri silently uses the preferred mode at
@@ -436,7 +437,7 @@ of six was wrong in three ways.
 
 Every `dms setup` subcommand — including `binds` — runs the same interactive
 whole-config flow: compositor, terminal, systemd, keybinds bookkeeping, then
-deploy. The fragment named on the command line selects *which* file gets
+deploy. The fragment named on the command line selects _which_ file gets
 written; it does not limit the run to that file. The deploy stage therefore
 always backs up and rewrites `~/.config/niri/config.kdl` and
 the terminal's own config (`~/.config/ghostty/config`), which is exactly the
@@ -446,7 +447,7 @@ Consequences, all observed live:
 
 - Against the Home Manager symlink the run dies with
   `failed to write config: open /home/<user>/.config/niri/config.kdl: read-only
-  file system`, **after** writing the fragment. Check the fragment before
+file system`, **after** writing the fragment. Check the fragment before
   concluding the run failed.
 - It first copies `config.kdl` — following the symlink — to
   `~/.config/niri/config.kdl.backup.<timestamp>`. Harmless but easy to mistake
@@ -456,7 +457,7 @@ Consequences, all observed live:
   `FATAL  go: Error: binds already exists and is not empty`, the successful
   half of the run must be checked by content, not by exit status.
 - `dms setup headless --compositor niri --terminal ghostty --skip-existing` is
-  the scriptable equivalent and is *safe*: it skips the Home-Manager-owned
+  the scriptable equivalent and is _safe_: it skips the Home-Manager-owned
   files outright instead of trying to write them, and `--stock-binds` replaces
   only the keybinds.
 - The `FATAL  go: Error: <fragment> already exists and is not empty` you get
@@ -489,9 +490,9 @@ original version of this list did not exist — corrected in place.
   not match, niri silently falls back to the preferred mode at **scale 1.0**.
 - **There is no `niri msg config`.** `niri msg` in 26.04 offers no way to query
   the loaded config or list failed includes (subcommands: `outputs workspaces
-  windows layers keyboard-layouts focused-output focused-window pick-window
-  pick-color action output event-stream version request-error overview-state
-  casts`). Failed includes surface as an in-session notification. To get the
+windows layers keyboard-layouts focused-output focused-window pick-window
+pick-color action output event-stream version request-error overview-state
+casts`). Failed includes surface as an in-session notification. To get the
   same assurance from a terminal, validate the same file the session loaded:
   `niri validate -c ~/.config/niri/config.kdl`, and treat a working
   `niri msg outputs` as proof the config applied.
@@ -501,10 +502,11 @@ original version of this list did not exist — corrected in place.
   then `INFO niri: config is valid`. They are not a fault: they come from Dux
   Shell's embedded base config, which we include by store path (`niri.nix`) and
   which carries its own `include optional=true "dms/*.kdl"` lines that resolve
-  relative to *its* directory. Everything it warns about is inert; the
+  relative to _its_ directory. Everything it warns about is inert; the
   fragments that really load are `~/.config/niri/dms/*.kdl` via the includes
   relative to the generated config, and those are the ones whose absence would
   matter. See the comment at the `include` in `modules/features/niri.nix`.
+
 - **Borders are off**. That is Dux Shell's default, not a bug — the base sets
   `border { off }` and nothing turns it back on (ADR 0005).
 - **Lock and unlock early** (`Mod+Alt+L`). The PAM stack was measured working
@@ -528,11 +530,11 @@ original version of this list did not exist — corrected in place.
 - `dsearch` — **there is no `dsearch ping`**; `dsearch search ping` is a query
   for the word "ping", which returns plausible results and looks like a pass.
   Use `dsearch index status` and expect `Status: idle` with a recent `Last
-  index` and a non-zero file count. For scoping, read
+index` and a non-zero file count. For scoping, read
   `~/.config/danksearch/config.toml` (it lists `~` with `exclude_hidden = true`
   and `.cache` in `exclude_dirs`) or run `dsearch index check` on a path — but
   `index check` reports `cannot open metastore: metastore locked by another
-  process` while the daemon runs, so its `indexed:` field is not usable
+process` while the daemon runs, so its `indexed:` field is not usable
   in-session. `dsearch index dirs` is the other safe read.
 
 ## 5. Known leftover state

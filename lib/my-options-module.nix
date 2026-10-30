@@ -295,7 +295,7 @@
     };
     # Location for desktop-shell weather/widgets. Optional; a host that leaves
     # it null gets no weather configuration at all, and a shell that would
-    # IP-geolocate will do so (see modules/features/serpantinum.nix).
+    # IP-geolocate will do so.
     #
     # Set in capabilities.nix, like `desktopShell`, because the consumers are
     # Home Manager modules and `my.baseTimezone` is NixOS-scope only.
@@ -344,7 +344,7 @@
     #
     # One master switch, not three booleans. `desktopShell` names the shell the
     # host installs and starts; each shell's module (dank-material-shell.nix,
-    # noctalia.nix, serpantinum.nix) enables itself when this equals its own
+    # noctalia.nix) enables itself when this equals its own
     # name, so the choice is exclusive by construction — two shells would both
     # claim org.freedesktop.Notifications and both draw a bar. See
     # docs/adr/0004.
@@ -356,7 +356,6 @@
         lib.types.enum [
           "dank"
           "noctalia"
-          "serpantinum"
         ]
       );
       default = null;
@@ -388,12 +387,6 @@
       type = lib.types.bool;
       readOnly = true;
       default = config.my.desktopShell == "noctalia";
-      description = "Derived from `desktopShell`; do not set.";
-    };
-    desktopShellIsSerpantinum = lib.mkOption {
-      type = lib.types.bool;
-      readOnly = true;
-      default = config.my.desktopShell == "serpantinum";
       description = "Derived from `desktopShell`; do not set.";
     };
 

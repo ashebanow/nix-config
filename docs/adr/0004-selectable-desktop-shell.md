@@ -11,7 +11,7 @@ need a switch, not three flags: any two shells fight over
 
 We decided:
 
-- **`my.desktopShell` is a single `nullOr (enum ["dank" "noctalia" "serpantinum"])`.**
+- **`my.desktopShell` is a single `nullOr (enum ["dank" "noctalia"])`.**
   `null` means a bare niri session, which is a legitimate debug mode rather than
   an error. Each shell's module enables itself when the value equals its own
   name, so exclusivity is structural: there is no state in which two are on.
@@ -20,7 +20,7 @@ We decided:
   the predicates. `readOnly = true` makes a host that tries to set one fail at
   build time instead of silently disagreeing.
 - **Each shell owns its own file** — `dank-material-shell.nix`,
-  `noctalia.nix`, `serpantinum.nix` — including its packages, its
+  `noctalia.nix` — including its packages, its
   screenshot/clipboard/media tooling, its niri layer-rules, its `spawn-at-startup`
   lines and its keybinds. `niri.nix` keeps only what is shell-independent: the
   compositor, the output stanza, and the overview-backdrop plumbing every shell
@@ -49,28 +49,18 @@ external tool: `ddcutil`. So the module adds `ddcutil`, `xdg-utils` and
 `libnotify` and nothing else — specifically **not** grim/slurp/satty/cliphist/
 matugen/playerctl, which belong to the v4 Quickshell shell (`pkgs.noctalia-shell`,
 a different package from `pkgs.noctalia`). What Noctalia needs instead is
-*services*, so the NixOS half sets `recommendedServices.enable` (NetworkManager,
+_services_, so the NixOS half sets `recommendedServices.enable` (NetworkManager,
 Bluetooth, UPower, power-profiles-daemon) and `xdg.sounds.enable`.
-
-**Serpantinum** has no list to write: `nix/package.nix` bakes ~45 binaries into
-its wrappers with `--prefix PATH : lib.makeBinPath pathDeps` — grim, slurp,
-satty, zbar, cliphist, wl-clipboard, matugen, playerctl, brightnessctl, ddcutil,
-cava, easyeffects, gpu-screen-recorder and the rest — with no option to prune
-them. The module therefore adds no packages and instead turns on the *system*
-half (`programs.serpantinum.enable`, which sets PipeWire, rtkit, i2c, and the
-`serpantinum` PAM service the lock screen authenticates against). It also
-starts the two `wl-paste … cliphist store` watchers by hand: the Home Manager
-module does not, and without them the clipboard panel stays permanently empty.
 
 ## Considered options
 
-**Three booleans (`my.dankMaterialShell`, `my.noctalia`, `my.serpantinum`).**
+**Three booleans (`my.dankMaterialShell`, `my.noctalia`).**
 Rejected: nothing stops a host enabling two, and the failure mode is two
 notification daemons racing for one D-Bus name — a session that starts and then
 behaves erratically. An enum makes that unrepresentable.
 
 **A list, mirroring `my.desktopSessions`.** Rejected: sessions can legitimately
-coexist at a login screen (niri *and* GNOME). Shells cannot — they all draw on
+coexist at a login screen (niri _and_ GNOME). Shells cannot — they all draw on
 the same compositor.
 
 **Keeping the per-shell tooling in `niri.nix` and switching on
@@ -85,13 +75,13 @@ the nixpkgs NixOS module is functionally close. The flake is used because its
 `programs.noctalia.settings`, and it is what upstream documents.
 
 **Putting the shells in an overlay.** Rejected, and deliberately: an overlay
-exists to change what an *attribute name* resolves to for the whole package set,
+exists to change what an _attribute name_ resolves to for the whole package set,
 or to patch a package nixpkgs ships wrongly. Neither applies. Only one shell is
 active at a time, so nothing else consumes the attribute; the two flake-only
 shells install through their own modules, which reference their own package
 internally, so there is no name to override; and Noctalia's package is already a
 module option (`programs.noctalia.package`), so pinning a different build is a
-setting, not an overlay. Overlaying Noctalia would additionally be *harmful*: it
+setting, not an overlay. Overlaying Noctalia would additionally be _harmful_: it
 would build it against our nixpkgs pin, changing the derivation hash and
 breaking the Cachix cache that its `cachix` branch exists to hit. Compare
 `lib/overlays/worktrunk.nix` and `claude-code.nix`, which are overlays for the
@@ -103,18 +93,16 @@ name.
 Recorded because "why pin the flake at all" is the obvious follow-up question,
 and because the answer drifts without anyone noticing:
 
-| Shell | nixpkgs unstable | This config | |
-|---|---|---|---|
-| Noctalia | `pkgs.noctalia` **5.2.1** (nixpkgs pin is dated 2026-08-29) | **5.3.0** | flake ahead |
-| DankMaterialShell | `pkgs.dms-shell` **1.6.2** | **1.6.3** (lock rev = tag `v1.6.3`) | flake ahead by a patch |
-| Serpantinum | absent — not packaged | **2.2.12** (newest tag) | flake is the only source |
+| Shell             | nixpkgs unstable                                            | This config                         |                        |
+| ----------------- | ----------------------------------------------------------- | ----------------------------------- | ---------------------- |
+| Noctalia          | `pkgs.noctalia` **5.2.1** (nixpkgs pin is dated 2026-08-29) | **5.3.0**                           | flake ahead            |
+| DankMaterialShell | `pkgs.dms-shell` **1.6.2**                                  | **1.6.3** (lock rev = tag `v1.6.3`) | flake ahead by a patch |
 
 Two things follow. First, ADR 0003's stated DMS gap ("1.6.1 against 1.6.2 when
 this landed") is now 1.6.2 against 1.6.3, i.e. one patch rather than one minor;
 that ADR is annotated accordingly, and the from-source build cost is now the
-stronger reason to keep the input than the version gap. Second, Serpantinum is
-the only shell with real drift risk: it is unpackaged, has no binary cache, and
-depends on `quickshell` with **no version pin between them**, so a nixpkgs bump
+stronger reason to keep the input than the version gap.
+
 can break it with no upstream signal. That is an argument for a pinned rev
 bumped deliberately (which `flake.lock` already gives) and not for an overlay.
 
@@ -129,21 +117,10 @@ bumped deliberately (which `flake.lock` already gives) and not for an overlay.
 - **`programs.noctalia.checkConfig` is turned off.** Its default `true` runs
   `noctalia config validate` in a build step, which forces building the very
   package the cache pin exists to avoid. The module sets three literal keys
-  copied from upstream's docs example; a bad key fails at start-up with the same
-  message.
-- **Serpantinum's settings are not declarative, and the module says so.** Its
-  Home Manager module copies the merged settings JSON into
-  `~/.config/serpantinum/settings.json` only if the file does not already exist
-  (`home.activation`, guarded by `if [ ! -e … ]`). After the first switch,
-  editing `programs.serpantinum.settings` in Nix does nothing; re-applying needs
-  `rm ~/.config/serpantinum/settings.json && home-manager switch`. The module
-  therefore sets only `theme.matugen`, `theme.mode` and the bar's position/style
-  rather than transcribing a full layout that would then drift silently.
-- **Serpantinum binds some media and volume keys through `playerctl` and its own
-  `volume`/`brightness` subcommands**, where Noctalia binds them through
-  `noctalia msg …` so its OSD appears. Both override niri's upstream `XF86`
+
   binds because a shell module's fragment lands in `extraConfig`, after the
   default-config include.
+
 - **`wayland.windowManager.niri.extraConfig` is now an attribute-merge point**
   shared by `niri.nix` and whichever shell module is active. Merge order between
   fragments is not something to rely on, which is why each fragment defines its
@@ -160,11 +137,6 @@ bumped deliberately (which `flake.lock` already gives) and not for an overlay.
 
 ## Security review (2026-10-17)
 
-Because Serpantinum is young and has few users, it was reviewed for malware,
-exfiltration and unsafe code before being made selectable. Full report and
-evidence: `docs/research/serpantinum-security-review.md`.
-
-**Verdict: no malware, backdoor, obfuscation, RCE or credential access.** No
 reads of `~/.ssh`/`~/.gnupg`/`~/.aws`/browser stores/keyrings, no `eval` of
 network data, no `base64 -d | sh`, no runtime package fetching, and the flake
 has no fixed-output derivations. The ~50 `bash -c` string concatenations are
@@ -177,11 +149,7 @@ Three findings were acted on or deliberately accepted:
   Nix.** `install/` is excluded by `lib.fileset` in `nix/package.nix`, so the
   store path contains no telemetry endpoint. Real criticism of their installer,
   no risk to this host.
-- **IP geolocation is suppressed by default here.** Weather fetched without
-  coordinates discloses the public IP to three providers, one over plaintext
-  HTTP. `programs.serpantinum.settings.general.location` is therefore populated
-  from `my.desktopShellLocation` (set in the host's `capabilities.nix`), so that
-  code path is never taken. The stanza is guarded: a host that leaves the option
+
   null gets no `location` key at all, and the shell's own
   `filterAttrsRecursive` drops the submodule's null fields. It is set in
   `capabilities.nix` rather than derived from `my.baseTimezone` because that is
@@ -189,14 +157,11 @@ Three findings were acted on or deliberately accepted:
   the option's `America/New_York` default — measured, not assumed.
   Note the location is presentational only: it is not a claim about where the
   host is, and nothing else reads it.
+
 - **The window-title database is accepted.** `focus_daemon.py` keeps a local
   SQLite record of every app and window title at per-minute granularity. Its
   only socket is `AF_UNIX` to Hyprland's IPC — no network import at all — so it
   is a forensic artifact, not an exfiltration path. Disable via `wellbeing.*`
-  settings if that record is unwanted.
 
-Also noted: `serpantinum-wallpapers` is a mandatory input of their flake
-(150MB) passed to an argument the HM module ignores, so it is locked but never
-fetched. `wallpaperDir` is left at its default — `~/Pictures/Wallpapers`, the
 Resilio-synced tree on yuzu — deliberately, so the operator's own wallpaper
 archive is the one in use.

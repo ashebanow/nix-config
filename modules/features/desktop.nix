@@ -2,8 +2,8 @@
 # the single place that decides the display manager and which sessions the host
 # offers. Session-specific configuration lives in its own module (gnome.nix,
 # niri.nix); the shell drawn on top of a session is `my.desktopShell` and has
-# its own module per shell (dank-material-shell.nix, noctalia.nix,
-# serpantinum.nix), because a shell is not a session and only one may be active.
+# its own module per shell (dank-material-shell.nix, noctalia.nix),
+# because a shell is not a session and only one may be active.
 #
 # The sessions themselves are data: my.desktopSessions and
 # my.desktopDefaultSession, set in hosts/<host>/capabilities.nix so the Home

@@ -1,6 +1,5 @@
 # Noctalia v5 — the alternative shell for the niri session, selected with
-# `my.desktopShell = "noctalia"`. See docs/adr/0004 for the decision and
-# docs/research/wayland-shells-noctalia-serpantinum.md for the source research.
+# `my.desktopShell = "noctalia"`.
 #
 # Noctalia v5 is *not* the v4 Quickshell shell. It is a C++23 native Wayland
 # client that draws its own layer surfaces and implements its own feature set,
