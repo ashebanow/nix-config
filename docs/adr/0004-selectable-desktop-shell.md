@@ -38,7 +38,7 @@ Research write-up with sources: `docs/research/wayland-shells-noctalia-serpantin
 
 **DankMaterialShell** shells out for its optional features, so its module adds
 `grim`, `slurp`, `satty`, `wl-clipboard`, `playerctl`, `brightnessctl` and
-`adw-gtk3`, plus `programs.dsearch` and the `input` group on the NixOS side.
+`adw-gtk3`, plus `programs.dux-search` and the `input` group on the NixOS side.
 (The list previously lived in `niri.nix`; it moved here because none of it is
 true of a compositor without DMS.)
 
@@ -127,7 +127,7 @@ bumped deliberately (which `flake.lock` already gives) and not for an overlay.
   own `binds { }` block (niri merges blocks by key) instead of appending to
   another's.
 - **Switching shells across a rebuild is not reversible on its own.**
-  `programs.dsearch` and the `input` group stay on the system once DMS has set
+  `programs.dux-search` and the `input` group stay on the system once DMS has set
   them (removing a user from `users.users.*.extraGroups` is not how NixOS
   activation works), and Serpantinum leaves its writable `settings.json` behind.
   Neither harms another shell, but expect residue — this was designed for

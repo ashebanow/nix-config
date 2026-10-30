@@ -54,7 +54,7 @@ either way.
 **DankGreeter instead of GDM.** Rejected: `services.displayManager.dms-greeter`
 drives greetd, so it replaces GDM rather than joining it, and GNOME started from
 a greetd greeter is not GNOME's supported login path. The failure mode is the
-worst one available — a bad greeter takes *both* sessions down.
+worst one available — a bad greeter takes _both_ sessions down.
 
 **niri-flake, to get the DMS flake's `homeModules.niri`.** Rejected: that module
 is written against niri-flake (`programs.niri.settings` and `lib.niri.actions`,
@@ -78,12 +78,12 @@ is exactly how they became stale.
   seeded once by `dms setup` after the first switch, then maintained by DMS.
 - **The GDM shell theme is best-effort.** The greeter's GTK theme and icon
   theme are set declaratively (no wallpaper — none is shipped); the login
-  *shell* only picks up gruvbox if
+  _shell_ only picks up gruvbox if
   GDM loads the User Themes extension, which is not guaranteed. If it does not,
   the fallback is already in place and this ADR still describes the decision.
 - **4K60 on yuzu requires DisplayPort, cabled direct to the GPU.** The monitor
   is an Acer XB321HK whose HDMI input is 1.4-class: its EDID marks 1080p as the
-  *preferred* mode and offers 4K only at 23.98/24/29.97/30. Over DisplayPort the
+  _preferred_ mode and offers 4K only at 23.98/24/29.97/30. Over DisplayPort the
   preferred mode becomes 3840×2160@60, so niri must still set the mode
   explicitly (its default is the preferred mode, which only happens to be
   correct on this input). The KVM (TESmart HDK202-M24) is not the constraint — it
@@ -91,7 +91,7 @@ is exactly how they became stale.
   DP run through it cannot reach this monitor. **Monitor 1 is therefore no longer
   switched by the KVM**; that is the price of 4K60 and is accepted.
 - **The output stanza matches by full `make model serial`, and the make is the
-  *resolved* manufacturer name.** niri reads EDID through libdisplay-info, whose
+  _resolved_ manufacturer name.** niri reads EDID through libdisplay-info, whose
   `di_info_get_make` maps the PNP ID to a manufacturer name — the raw `ACR` in
   the EDID bytes becomes `Acer Technologies`. `di_info_get_model` and
   `di_info_get_serial` use the 0xFC and 0xFF descriptors. The matching string is
@@ -135,7 +135,7 @@ is exactly how they became stale.
   by dropping the output stanza and adding the include.
 - **DMS's System Check items are answers, not omissions.** Its optional-features
   list flags four things on this host, and three are deliberate:
-  - `adw-gtk3` — *installed*. GTK3 apps otherwise look like plain GTK3 beside
+  - `adw-gtk3` — _installed_. GTK3 apps otherwise look like plain GTK3 beside
     the GTK4 ones DMS's dynamic theming recolours; DMS wants both
     `adw-gtk3` and `adw-gtk3-dark`, which is exactly what the nixpkgs package
     ships.
@@ -144,7 +144,7 @@ is exactly how they became stale.
     missing: nixpkgs' CUPS module adds `cups-pk-helper` and registers its D-Bus
     service itself whenever polkit is enabled, which it is here. Printing is now
     enabled via `my.printing` for the networked HP LaserJet. Both the CUPS
-    *service* and the printer *queue* are declarative: nixpkgs has no option for
+    _service_ and the printer _queue_ are declarative: nixpkgs has no option for
     a queue, so `my.printers` is rendered by modules/features/printing.nix into
     an `lpadmin` oneshot that re-creates it at boot (a queue added by hand would
     be wiped from /etc/cups/printers.conf on the next activation).
@@ -155,9 +155,9 @@ is exactly how they became stale.
     driver, so fingerprint unlock is not an available feature here and this is
     not a missing package. Re-check only if libfprint ships an EgisTec 0577
     driver.
-  - `dankcalendar` — not in nixpkgs. It is a separate upstream project
-    (`github:AvengeMedia/dankcalendar`, default branch `master`), so taking it
-    means another flake input; DMS's calendar *widget* already works through
+  - `dux-calendar` — not in nixpkgs. It is a separate upstream project
+    (`github:AvengeMedia/dux-calendar`, default branch `master`), so taking it
+    means another flake input; DMS's calendar _widget_ already works through
     `enableCalendarEvents` (khal).
 - **Screenshots, clipboard, brightness and media keys need packages that DMS and
   niri do not pull in** — `grim`, `slurp`, `satty`, `wl-clipboard`,

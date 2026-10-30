@@ -96,11 +96,11 @@
           # These are dependency injectors, not UI switches: their defaults are
           # all true, and what they do is put a binary on the shell's PATH.
           #
-          # System monitoring needs nothing from us: 2.0's `dms` links dgop as a
-          # Go library and serves it over its own IPC (the `"dgop"` capability is
-          # unconditional in getCapabilities). The `dgop.package` option that
+          # System monitoring needs nothing from us: 2.0's `dms` links dux-gop as a
+          # Go library and serves it over its own IPC (the `"dux-gop"` capability is
+          # unconditional in getCapabilities). The `dux-gop.package` option that
           # Dux Shell's docs mention no longer exists in 2.0's options.nix, and
-          # the standalone `dgop` binary is not used by the shell at all.
+          # the standalone `dux-gop` binary is not used by the shell at all.
           enableSystemMonitoring = true;
 
           # Wallpaper-derived theming: installs matugen.
@@ -115,7 +115,7 @@
           enableVPN = true;
 
           # Deliberately **off**: this only installs khal, and the host runs
-          # dankcalendar (the `dcal` daemon) instead. The calendar widget picks
+          # dux-calendar (the `dcal` daemon) instead. The calendar widget picks
           # its backend by probing for `dcal`, so khal would be an unused
           # second backend — see CalendarDankBackend.qml.
           enableCalendarEvents = false;
@@ -374,7 +374,7 @@
         #                ones dynamic theming recolours. The System Check wants a
         #                theme dir with both `adw-gtk3` and `adw-gtk3-dark`, which
         #                is what the nixpkgs package ships.
-        #   dankcalendar the calendar backend (`dcal`), replacing khal — see
+        #   dux-calendar the calendar backend (`dcal`), replacing khal — see
         #                enableCalendarEvents above.
         #
         # brightnessctl is also installed by niri.nix (a compositor-level XF86
@@ -408,7 +408,7 @@
           playerctl
           brightnessctl
           adw-gtk3
-          dankcalendar
+          dux-calendar
         ];
       };
     };
@@ -424,8 +424,8 @@
       config = lib.mkIf config.my.desktopShellIsDankMaterialShell {
         # Dux Search's package and user unit. The index scoping is Home Manager's
         # (see xdg.configFile above) because this module has no options for it.
-        programs.dsearch.enable = true;
-        programs.dsearch.systemd.target = "graphical-session.target";
+        programs.dux-search.enable = true;
+        programs.dux-search.systemd.target = "graphical-session.target";
 
         # Dux Shell's Caps Lock OSD reads input devices, and `dms setup` adds the
         # user to this group imperatively ("Adding user to input group for Caps

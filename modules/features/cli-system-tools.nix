@@ -37,7 +37,7 @@ _: {
           ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux (
             with pkgs;
             [
-              dgop
+              dux-gop
             ]
           )
           # macOS-only system tools (no Linux build in nixpkgs).

@@ -11,7 +11,7 @@ customising the compositor config.
 We decided:
 
 - **Track the renamed upstream flake**: `github:duxlabs-dev/dux-shell/stable`,
-  pinned at the v2.0.0 tag commit. 2.1 does not exist yet; `stable`'s head *is*
+  pinned at the v2.0.0 tag commit. 2.1 does not exist yet; `stable`'s head _is_
   the v2.0.0 version bump. nixpkgs still has `dms-shell` 1.6.2, so the flake is
   now the only way to run 2.0 — ADR 0003's "the flake is one patch ahead" is
   obsolete, and the argument is now "the flake is the only source of 2.0".
@@ -19,16 +19,16 @@ We decided:
   store path from our pinned input rather than vendored. The host's only
   remaining niri customisation is the monitor.
 - **`wayland.windowManager.niri.enableDefaultConfig` goes off**, because the
-  adopted base *is* niri's `default-config.kdl` plus Dux Shell's changes;
+  adopted base _is_ niri's `default-config.kdl` plus Dux Shell's changes;
   leaving niri's defaults on would emit a second copy of every bind.
 - **`inputs.dms.homeModules.niri` is not imported.** See below — it cannot work
   here, and reimplementing its ~15 useful lines is cheaper than the alternative.
 - **New `dux-files` input**, for the 2.0 file manager and its
   `xdg-desktop-portal` FileChooser backend.
-- **`enableCalendarEvents` is off and `pkgs.dankcalendar` is installed instead**
+- **`enableCalendarEvents` is off and `pkgs.dux-calendar` is installed instead**
   of khal. The option only injects `khal`; the calendar widget probes for the
   `dcal` daemon (`CalendarDankBackend.qml`), so khal would be a second, unused
-  backend. dankcalendar is in nixpkgs as of this nixpkgs pin — ADR 0003 recorded
+  backend. dux-calendar is in nixpkgs as of this nixpkgs pin — ADR 0003 recorded
   it as "not in nixpkgs", which is no longer true.
 - **The lock screen PAM stack is left alone.** See below.
 
@@ -79,13 +79,13 @@ Four details that are load-bearing:
   install. Verified: niri treats a missing `optional=true` include as a warning
   and the config as valid; a missing non-optional include is a hard error.
 - **The base is included by absolute store path.** Its own `include
-  optional=true "dms/*.kdl"` lines resolve relative to *its* directory (the store
+optional=true "dms/*.kdl"` lines resolve relative to _its_ directory (the store
   path), so they warn-and-skip rather than reading the user's files. This keeps
   the base byte-identical to upstream, so diffing it against a newer release is
   `nix flake update` plus `diff`, with no local edits in the way.
 - **`outputs` is excluded.** Dux Shell includes it and writes
   `dms/outputs.kdl` itself; under 1.6.3 that file contained a
-  `output "DP-1" { … }` stanza for *this* monitor, duplicating the EDID stanza.
+  `output "DP-1" { … }` stanza for _this_ monitor, duplicating the EDID stanza.
   ADR 0003 already declined to let the shell own the monitor; excluding the
   include keeps the EDID stanza the single source of truth by construction
   rather than by winning an ordering race.
@@ -95,7 +95,7 @@ Four details that are load-bearing:
 
 ## What adopting their base changed, deliberately
 
-The base is *not* just niri's default config — comparing it against niri's
+The base is _not_ just niri's default config — comparing it against niri's
 `default-config.kdl` shows the adoption is a behaviour change beyond keybinds.
 That was the point ("I want to see the default experience"), but the regression
 list is recorded so it is not mistaken for breakage later:
@@ -125,7 +125,7 @@ list is recorded so it is not mistaken for breakage later:
 
 A concern raised while planning: Dux Shell's lock screen authenticates via a PAM
 service it generates per user, and the worry was that on NixOS it would fall back
-to a bundled, session-less stack — starting a *second* logind session on unlock,
+to a bundled, session-less stack — starting a _second_ logind session on unlock,
 and not importing `XDG_SESSION_ID`/`XDG_RUNTIME_DIR` from the niri session (the
 classic hyprlock/swaylock-on-NixOS failure).
 
@@ -140,7 +140,7 @@ gkr-pam: unlocked login keyring
 ```
 
 So the generated stack is already session-aware (it inherits `pam_systemd` and
-`pam_gnome_keyring` from the resolved system stack), and it *is* what runs. 2.0
+`pam_gnome_keyring` from the resolved system stack), and it _is_ what runs. 2.0
 keeps the same mechanism (moving the directory to `~/.local/state/dms/pam`) and
 additionally prefers `/etc/pam.d/dankshell` if that file exists.
 
@@ -198,9 +198,9 @@ boolean (`portal.preferred`) away if we want it.
   settings live there, and `cursor` is written empty.
 - **`dms/cursor.kdl` and `dms/input.kdl` now exist in the include list**, so a
   fresh install gets them only after `dms setup`.
-- **dgop needs nothing.** The 2.0 `dms` binary links `dux-gop` as a Go library and
-  serves it over its own IPC; the `"dgop"` capability is unconditional. The
-  `dgop.package` option the docs mention no longer exists in 2.0's
+- **dux-gop needs nothing.** The 2.0 `dms` binary links `dux-gop` as a Go library and
+  serves it over its own IPC; the `"dux-gop"` capability is unconditional. The
+  `dux-gop.package` option the docs mention no longer exists in 2.0's
   `options.nix`, and the standalone binary is unused by the shell.
 - **`jemalloc`, `google-breakpad` and `pam` are Quickshell build flags, not
   packages.** They are the Gentoo `USE` flags on `gui-apps/quickshell`. Taking

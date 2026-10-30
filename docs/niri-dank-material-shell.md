@@ -221,8 +221,8 @@ DMS's Caps Lock OSD reads input devices and `dms setup` adds that group
 imperatively. Declaring it keeps a fresh install off that manual step.
 
 The same file carries a small NixOS half for **DankSearch**, DMS's
-filesystem-search backend: DMS shells out to `dsearch`, so it is installed
-system-wide with its user service (`programs.dsearch.enable = true`,
+filesystem-search backend: DMS shells out to `dux-search`, so it is installed
+system-wide with its user service (`programs.dux-search.enable = true`,
 `systemd.target = "graphical-session.target"`) rather than as a Home Manager
 package. nixpkgs carries both the package and the module; the DMS flake covers
 only DMS itself.
@@ -520,7 +520,7 @@ casts`). Failed includes surface as an in-session notification. To get the
   (`Mod+V`), screenshots (`Print`).
 - `dfiles` — it should be running under `niri.service`; open/save dialogs still
   go to Nautilus (portal preference deliberately not taken).
-- Calendar widget — its backend must be `dankcalendar` in settings, not the
+- Calendar widget — its backend must be `dux-calendar` in settings, not the
   migrated-forward `khal` (which is not installed; `dcal` is). Check with
   `python3 -c "import json,pathlib;print(json.load(open(pathlib.Path.home()/'.config/dms/settings.json'))['calendarBackend'])"`
   and change it in DMS's own settings UI rather than by hand — the shell keeps
