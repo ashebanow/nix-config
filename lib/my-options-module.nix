@@ -22,6 +22,16 @@
       default = "podman";
       description = "Non-root user for container operations.";
     };
+    baseUserFullName = lib.mkOption {
+      type = lib.types.str;
+      default = config.my.baseUsername;
+      defaultText = lib.literalExpression "config.my.baseUsername";
+      description = ''
+        Display name (GECOS field) for the base user, shown by greeters on the
+        login screen. Defaults to baseUsername, so the login screen shows the
+        login name unless a real name is set.
+      '';
+    };
     baseTimezone = lib.mkOption {
       type = lib.types.str;
       default = "America/New_York";

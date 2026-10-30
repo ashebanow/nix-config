@@ -16,6 +16,7 @@
   # Capability flags — enables feature modules via mkIf guards
   my.base = true;
   my.baseUsername = "ashebanow";
+  my.baseUserFullName = "Andrew Shebanow";
   my.baseTimezone = "America/Los_Angeles";
   my.access = true;
   my.accessTailnetName = "yuzu";

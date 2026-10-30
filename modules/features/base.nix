@@ -21,7 +21,7 @@ _: {
         users.users.${config.my.baseUsername} = {
           isNormalUser = true;
           shell = if config.my.desktop then pkgs.zsh else pkgs.bash;
-          description = if config.my.desktop then "Desktop user" else "Container operator";
+          description = config.my.baseUserFullName;
           extraGroups = [
             "wheel"
             "docker"
