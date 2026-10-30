@@ -100,8 +100,6 @@ oxker oxker
 dockutil dockutil
 pinentry-mac pinentry_mac
 xcodes xcodes
-charm charm
-crush crush
 deja deja
 llmfit llmfit
 opencode opencode

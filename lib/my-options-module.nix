@@ -470,7 +470,7 @@
     cliAiTools = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable AI-agent CLI tools (opencode, crush, ...).";
+      description = "Enable AI-agent CLI tools (opencode, ...).";
     };
     cliBuildEssentials = lib.mkOption {
       type = lib.types.bool;
