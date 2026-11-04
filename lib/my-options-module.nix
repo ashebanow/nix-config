@@ -518,5 +518,34 @@
       default = false;
       description = "Enable GUI fonts (nerd-fonts, fira-mono, jetbrains-mono, powerline-symbols).";
     };
+
+    # Gaming is its own flag rather than part of guiMediaApps: it pulls in a
+    # multi-GB Proton build and creates a non-declarative Wine prefix under
+    # $HOME, which is a very different commitment from "vlc is installed".
+    gaming = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable gaming via umu-launcher + Proton-GE (Battle.net, and the Diablo IV launcher).";
+    };
+
+    # Which Wine prefixes this host manages. Names only — the per-prefix
+    # settings (games, Proton build) live in programs.gaming-umu.winePrefixes,
+    # which modules/features/gaming.nix turns each of these into. Split that way
+    # because `programs.*` is Home Manager-only: this file is in both module
+    # lists, so it can carry the switch, but the options with defaults must live
+    # on the side that owns them.
+    gamingWinePrefixes = lib.mkOption {
+      type = lib.types.listOf (lib.types.strMatching "[A-Za-z0-9_-]+");
+      default = [ ];
+      description = ''
+        Wine prefixes to create for Battle.net. Name each one for what it is —
+        typically the host (`yuzu`), or a role (`spare`, `ptr`). The name becomes
+        the prefix's directory (`~/.local/share/battlenet-umu/prefixes/<name>`)
+        and part of its launcher names (`battlenet-umu-<name>-<game>`).
+
+        Per-prefix configuration goes in programs.gaming-umu.winePrefixes.
+      '';
+      example = lib.literalExpression ''[ "yuzu" ]'';
+    };
   };
 }

@@ -30,6 +30,18 @@ _: {
   my.guiMediaApps = true;
   my.guiFonts = true;
 
+  # Battle.net + Diablo IV through umu-launcher and Proton-GE from nixpkgs —
+  # see modules/features/gaming.nix. Separate from guiMediaApps because the
+  # first launch downloads Battle.net's installer and populates a multi-GB
+  # Wine prefix that Nix does not manage.
+  #
+  # The prefix is named for the host: it holds yuzu's one C: drive and lives at
+  # ~/.local/share/battlenet-umu/prefixes/yuzu. A second entry (e.g. `spare`)
+  # is the recovery path if this one ever breaks, and costs nothing until it is
+  # installed into. Install with `battlenet-umu-install-yuzu`.
+  my.gaming = true;
+  my.gamingWinePrefixes = [ "yuzu" ];
+
   # Desktop session model. It lives here rather than in configuration.nix
   # because the niri session is configured by a Home Manager module, and Home
   # Manager evaluates its own `config.my` (see the file header and CONTEXT.md).
