@@ -57,6 +57,10 @@ _: {
           restartTriggers = [
             "${../../compose/llm/bifrost-compose.yml}"
             "${../../compose/llm/bifrost-config.json}"
+            # A runtime bump must cycle the gateway stack: its containers were
+            # created by the podman in `path` above. Bifrost recovers in seconds
+            # (no model to load), so this is the cheapest of the four.
+            config.virtualisation.podman.package
           ];
           path = [
             config.virtualisation.podman.package

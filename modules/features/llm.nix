@@ -148,6 +148,10 @@ _: {
           ];
           wants = [ "network-online.target" ];
           wantedBy = [ "multi-user.target" ];
+          # Idempotent (the script is an `exists ||` guard), so re-running it on a
+          # runtime change is free — and worth doing, because the network was
+          # created BY the runtime that just got replaced.
+          restartTriggers = [ config.virtualisation.podman.package ];
           # Use config.virtualisation.podman.package rather than pkgs.podman:
           # the NixOS podman module wraps podman with /run/wrappers/bin in PATH
           # so rootless podman can find the setuid newuidmap/newgidmap helpers.
@@ -166,9 +170,28 @@ _: {
         };
 
         # qwen also needs the network to exist before it starts.
+        #
+        # restartTriggers: make the podman package an explicit restart trigger.
+        # `virtualisation.oci-containers` already restarts when the *generated
+        # unit text* changes — and that text embeds podman in `Environment=PATH`,
+        # so a runtime bump normally cycles the container on its own. This adds
+        # the change as a first-class trigger anyway, because a switch must never
+        # leave a container running on a runtime it was not started with: on the
+        # 5.8.8 -> 6.1.4 bump the new podman could no longer talk to the running
+        # container or to its own API socket, and nothing noticed.
+        #
+        # The cost is a model reload. That is acceptable here by decision: a
+        # `just switch` is already deliberate, the GGUF is bind-mounted from the
+        # Nix store / HF cache (so this is load time, not a re-download), and a
+        # stale container on a new runtime is worse. Do not run a switch during
+        # a live session against the local model.
+        #
+        # Not tied to the llama.cpp image digest or model flags: those already
+        # arrive as a unit-text change.
         systemd.services.podman-qwen-35b-a3b = {
           after = [ "podman-network-llm-internal.service" ];
           requires = [ "podman-network-llm-internal.service" ];
+          restartTriggers = [ config.virtualisation.podman.package ];
         };
 
         # Declarative podman containers
@@ -212,7 +235,15 @@ _: {
           # (e.g. the gateway cutover, BOX-136) leaves the old stack running — the
           # unit text is unchanged. webui-data is a named volume; a restart is
           # down/up and does not touch it, so logins survive. (BOX-139.)
-          restartTriggers = [ "${../../compose/llm/openwebui-compose.yml}" ];
+          #
+          # The podman package is a trigger too: the stack's containers were
+          # created by the runtime in `path` above, so a runtime bump must cycle
+          # them for the same reason the model container is restarted. Cheap
+          # here — Open WebUI has no model to reload.
+          restartTriggers = [
+            "${../../compose/llm/openwebui-compose.yml}"
+            config.virtualisation.podman.package
+          ];
           path = [
             config.virtualisation.podman.package
             pkgs.podman-compose

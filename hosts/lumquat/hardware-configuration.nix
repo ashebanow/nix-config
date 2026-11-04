@@ -57,8 +57,11 @@
     efi.efiSysMountPoint = "/boot";
   };
 
-  # systemd initrd — required for TPM2 LUKS auto-unlock
-  boot.initrd.systemd.enable = true;
+  # systemd initrd — required for TPM2 LUKS auto-unlock.
+  # NOT declared here: `boot.initrd.systemd.enable` became a removed option when
+  # upstream dropped the scripted initrd (nixpkgs 31ecbac, nixos-unstable).
+  # The systemd initrd is now unconditional, and setting the option is a hard
+  # assertion failure.
 
   # LUKS-encrypted root with TPM2 auto-unlock via systemd-cryptenroll.
   # Original passphrase keyslot preserved as fallback.
