@@ -35,8 +35,6 @@ re-enroll with `0+7` for added boot chain integrity verification.
 Declared in `hardware-configuration.nix`:
 
 ```nix
-boot.initrd.systemd.enable = true;
-
 boot.initrd.luks.devices.luks-root = {
   device = "/dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470";
   crypttabExtraOpts = ["tpm2-device=auto"];  # declares TPM2 intent for initrd
@@ -150,4 +148,10 @@ To undo TPM2 enrollment:
 sudo systemd-cryptenroll /dev/disk/by-uuid/2363ecb6-9c4e-4c6a-a948-1e5e24089470 --wipe-slot=tpm2
 ```
 
-NixOS config rollback: remove `boot.initrd.systemd.enable = true` and rebuild.
+NixOS config rollback: delete the `boot.initrd.luks.devices.luks-root`
+`crypttabExtraOpts` TPM2 option and rebuild.
+
+Note: `boot.initrd.systemd.enable` no longer exists — upstream removed the
+scripted initrd (nixpkgs `31ecbac`, nixos-unstable), so the systemd initrd is
+unconditional and setting that option is now a hard assertion failure. Do not
+re-add it as part of a rollback.
