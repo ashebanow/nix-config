@@ -36,9 +36,11 @@ _: {
   # Wine prefix that Nix does not manage.
   #
   # The prefix is named for the host: it holds yuzu's one C: drive and lives at
-  # ~/.local/share/battlenet-umu/prefixes/yuzu. A second entry (e.g. `spare`)
-  # is the recovery path if this one ever breaks, and costs nothing until it is
-  # installed into. Install with `battlenet-umu-install-yuzu`.
+  # ~/.local/share/battlenet-umu/prefixes/yuzu. One prefix is the normal case.
+  # Add a second on demand (e.g. `probe`) to test a Proton release without
+  # risking this one; whether a pre-installed `spare` is worth ~25 GB of disk
+  # purely as recovery is a judgement call — see docs/gaming.md, "What a second
+  # prefix is actually for". Install with `battlenet-umu-install-yuzu`.
   my.gaming = true;
   my.gamingWinePrefixes = [ "yuzu" ];
 

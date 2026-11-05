@@ -34,14 +34,16 @@
 # buried in a launcher's first-run branch. It runs once, as the user, with no
 # root involved.
 #
-# ── Why no d3dx9/dxvk/vkd3d packages and no enable32Bit ──────────────────
+# ── Why no d3dx9/dxvk/vkd3d packages ────────────────────────────────────
 # Proton-GE bundles DXVK (D3D9/10/11) and VKD3D-Proton (D3D12), and Battle.net
 # + Diablo IV are D3D11/D3D12, so nixpkgs' `dxvk`/`vkd3d` would be dead weight.
-# umu-launcher's `-fhsenv` rootfs is self-contained: it carries its own 32-bit
-# glibc, `libGL` and `libvulkan` under /usr/lib32 (verified: 702 entries), so
-# `hardware.graphics.enable32Bit` is *not* required on this host for
-# Battle.net's 32-bit components — Wine sees the runtime's libraries, not the
-# host's. Leave that option off and keep the closure smaller.
+#
+# `hardware.graphics.enable32Bit`, by contrast, is required, and this module does
+# set it — from the NixOS-scope half, where a NixOS option can actually be set.
+# The reasoning sits next to the line that enforces it, under "Two scopes" below.
+# An earlier version of this header argued the option could be skipped because
+# umu's `-fhsenv` rootfs supplies its own 32-bit libvulkan; that was **wrong**,
+# and it is why Battle.net's first launch died silently. Do not re-derive it.
 #
 # yuzu's GPU is the Strix Halo iGPU (gfx1151, RDNA 3.5), driven by mainline
 # amdgpu + RADV. Two host-side consequences, neither of which this module can
@@ -67,7 +69,69 @@
 #    in by import-tree, and the option's default re-enters). Keying off the
 #    capability flag is also the house style: the flag *is* the switch, and it
 #    is the one value capabilities.nix can guarantee is visible in both scopes.
+# 3. Both wrappers `cd "$HOME"` before `umu-run`, and that is load-bearing.
+#    nixpkgs' `umu-run` wrapper adds `/etc` to its bwrap `ignored` list and
+#    `--tmpfs /etc` in the namespace, then passes `--chdir "$(pwd)"`. This
+#    repo is normally operated from `/etc/nixos`, so `pwd` is a path under
+#    `/etc` that exists on the host and nowhere in the container:
+#    `bwrap: Can't chdir to /etc/nixos`. Launching from `$HOME` is the cheap,
+#    total fix; anything that re-adds a cwd dependency reintroduces it.
+#
+# ── Two scopes, on purpose ───────────────────────────────────────────────
+# This file registers TWO modules:
+#
+#   my.modules.nixos.gaming          — host requirements, one list, gated on
+#                                      `my.gaming`.
+#   my.modules.home-manager.gaming   — the wrappers, desktop entries and Wine
+#                                      prefixes for Battle.net.
+#
+# The split is not ceremony. `hardware.graphics.enable32Bit` is a NixOS option
+# and simply cannot be set from the Home Manager scope, which is what the
+# original single-scope version got wrong (see the 32-bit block below). And
+# anything that has to be true of the *machine* for games to run — 32-bit
+# graphics, a controller udev rule, gamemode's daemon, a gamescope session —
+# belongs to no particular storefront. Keeping those in a NixOS-scope module
+# gated on the one `my.gaming` flag means a future Steam or GOG feature module
+# inherits them instead of re-deriving them, and that no launcher is required to
+# be a Home Manager module at all.
+#
+# What deliberately does NOT move: `my.gamingWinePrefixes` and the
+# `programs.gaming-umu.*` option, because Wine prefixes are per-user state under
+# `$HOME` and the wrappers are per-user packages.
 _: {
+  # ── NixOS scope: what the host must provide for games to run ─────────────
+  my.modules.nixos.gaming =
+    {
+      lib,
+      config,
+      ...
+    }:
+    {
+      config = lib.mkIf config.my.gaming {
+        # Battle.net's CEF GPU process is 32-bit (`Build: x86` in DXVK's log) and
+        # loads 32-bit DXVK, which needs a 32-bit Vulkan loader *and* a 32-bit
+        # ICD to reach the host's RADV. Without this there is no
+        # /run/opengl-driver-32 and no `*_icd.i686.json`, so DXVK logs
+        #
+        #     err: DxvkInstance::createInstance: Failed to create Vulkan instance
+        #     err: Failed to initialize DXVK.
+        #
+        # ...and then faults with 0xC0000005 once ANGLE/d3d11 gets the half-built
+        # device. Battle.net's own log stops at `Application path is:` with no
+        # error, and its crash report reads `dxgi` -> `d3d11` -> `libGLESv2` ->
+        # `libcef` — which looks like a Battle.net or Proton bug and is really a
+        # missing 32-bit Vulkan on the host. docs/gaming.md triage step 5 has the
+        # one-line check.
+        #
+        # Not Battle.net-specific: any 32-bit Windows game has the same
+        # requirement, so it lives here rather than in the umu module.
+        # mkDefault so a host that already asked for it (lumquat does) is not
+        # fought over.
+        hardware.graphics.enable32Bit = lib.mkDefault true;
+      };
+    };
+
+  # ── Home Manager scope: wrappers, desktop entries, prefixes ──────────────
   my.modules.home-manager.gaming =
     {
       lib,
@@ -181,6 +245,11 @@ _: {
           runtimeEnv = commonEnv prefixPath prefix.proton game'.gameId // {
             BNET_PREFIX = prefixPath;
             BNET_EXE = game'.exec;
+            # The "is Battle.net installed at all?" check in the not-found branch
+            # below needs both of these; without them `set -o nounset` killed the
+            # script at the check, so the helpful hint never printed.
+            BNET_PATH = battlenetPath;
+            INSTALL_NAME = name;
             LAUNCH_ARGS = game'.launchArgs;
           };
           text = ''
@@ -209,6 +278,15 @@ _: {
               TZ="$(tail -n 1 /etc/localtime)"
               [ -n "$TZ" ] && export TZ
             fi
+
+            # Leave the caller's directory for one that is guaranteed to exist
+            # in the container. `umu-run` passes `bwrap --chdir "$(pwd)"`, and
+            # the wrapper `--tmpfs /etc` inside the namespace, so starting in
+            # `/etc/nixos` (a path under `/etc` on this repo's hosts) dies with
+            # `bwrap: Can't chdir to /etc/nixos`. `$HOME` is bind-mounted in
+            # whole, and nothing here reads the caller's cwd: WINEPREFIX and the
+            # target are absolute.
+            cd "$HOME"
 
             # Intentional word splitting: LAUNCH_ARGS is a user-supplied string
             # of arguments, the same way Steam's launch options work.
@@ -266,6 +344,14 @@ _: {
                 exit 1
                 ;;
             esac
+
+            # Leave the caller's directory for one that is guaranteed to exist
+            # in the container. `umu-run` passes `bwrap --chdir "$(pwd)"`, and
+            # the wrapper `--tmpfs /etc` inside the namespace, so starting in
+            # `/etc/nixos` (a path under `/etc` on this repo's hosts) dies with
+            # `bwrap: Can't chdir to /etc/nixos`. The installer path is absolute
+            # and lives inside the prefix, so nothing below reads the cwd.
+            cd "$HOME"
 
             mkdir -p "$WINEPREFIX/drive_c"
             installer="$(mktemp --suffix=.exe -p "$WINEPREFIX/drive_c")"
@@ -333,11 +419,12 @@ _: {
 
             A prefix is a complete fake Windows C: drive — its own registry and
             system32 — with a Battle.net install inside it. You need exactly one
-            for normal use; name it after the host. A second is for recovery (if
-            the working prefix breaks, the spare keeps a 100 GB D4 download from
-            being the price of fixing it), for trying a new Proton release
-            without risking the working one, or for a separate Battle.net
-            account.
+            for normal use; name it after the host. A second is worth it for
+            trying a new Proton release without risking the working one, or for
+            a separate Battle.net account. Whether to keep a pre-installed spare
+            purely as recovery is a judgement call: it saves a reinstall at the
+            price of ~25 GB of standing disk, and it goes stale as Battle.net
+            patches. docs/gaming.md lays out both sides.
 
             Empty by default so a host opts in explicitly rather than silently
             inheriting a path.

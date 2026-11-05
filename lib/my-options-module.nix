@@ -539,9 +539,15 @@
       default = [ ];
       description = ''
         Wine prefixes to create for Battle.net. Name each one for what it is —
-        typically the host (`yuzu`), or a role (`spare`, `ptr`). The name becomes
+        typically the host (`yuzu`), or a role (`ptr`, `probe`). The name becomes
         the prefix's directory (`~/.local/share/battlenet-umu/prefixes/<name>`)
         and part of its launcher names (`battlenet-umu-<name>-<game>`).
+
+        One prefix is the normal case. Add a second on demand to test a Proton
+        release without risking the working install, or for a separate account;
+        a pre-installed `spare` kept purely as recovery is optional and costs a
+        full install's disk. See "What a second prefix is actually for" in
+        docs/gaming.md.
 
         Per-prefix configuration goes in programs.gaming-umu.winePrefixes.
       '';
