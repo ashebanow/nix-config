@@ -16,21 +16,22 @@ let
   deferredNixosModules = builtins.attrValues config.my.modules.nixos;
   deferredHmModules = builtins.attrValues config.my.modules.home-manager;
 
-  # worktrunk, linear-cli, and claude-code are all pinned ahead of nixpkgs (see
-  # the overlay headers). Applied to every NixOS host's package set: the
-  # overlays only *define* or *replace* the attributes, so nothing enters a host
-  # closure unless a feature module references it. lumquat leaves cli-vcs-tools
-  # and cliAiTools off, so none of the three land there — matching the policy
-  # that lumquat sees worktrunk only in the dev shell
-  # (modules/infra/devshell.nix).
+  # worktrunk, linear-cli, claude-code and pi-coding-agent are all pinned ahead
+  # of nixpkgs (see the overlay headers). Applied to every NixOS host's package
+  # set: the overlays only *define* or *replace* the attributes, so nothing
+  # enters a host closure unless a feature module references it. All four are
+  # installed by cli-vcs-tools.nix / cli-ai-tools.nix, which every host that
+  # does development work enables.
   overlays = [
     (import ../../lib/overlays/worktrunk.nix { inherit (inputs) worktrunk; })
     (import ../../lib/overlays/linear-cli.nix)
     # claude-code tracks Anthropic's release channel directly instead of the
     # nixpkgs pin's 2.1.272, and shims `claude update` to point at
-    # `just update-claude-code`. Reaches yuzu via cli-ai-tools.nix; lumquat
-    # leaves cliAiTools off, so it stays out of that closure. See the header.
+    # `just update-claude-code`. Reaches a host via cli-ai-tools.nix.
     (import ../../lib/overlays/claude-code.nix)
+    # pi.nix's build, because nixpkgs' does not work in NixOS's read-only
+    # store. Reaches a host via cli-ai-tools.nix.
+    (import ../../lib/overlays/pi.nix { inherit (inputs) pi-nix; })
   ];
 
   # mkNixosHost — build one NixOS host from hosts/<hostName>/.

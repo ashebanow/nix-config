@@ -1,6 +1,33 @@
-# Dev shell with nixfmt, jq, etc.:w
+# Dev shell for developing *this* repo.
 #
-{ inputs, ... }: {
+# Scope rule: this shell carries only what a project-specific shell should —
+# Nix-language tooling for editing this flake, plus the packages whose overlays
+# exist because nixpkgs is behind (pi, worktrunk, linear-cli, claude-code).
+#
+# Everything genuinely project-agnostic now lives in Home Manager feature
+# modules instead, because a dev shell made those tools reachable only from
+# this directory: git, gh, ghgrab, github-cli, lazygit, worktrunk, linear-cli
+# (modules/features/cli-vcs-tools.nix); claude-code and pi
+# (modules/features/cli-ai-tools.nix); jq, dig, curl, fzf, ripgrep, fd, eza, bat
+# (modules/features/cli-tools.nix + cli-productivity-tools.nix); bws and
+# secretspec (modules/features/cli-security-tools.nix); uv, direnv, gcc, llvm,
+# mcp-nixos (modules/features/cli-build-essentials.nix).
+#
+# Deliberately still project-local, and why:
+#   * nil / nixd          — LSPs for the Nix language, useless in a repo with
+#                           no .nix files, and each needs per-project nixd
+#                           config to resolve the right nixpkgs.
+#   * nixfmt / nixfmt-tree — the Nix formatter. Also the flake `formatter`
+#                           output, so `nix fmt` works without them on PATH.
+#   * home-manager        — used to build this flake's HM output, nothing else.
+#   * nodejs              — a pinned Node version globally shadows a project's
+#                           own node. pi shells out to `npm`/`node` for
+#                           extension installs and the pi.nix wrapper adds them
+#                           to pi's own PATH, so this is belt-and-braces for a
+#                           stale invocation, not a general need.
+#
+{ inputs, ... }:
+{
   perSystem =
     {
       pkgs,
@@ -8,51 +35,30 @@
       ...
     }:
     let
+      # claude-code is unfree, so the shell's package set needs allowUnfree.
+      # `perSystem`'s `pkgs` does not carry it, and the host-side feature module
+      # satisfies the same requirement through nixpkgs.config.allowUnfree.
       unfreePkgs = import pkgs.path {
         inherit system;
         config.allowUnfree = true;
       };
 
-      # Apply pi.nix's overlay to this dev shell's package set only — pi is a
-      # dev tool, not something we want resolvable (or installable by accident)
-      # in a production host's pkgs. `pi-coding-agent` here is pi.nix's build,
-      # which unlike nixpkgs' works in NixOS's read-only store.
-      piPkgs = pkgs.extend inputs.pi-nix.overlays.default;
-
-      # pi.nix's callPackage argument follows the nixpkgs attr rename: it used to
-      # be `typescript-go`, which nixpkgs renamed to `typescript`. pi.nix HEAD
-      # (rev b9009565) now takes `typescript`, so the old
-      # `.override {typescript-go = pkgs.typescript;}` shim is gone — passing the
-      # retired name is itself an error (`called with unexpected argument
-      # 'typescript-go'`) and aborts `nix develop`.
-      pi = piPkgs.pi-coding-agent;
-
-      # Same treatment for worktrunk: nixpkgs' `worktrunk` is 0.74.0 and lacks
-      # `wt config plugins pi`, which the agent workflow in this shell needs.
-      # The overlay wraps upstream's own build of the pinned release (see
-      # lib/overlays/worktrunk.nix).
-      worktrunkPkgs = pkgs.extend (
-        import ../../lib/overlays/worktrunk.nix { inherit (inputs) worktrunk; }
+      # pi, worktrunk and linear-cli are all pinned ahead of nixpkgs; the
+      # overlays are shared with the host builders (modules/infra/*-builder.nix)
+      # so the shell and the host cannot disagree about which build a name
+      # means. Before, the shell built its own copies here and a stale shell
+      # could silently shadow the pinned binaries the host installs.
+      #
+      # Extend `unfreePkgs` rather than `pkgs`, because that is where the
+      # allowUnfree config lives — the pi, worktrunk and linear-cli overlays
+      # only define attributes, so they compose onto either without loss.
+      devPkgs = unfreePkgs.extend (
+        pkgs.lib.composeManyExtensions [
+          (import ../../lib/overlays/pi.nix { inherit (inputs) pi-nix; })
+          (import ../../lib/overlays/worktrunk.nix { inherit (inputs) worktrunk; })
+          (import ../../lib/overlays/linear-cli.nix)
+        ]
       );
-
-      # linear-cli (the Linear.app CLI that replaces the Linear MCP, BOX-176)
-      # is not in nixpkgs; the overlay fetches upstream's release binary. Same
-      # dev-tool policy as pi/worktrunk: in the shell on every host, in a
-      # host closure only on the Darwin workstations.
-      linearPkgs = pkgs.extend (import ../../lib/overlays/linear-cli.nix);
-
-      # claude-code is pinned to Anthropic's release channel and shimmed by
-      # lib/overlays/claude-code.nix, but `unfreePkgs` above is a fresh
-      # `import pkgs.path` and so carries NO overlays. Without this extend the
-      # shell's `claude` is stock nixpkgs (2.1.272 against the pin's 2.1.296)
-      # and unshimmed — and because the shell's PATH sits ahead of
-      # /etc/profiles/per-user, it *shadows* the pinned one the host actually
-      # installs. That is a worse failure than a stale shell tool: `just
-      # update-claude-code && just switch` then reports success while every
-      # shell session keeps running the old binary. Extend the unfree set rather
-      # than `pkgs`, because claude-code is unfree and that is where the
-      # allowUnfree config lives.
-      claudePkgs = unfreePkgs.extend (import ../../lib/overlays/claude-code.nix);
     in
     {
       # Standard flake formatter output (`nix fmt`) using `nixfmt-tree`, which
@@ -93,16 +99,16 @@
           export PI_OFFLINE="''${PI_OFFLINE:-1}"
         '';
 
-        packages = with pkgs; [
-          unfreePkgs.bws
-          claudePkgs.claude-code
-          dig
-          gh
-          git
+        packages = with devPkgs; [
+          # Pinned-ahead-of-nixpkgs dev tools. The hosts install these too
+          # (feature modules); they stay in the shell so a shell session works
+          # on a host where the relevant feature flag is off.
+          claude-code
+          linear-cli
+          pi-coding-agent
+          worktrunk
+          # Nix-language tooling — see the scope rule at the top of this file.
           home-manager
-          jq
-          linearPkgs.linear-cli
-          mcp-nixos
           nil
           nixd
           nixfmt
@@ -111,10 +117,6 @@
           # wrapper adds them to pi's own PATH, but keep them in the shell too
           # so a stale/odd invocation can't hit `spawn npm ENOENT`.
           nodejs
-          pi
-          secretspec
-          uv
-          worktrunkPkgs.worktrunk
         ];
       };
     };

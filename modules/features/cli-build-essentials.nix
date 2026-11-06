@@ -8,6 +8,13 @@
 # they manage their own toolchains under $HOME and so cannot be provided by a
 # per-project shell — uv and rustup. Language-specific tooling (linters, LSPs,
 # framework package managers) stays devenv-only and is NOT listed here.
+#
+# mcp-nixos is the fourth category: a binary an *agent* resolves by name from a
+# config file that lives outside any shell. The dotfiles' global pi and
+# claude-code configs both register it as `command: mcp-nixos`, so it has to be
+# on PATH on every machine those agents run on — Darwin included. Despite the
+# name it answers nixpkgs/flake/option questions generally, so it is useful in
+# non-NixOS projects too (BOX-289).
 _: {
   my.modules.home-manager.cli-build-essentials =
     {
@@ -25,6 +32,9 @@ _: {
           gnumake
           lld
           llvm
+          # Registered globally in the dotfiles' pi and claude-code MCP
+          # configs; see the header for why it lives here.
+          mcp-nixos
           nix-direnv # direnv integration for nix flakes/devShells
           nodejs
           rustup # manages its own toolchains under ~/.rustup; see the NixOS half

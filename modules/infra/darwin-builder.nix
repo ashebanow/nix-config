@@ -33,16 +33,16 @@ let
   # commands (`wt config plugins pi|codex|opencode`) only exist from 0.77.0.
   # Apply the pinned-release overlay to every Darwin workstation's pkgs so
   # `pkgs.worktrunk` — installed by modules/features/cli-vcs-tools.nix via
-  # home.packages — is upstream's build. Deliberately NOT applied to lumquat:
-  # there worktrunk is a dev tool and reaches you through the dev shell only
-  # (modules/infra/devshell.nix), so no host closure carries it.
+  # home.packages — is upstream's build.
   worktrunkOverlay = import ../../lib/overlays/worktrunk.nix { inherit (inputs) worktrunk; };
 
   # linear-cli (BOX-176): not in nixpkgs at all, so the overlay is the only
-  # source of `pkgs.linear-cli`. Same scoping as worktrunk — Darwin
-  # workstations get it globally via cli-vcs-tools.nix; lumquat only through
-  # the dev shell.
+  # source of `pkgs.linear-cli`. Installed by cli-vcs-tools.nix.
   linearCliOverlay = import ../../lib/overlays/linear-cli.nix;
+
+  # pi-coding-agent: nixpkgs' build does not work in a read-only store, so the
+  # overlay supplies pi.nix's build. Installed by cli-ai-tools.nix.
+  piOverlay = import ../../lib/overlays/pi.nix { inherit (inputs) pi-nix; };
 
   # devenv (BOX-245): nixpkgs is on 2.3.1, which bundles SecretSpec 0.20.0 and
   # re-prompts for the macOS keychain on every `cd` because the item's
@@ -135,12 +135,13 @@ let
         }
         {
           # Dev-workstation-only package overrides — see worktrunkOverlay,
-          # linearCliOverlay, devenvOverlay, and claudeCodeOverlay above for
-          # why these are here and not (or, for claude-code, also) in the
-          # NixOS builder.
+          # linearCliOverlay, piOverlay, devenvOverlay, and claudeCodeOverlay
+          # above for why these are here and not (or, for claude-code, also) in
+          # the NixOS builder.
           nixpkgs.overlays = [
             worktrunkOverlay
             linearCliOverlay
+            piOverlay
             devenvOverlay
             claudeCodeOverlay
           ];

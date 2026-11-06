@@ -19,6 +19,11 @@ _: {
           coreutils-full
           curl
           dig
+          # DNS debugging. `dig` is in inetutils on some platforms but not
+          # always the full build, so it is listed explicitly here — it was
+          # previously dev-shell-only, which is wrong for a tool you reach for
+          # when some host cannot resolve something.
+          dig
           eza
           fastfetch
           fd
