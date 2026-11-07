@@ -75,13 +75,21 @@
           # offline — extensions in .pi/npm/ keep working. To (re)sync them,
           # e.g. on a fresh clone: `PI_OFFLINE= pi` once.
           #
-          # It also suppresses pi's own version check, which makes
-          # `pi update --all` fail with "Could not determine latest pi
+          # It also suppresses pi's own version check, so `pi update`'s
+          # SELF-update half fails with "Could not determine latest pi
           # version." — that message is this variable, not a network or
-          # permissions problem. `pi update` is not how pi moves here anyway:
-          # this shell's pi comes from the pi-nix overlay below and lives in
-          # the read-only store, so it updates with `nix flake update pi-nix`
-          # + a rebuild, never in place.
+          # permissions problem. (In 1.5.0 the check is additionally gated on
+          # PI_CODING_AGENT being set, so a bare shell shows the same message
+          # even online.) `pi update` is not how pi moves here anyway: this
+          # shell's pi comes from the pi-nix overlay below and lives in the
+          # read-only store, so it updates with `just update-pi` — which bumps
+          # only the pi-nix input — never in place.
+          #
+          # Extensions are a separate path and do work offline: `pi update
+          # --extensions` re-resolves .pi/npm/ from the local lockfile without
+          # the release check. Use it (with PI_OFFLINE as-is) to bump
+          # extension pins; `pi update --all` would drag in the blocked
+          # self-update half and fail.
           export PI_OFFLINE="''${PI_OFFLINE:-1}"
         '';
 

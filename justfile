@@ -100,6 +100,103 @@ update-worktrunk:
 # requests, which would leave a manifest whose version disagrees with the
 # release directory it came from.
 #
+# Move the pi-nix input to pi.nix's current HEAD and re-lock.
+#
+# Targeted on purpose: `nix flake update` with no argument re-pins every input
+# INCLUDING nixpkgs, which re-evaluates both host closures and every
+# flake-provided tool (worktrunk, claude-code, linear-cli, devenv). That is not
+# what "update pi" should mean. `nix flake update pi-nix` alone touches exactly
+# one line of flake.lock, because pi.nix's own nixpkgs input is a `follows`
+# edge into ours — the bump changes which pi pi.nix builds, not which nixpkgs
+# anything evaluates against. Verified: one lock node moves, nothing else does.
+#
+# The bump is committed only after the result BUILDS. This is the whole reason
+# this is a recipe and not a one-liner: pi.nix tracks upstream's default branch
+# and has shipped transiently broken commits (1513dc0 took six callPackage
+# args with no `patch`; a860296 takes `patch` and reads paths absent from its
+# own GitHub tree). A `nix flake update && git commit` would land one of those
+# in main. Here a failed build reverts flake.lock and pi keeps working.
+#
+# `--option builders ''` disables remote builders for the probe build, but a
+# cache miss still rebuilds locally (pi.nix is not in our substituters, so a
+# fresh pi.nix bump means a real compile). That is expected and is the point
+# of doing it in a recipe: it happens once, visibly, not mid-session.
+#
+# Read pi.nix's VERSION.json rather than querying an upstream API: it is the
+# exact file the build consumes, it needs no network or trust decision, and
+# it avoids pi's own version check, which is unusable here (it is gated
+# behind PI_OFFLINE, which this repo's dev shell sets to 1).
+#
+# Update the pi (coding agent) pin to pi.nix's current HEAD, if it builds
+[group('nix')]
+update-pi:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    lock="flake.lock"
+    [[ -f "$lock" ]] || { echo "error: $lock is missing (run from the repo root)" >&2; exit 1; }
+
+    pi_version_of() { # $1 = a flake ref (or nothing for the locked pi-nix)
+      nix eval --raw --impure --expr \
+        "(builtins.fromJSON (builtins.readFile ((builtins.getFlake \"$1\").inputs.pi-nix.outPath + \"/VERSION.json\"))).rev"
+    }
+
+    before_rev="$(jq -r '.nodes["pi-nix"].locked.rev' "$lock")"
+    before_ver="$(pi_version_of "git+file://$PWD")"
+    echo "pinned: ${before_ver} (pi-nix ${before_rev:0:7})"
+
+    # Snapshot so a failed build can put the lock back exactly as it was.
+    # `git checkout -- flake.lock` would also work, but it would discard an
+    # unrelated uncommitted lock edit — this only undoes what we did.
+    backup="$(mktemp)"
+    trap 'rm -f "$backup"' EXIT
+    cp "$lock" "$backup"
+
+    nix flake update pi-nix
+
+    after_rev="$(jq -r '.nodes["pi-nix"].locked.rev' "$lock")"
+    if [[ "$after_rev" == "$before_rev" ]]; then
+      echo "pi-nix already at upstream HEAD (${before_rev:0:7}); nothing to do"
+      exit 0
+    fi
+
+    after_ver="$(pi_version_of "git+file://$PWD")"
+    echo "upstream HEAD: ${after_ver} (pi-nix ${after_rev:0:7})"
+
+    # Guard the one thing a targeted update must never do: move nixpkgs.
+    # It cannot today (pi-nix follows our nixpkgs), but if someone ever drops
+    # that `follows` this catches it before the lock is committed.
+    nixpkgs_before="$(jq -r '.nodes["nixpkgs"].locked.rev' "$backup")"
+    nixpkgs_after="$(jq -r '.nodes["nixpkgs"].locked.rev' "$lock")"
+    if [[ "$nixpkgs_before" != "$nixpkgs_after" ]]; then
+      echo "error: this bump also moved nixpkgs (${nixpkgs_before:0:7} -> ${nixpkgs_after:0:7})." >&2
+      echo "       That is a repo-wide update, not a pi update. Dropping pi-nix's" >&2
+      echo "       \`inputs.nixpkgs.follows\` is the likely cause; revert with:" >&2
+      echo "       cp '$backup' $lock" >&2
+      exit 1
+    fi
+
+    echo "building pi from the new pin (pi.nix is not on our substituters;"
+    echo "expect a real compile, a few minutes)..."
+    # The --expr must stay on ONE line. A newline after `; in` makes Nix parse
+    # the continuation as a new top-level expression, which changes how the
+    # nixpkgs fixpoint is forced and trips all-packages.nix's
+    # AAAAAASomeThingsFailToEvaluate trap (a confusing "you should not evaluate
+    # entire Nixpkgs" error for a perfectly good package reference).
+    if ! nix build --no-link --print-out-paths --option builders '' --impure --expr \
+      'let f = builtins.getFlake "git+file://'"$PWD"'"; in ((import f.inputs.nixpkgs { system = builtins.currentSystem; }).extend f.inputs.pi-nix.overlays.default).pi-coding-agent' 2>&1 | tail -5; then
+      cp "$backup" "$lock"
+      echo "error: ${after_ver} does not build against our nixpkgs pin." >&2
+      echo "       flake.lock restored; pi stays at ${before_ver}." >&2
+      echo "       pi.nix HEAD may be mid-breakage — retry later, or pin a" >&2
+      echo "       known-good rev in flake.nix." >&2
+      exit 1
+    fi
+
+    echo
+    echo "pi: ${before_ver} -> ${after_ver}"
+    echo "flake.lock: pi-nix ${before_rev:0:7} -> ${after_rev:0:7} (nixpkgs unchanged)"
+    echo "next: \`nix develop\` to use it; \`git diff flake.lock\` to review"
+
 # Re-fetch the claude-code manifest from Anthropic's latest channel
 [group('nix')]
 update-claude-code:

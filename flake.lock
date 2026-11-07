@@ -912,11 +912,11 @@
         "nixpkgs-x86_64-darwin": "nixpkgs-x86_64-darwin"
       },
       "locked": {
-        "lastModified": 1792937179,
-        "narHash": "sha256-/OzPhrIigJV0eKmzlX3V6vBiRgN3/QBSPEOSOL5xTNM=",
+        "lastModified": 1793980817,
+        "narHash": "sha256-2r3A8rLDIxG2P0/cOUsswcjULfTzcRAqgzNLHoohxro=",
         "owner": "lukasl-dev",
         "repo": "pi.nix",
-        "rev": "1513dc0e3d0a86035894363e65aaf38e97cd480c",
+        "rev": "a8602962df79d4be488c7a08ce56307370f4b475",
         "type": "github"
       },
       "original": {
