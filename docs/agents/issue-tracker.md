@@ -61,6 +61,23 @@ one matches; use labels only for roles with no matching state.
 to use each are defined in `docs/agents/triage-labels.md`. An issue that has been through
 triage should never be left at priority `0`.
 
+**Merged work closes the issue — no prompting.** When a change lands on `main`, mark its
+issue `Done` in the same session; do not leave it in `Backlog` / `In Progress` / `In Review`
+and do not ask whether to close it. A squash merge counts, so "the commit on `main` has a
+different hash than the branch" is not a reason to skip closing, and neither is an absent
+`fixes #N` trailer — verify against the tree.
+
+Verify by inspecting `main`, not by trusting a state or a PR description:
+
+- the described change is actually present (grep the file, read the pin, run the command)
+- for a branch-carried change, `git merge-base --is-ancestor <commit> origin/main`
+
+**A branch that is pushed is not merged.** `In Review` means a PR exists and is awaiting
+review; a pushed remote branch with no PR is unlanded work that still shows as started.
+Before setting `In Review`, confirm with `gh pr list --head <branch>`. If the outcome was
+achieved by other work (a newer pin leapfrogging the ticket's own bump), closing as `Done`
+is fine — say so in a comment and note the stranded branch.
+
 ## Generating issue markdown
 
 When generating markdown for an issue, PR, etc. be mindful of word wrapping. Markdown can be read as plain text or as formatted markdown. In the former case, word wrapping matters. Linear wraps at about 50 or so columns, and the formatting starts looking like:
