@@ -194,6 +194,131 @@
       description = "Enable zmx session persistence tool.";
     };
 
+    # Rex — the terminal multiplexer, in three independent roles. A host picks
+    # the ones it plays; they are separate flags because they are separate
+    # layers, not three alternative setups (see modules/features/rex.nix):
+    #
+    #   my.rexClient      Home Manager. The `rex` command, the xterm-rex
+    #                     terminfo entry and the ssh guard for one account.
+    #   my.rexLoginServer NixOS. Root-run login server: one server per account,
+    #                     caller identity taken from Tailscale.
+    #   my.rexServer      NixOS. One shared server for this host's own use,
+    #                     reachable from other tailnet machines.
+    #
+    # The login server and the shared server are mutually exclusive — both own
+    # /run/rex and the Serve mapping.
+    rexClient = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Install the Rex client for this account (programs.rex): the `rex`
+        command, Rex's terminfo entry in ~/.terminfo, and its ssh guard.
+
+        The whole story on macOS, where the Rex app runs the server itself.
+      '';
+    };
+    rexLoginServer = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Run the Rex login server on this host (NixOS only).
+
+        The login server maps Tailscale identities to local accounts and runs
+        one Rex server per account, as that account. Nothing is exposed except
+        the tailnet: the only listener is Tailscale Serve, so a user without
+        Tailscale cannot reach the multiplexer at all.
+
+        Mutually exclusive with `my.rexServer`. Configure `my.rexAccounts`.
+      '';
+    };
+    rexServer = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Run one shared Rex server on this host as `my.rexServerUser`, reachable
+        from other machines on the tailnet (NixOS only).
+
+        This is the "my own machine, but I want to attach from elsewhere"
+        server — a desktop or laptop that other devices connect into. Unlike the
+        login server it knows nothing about caller identity, so it trusts the
+        host's tailscaled (a `tailnet://` listener) rather than mapping callers
+        to accounts, and it serves only the one account it runs as.
+
+        Mutually exclusive with `my.rexLoginServer`. Members of the `rex` group
+        can also connect locally over the Unix socket.
+      '';
+    };
+    rexServerUser = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = ''
+        The account `my.rexServer` runs as, and whose sessions it serves. Must
+        be an existing user; unlike the login server, the shared server has no
+        accounts file and serves exactly this one account.
+      '';
+    };
+    rexServerPort = lib.mkOption {
+      type = lib.types.port;
+      default = 7297;
+      description = ''
+        The tailnet port `my.rexServer` listens on (the `tailnet://` listener).
+        Rex clients given only a hostname try 443 and then 7297, so leaving the
+        default keeps `rex --server <host> ls` working without a port.
+      '';
+    };
+    rexServerTailnetAddress = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "100.127.173.24";
+      description = ''
+        The specific IPv4 tailnet address `my.rexServer` binds, for the
+        `tailnet://` listener.
+
+        This option exists because the obvious form, `tailnet://:<port>` (an
+        empty host), **does not work on a host whose tailnet interface has no
+        IPv6 address.** Rex reads the empty host as "bind every tailnet
+        address" and expands it to both families. `tailscale0` here carries
+        only an IPv4 address, so the IPv6 bind fails with "cannot assign
+        requested address", `rex server run` exits 1, and systemd restarts it
+        forever. The Rex module's own documentation uses the empty-host form,
+        so this is a trap worth naming rather than a configuration mistake.
+
+        Null leaves the listener off entirely: the server still runs and is
+        reachable over its Unix socket, but nothing remote can reach it. That
+        is a deliberate fail-safe rather than a silent guess at an address.
+
+        Find the value with `tailscale ip -4`. It cannot be derived at build
+        time (tailscaled must be up, and it is not during evaluation), so it is
+        an explicit setting. It can change if the node is re-authenticated to
+        the tailnet; if the server starts failing with "cannot assign
+        requested address", re-run `tailscale ip -4` and update this.
+      '';
+    };
+    rexAccounts = lib.mkOption {
+      type = lib.types.attrsOf (lib.types.listOf lib.types.str);
+      default = { };
+      example = lib.literalExpression ''
+        {
+          # Local account name (must already exist) =
+          #   Tailscale logins allowed to act as it.
+          baseUsername = [ "tailscale:<login>@<domain>" ];
+        }
+      '';
+      description = ''
+        Accounts the Rex login server may reach, and the principal keys allowed
+        to act as each: an attribute name is a local user, its value is the
+        list of Tailscale logins (or tags, or other principal keys) that may
+        use it.
+
+        The accounts are the whole allowlist. A user who is not named here
+        cannot reach the multiplexer, whatever group they are in. Nothing here
+        creates a user account; declare `users.users.<name>` for that.
+
+        Set in the host's configuration.nix — the NixOS scope owns the login
+        server, and Home Manager never reads this option.
+      '';
+    };
+
     # Resilio Sync feature (NixOS desktops only).
     #
     # The nixpkgs service module is NixOS-only, so this flag is meaningless on

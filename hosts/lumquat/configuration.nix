@@ -30,6 +30,21 @@
   my.zmx = true;
   my.memory = true;
 
+  # Rex — the login server, with the tailnet as its only door (BOX-292).
+  # modules/features/rex.nix explains the three roles; this host plays the
+  # login server, so it needs no my.rexClient: the Rex NixOS module already
+  # installs the client into environment.systemPackages for every user
+  # (installClient), which is the same binary programs.rex would add.
+  #
+  # `podman` is this host's owner account, `ashebanow` the same person's
+  # account on the desktops. Both are reachable only by that person's Tailscale
+  # login — the tailnet's only human identity.
+  my.rexLoginServer = true;
+  my.rexAccounts = {
+    podman = [ "tailscale:ashebanow@gmail.com" ];
+    ashebanow = [ "tailscale:ashebanow@gmail.com" ];
+  };
+
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
 

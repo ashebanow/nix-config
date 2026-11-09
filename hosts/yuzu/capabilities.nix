@@ -19,6 +19,13 @@ _: {
   my.cliBuildEssentials = true;
   my.cliTools = true;
 
+  # Rex client (BOX-292), plus the shared server's client-side half. The server
+  # itself is my.rexServer in configuration.nix — NixOS scope, because
+  # tailnet:// listeners and surviving logout are both NixOS-module features.
+  # This flag adds ~/.terminfo/xterm-rex and the ssh guard, which the system
+  # package alone does not.
+  my.rexClient = true;
+
   # Capability flags — enable topical GUI app modules. Apps come from nix on
   # yuzu (no Homebrew, no Mac App Store). The mac-only flags
   # (cliMacOnlyTools, guiProductivityApps) are deliberately off: every package

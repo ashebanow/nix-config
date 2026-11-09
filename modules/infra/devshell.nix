@@ -117,6 +117,17 @@
           # wrapper adds them to pi's own PATH, but keep them in the shell too
           # so a stale/odd invocation can't hit `spawn npm ENOENT`.
           nodejs
+
+          # python3 is what `nix-config-utf8-guard` (a dotfiles script, run by
+          # `just switch`/`build`/`test` before nh) shells out to. It is NOT in
+          # the host profiles — lumquat is deliberately minimal, and yuzu's
+          # Home Manager profile carries no interpreter — so before this the
+          # guard exited with "python3: command not found" inside the very
+          # devshell that runs the switch, i.e. it failed open in the situation
+          # it exists to catch. The script also resolves a fallback interpreter
+          # itself, but the devshell is where the recipe runs, so this is the
+          # dependency's proper home rather than a workaround.
+          python3
         ];
       };
     };

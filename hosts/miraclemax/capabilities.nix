@@ -22,6 +22,11 @@ _: {
   my.cliBuildEssentials = true;
   my.cliTools = true;
 
+  # Rex client only (BOX-292). The Rex app runs the server on macOS, so the
+  # home-manager services.rex (a systemd user unit) never applies here — see
+  # modules/features/rex.nix.
+  my.rexClient = true;
+
   # Capability flags — enable topical GUI app modules. Priority order
   # for macOS apps is nix > Homebrew cask > Mac App Store; these used
   # to be casks (see homebrew.casks in configuration.nix for what's

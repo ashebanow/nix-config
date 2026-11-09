@@ -94,7 +94,22 @@
       url = "github:noctalia-dev/noctalia/cachix";
     };
 
-
+    # Rex — the terminal multiplexer. Prebuilt binaries for x86_64-linux,
+    # aarch64-linux and aarch64-darwin, with a NixOS module (runs the server
+    # as a system service) and a home-manager module (installs the client for
+    # one account). Reaches hosts via modules/features/rex.nix.
+    #
+    # `snapshot` is the "every change" channel; `stable` and `preview` are the
+    # other two. The channel URL always serves the newest release, but Nix
+    # records the release's immutable URL in flake.lock, so a lock keeps
+    # working after newer releases ship — bump with `nix flake update rex`.
+    #
+    # Neither module pulls a second nixpkgs into this flake's evaluation:
+    # the flake declares no home-manager input (its modules only *set* options
+    # home-manager defines, and get them from our own instance), and the NixOS
+    # module takes `config`, `lib` and `pkgs` from the host being built. Its
+    # `package` default still resolves the flake's own prebuilt derivation.
+    rex.url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
 
     # Zed Delta — official Linux binary distribution packaged for Nix
     # (x86_64-linux and aarch64-linux only; macOS installs Delta outside Nix).
