@@ -1,35 +1,55 @@
 # Rex — "the multiplexer for all work", plus the servers that make sessions
 # reachable from other machines.
 #
-# Three independent roles, in three separate deferred modules. They are layers,
-# not alternative setups: the two server modes are the only mutually exclusive
-# pair, and the client is a prerequisite for either.
+# Two roles, in two deferred modules. They are layers, not alternatives: the
+# client is a prerequisite for the server, and on macOS it is the whole story.
 #
-#   rex-client        Home Manager. programs.rex: the `rex` command, the
-#                     xterm-rex terminfo entry, and the ssh guard. On macOS
-#                     this is the whole story — the Rex app runs the server.
+#   rex-client   Home Manager. programs.rex: the `rex` command, the xterm-rex
+#                terminfo entry, and the ssh guard. On macOS the Rex app runs
+#                the server, so nothing else applies there.
 #
-#   rex-login-server  NixOS. services.rex.loginServer: one root process that
-#                     names each caller through tailscaled, maps them to local
-#                     accounts, and runs one server per account as that
-#                     account. Root-only, so it cannot live in Home Manager.
+#   rex-server   NixOS. services.rex.enable: one server for this host's own
+#                account, published through Rex's OWN tailnet node (tsnet) as
+#                https://<host>-rex.<tailnet>.ts.net.
 #
-#   rex-server        NixOS. services.rex.enable: ONE shared server for this
-#                     host's own account, reachable from the rest of the
-#                     tailnet. This is yuzu's role — a desktop other devices
-#                     attach to. It carries no caller identity at all, so it
-#                     trusts the host's existing tailscaled rather than
-#                     embedding a second Rex-owned Tailscale node (which is
-#                     what the home-manager `services.rex.tailscale` would do:
-#                     a separate tailnet node with its own hostname and auth
-#                     key). The listener is `tailnet://`, which only the NixOS
-#                     module supports — that is why this role is NixOS-scope
-#                     even though the equivalent home-manager service exists.
+# Both NixOS hosts run the same shape — lumquat serves `podman`, yuzu serves
+# `ashebanow` — because on a single-operator tailnet the useful distinction is
+# "which account does this box serve", not "which account may reach it".
 #
-# Where lumquat differs: it needs an allowlist of *who* may attach, so it runs
-# the login server. That mode's only listener is Tailscale Serve, so a caller
-# tailscaled did not identify has no way in at all — "use the multiplexer
-# without Tailscale" is not something there is a socket to connect to.
+# ## Why tsnet, and not every other approach that was tried
+#
+# Rex's native integration is the embedded node: `services.rex.tailscale`
+# makes the server run its own Tailscale node, obtain its own HTTPS
+# certificate, and publish natively. That is exactly what the Rex app — the
+# primary client — requires, and it means the operator never exposes the
+# service by hand.
+#
+# The earlier designs in this repo each failed for the same underlying reason:
+# they made the service available manually.
+#
+#   1. `tailnet://:<port>` (empty host) crash-looped. Rex expands the empty
+#      host to every tailnet address; `tailscale0` has no IPv6; the IPv6 bind
+#      fails with "cannot assign requested address" and systemd restarts it
+#      forever.
+#   2. Pinning the IPv4 address fixed the bind, but hardcoded an address that
+#      drifts on re-auth — and left the listener as raw TCP with no TLS.
+#   3. Adding Tailscale Serve gave the app its HTTPS, but reintroduced manual
+#      exposure, which is the thing tsnet exists to remove.
+#
+# So: no extraListen, no tailscaleServe, no address option, no accounts file.
+#
+# ## Why there is no login server
+#
+# The Rex login server maps *many* Tailscale identities onto *many* local
+# accounts. It cannot use tsnet at all — `rex login-server` has no
+# `--tailscale` flag; only `rex server run` does — so it can only publish via
+# the host's tailscaled plus Serve, i.e. exactly the manual path above. On this
+# tailnet every host serves one account, so the shared server is both
+# sufficient and the only one that can publish natively. Account restriction
+# comes from Tailscale itself (owner-only on the node) rather than an accounts
+# file.
+#
+# ## Notes
 #
 # The flake's modules are imported unconditionally and gated with mkIf, the
 # same pattern as dank-material-shell.nix: a conditional import recurses,
@@ -74,176 +94,129 @@
       };
     };
 
-  my.modules.nixos.rex-login-server =
-    {
-      lib,
-      config,
-      ...
-    }:
-    {
-      # The Rex NixOS module is imported once, by the flag-agnostic fragment at
-      # the end of this file. Importing it here as well would declare its whole
-      # `services.rex` option tree a second time (the login server's options are
-      # nested inside that same declaration), and the module system rejects the
-      # duplicate.
-
-      config = lib.mkIf config.my.rexLoginServer {
-        # The two modes own /run/rex and the Serve mapping between them; the
-        # Rex module asserts this too. Stated here so the intent is ours.
-        # (`services.rex.enable` is the shared server; my.rexServer, which
-        # would be the other occupant, is rejected by the assertion below.)
-        services.rex.enable = false;
-
-        services.rex.loginServer = {
-          enable = true;
-
-          # Local account -> the Tailscale identities allowed to act as it.
-          accounts = lib.mapAttrs (_: principals: { inherit principals; }) config.my.rexAccounts;
-
-          # The only listener. Tailscale Serve forwards each caller's identity
-          # over its own root-owned 0600 socket, so the login server can map a
-          # caller to an account; a bare socket would carry no identity at all.
-          #
-          # 443 rather than the module's 7297 default: Serve owns its port for
-          # *every* tailnet connection to this host, so 7297 exists to avoid
-          # colliding with a web server on 443. Nothing on this host serves
-          # HTTPS to the tailnet (Open WebUI and bifrost are separate tailscaled
-          # sidecar nodes), and the module's own Serve unit removes only the
-          # mapping on the port it manages. Claiming 443 means clients need only
-          # the hostname and no port.
-          tailscaleServe = {
-            enable = true;
-            httpsPort = 443;
-          };
-
-          # PAM stays on (the default): each login opens a real logind session
-          # for the account, which is what gives its terminals the account's
-          # limits and environment. It never prompts for a password — Rex
-          # proves identity through Tailscale first, and the module's PAM
-          # service sets unixAuth = false.
-        };
-
-        assertions = [
-          {
-            assertion = config.my.access;
-            message = "my.rexLoginServer requires my.access: Tailscale Serve is the login server's only listener, and my.access is what enrolls the host.";
-          }
-          {
-            assertion = config.my.rexAccounts != { };
-            message = "my.rexLoginServer is enabled but my.rexAccounts is empty — the login server would admit nobody. Set my.rexAccounts in the host's configuration.nix.";
-          }
-          {
-            assertion = !config.my.rexServer;
-            message = "my.rexLoginServer and my.rexServer are mutually exclusive: both own /run/rex and the Tailscale Serve mapping. Run the login server where callers must be mapped to accounts (a multi-user host), and the shared server on a machine that serves only its own account.";
-          }
-        ];
-      };
-    };
-
   my.modules.nixos.rex-server =
     {
       lib,
       config,
-      pkgs,
       ...
     }:
     {
-      # No import here — see the note in rex-login-server above.
+      # No import for the Rex module here — it is imported once, by the
+      # flag-agnostic fragment at the end of this file. `services.rex` is a
+      # single option tree, so importing it twice re-declares it and the module
+      # system rejects the duplicate.
 
       config = lib.mkIf config.my.rexServer {
         services.rex = {
           enable = true;
 
-          # The shared server serves exactly one account, so it runs as that
-          # account rather than the module's `rex` system user. The account must
-          # already exist; this only points at it.
+          # The server serves exactly one account, so it runs as that account
+          # rather than the module's `rex` system user. The account must already
+          # exist; this only points at it.
           user = config.my.rexServerUser;
           group = "rex";
 
-          # Local access: the default socket, group-readable so `rex` run by a
-          # member of the rex group (and by the owning account itself) reaches
-          # it. 0660 is the module default; stated here because the group
+          # Local access: the default `/run/rex/server.sock`, group-readable so
+          # a member of the rex group (and the owning account, which owns it)
+          # reaches it. 0660 is the module default; stated because the group
           # matters as much as the owner.
           socketMode = "0660";
 
-          # Remote access reuses THIS host's tailscaled instead of embedding a
-          # Rex-owned node.
+          # Remote access is Rex's OWN tailnet node (tsnet), not the host's
+          # tailscaled. This is the integration Rex is built around: the server
+          # embeds a node, obtains HTTPS certificates itself, and serves at
+          # https://<hostname>.<tailnet>.ts.net with no port.
           #
-          # The address binds only when `my.rexServerTailnetAddress` is set. The
-          # tempting empty-host form `tailnet://:<port>` was tried first and
-          # crash-loops on this host: Rex expands an empty host to every tailnet
-          # address, including the IPv6 one, and `tailscale0` carries only IPv4
-          # here — so the IPv6 bind fails with "cannot assign requested address",
-          # the server exits 1, and systemd restarts it endlessly. See the
-          # option's description; the Rex module's own docs use the broken form.
+          # That is what the Rex app and any bare-hostname client require. The
+          # earlier designs here failed in sequence for the same underlying
+          # reason — they made the service available *manually*:
           #
-          # `tailnet://` is not in the module's managedServeFlags list, so it
-          # must arrive through extraListen rather than a dedicated option.
+          #   1. `tailnet://:<port>` (empty host) crash-looped: Rex expands the
+          #      empty host to every tailnet address, `tailscale0` has no IPv6,
+          #      and the IPv6 bind fails with "cannot assign requested address".
+          #   2. Pinning the IPv4 address fixed the bind but hardcoded an
+          #      address that drifts on re-auth, and left the listener as raw
+          #      TCP with no TLS.
+          #   3. Adding Tailscale Serve on top gave the app its HTTPS, but that
+          #      is exactly the manual exposure tsnet exists to remove.
           #
-          # Plain TCP/HTTP endpoints would need tailnetAllowIdentified plus
-          # allowAnonymous, i.e. no identity check at all — the tailnet listener
-          # is deliberately the only remote one.
-          extraListen = lib.optionals (config.my.rexServerTailnetAddress != null) [
-            "tailnet://${config.my.rexServerTailnetAddress}:${toString config.my.rexServerPort}"
-          ];
+          # So: no extraListen, no tailscaleServe, no address to maintain.
+          tailscale = {
+            enable = true;
 
-          # Default false: only the tailnet node's owning login is admitted.
-          # Turning it on would admit every caller the tailnet's ACLs allow,
-          # which for a shared server on a personal machine is broader than we
-          # want. A tagged caller would need this (Serve does not forward tags,
-          # but a tailnet:// listener does).
-          tailnetAllowIdentified = false;
+            # <host>-rex, never the module's `rex` default: two hosts with the
+            # default would fight over one node name, and this matches the
+            # convention the Rex app already uses on the Macs
+            # (miraclemax-rex, bergamot-rex).
+            hostname = "${config.my.hostName}-rex";
 
-          # Do NOT combine with tailscaleServe.enable: that maps HTTPS through
-          # Serve and requires tailscaled on the host, but it is a second
-          # listener for the same server, and Serve forwards no tag identity.
+            # A one-time (non-reusable) key per node, so a leaked key enrolls
+            # nothing. Written by host-secrets-populate from the host scope's
+            # REX_<HOST>_TS_AUTHKEY. The key is spent at first enrollment; the
+            # identity then persists under /var/lib/rex/tsnet/<hostname>.
+            authKeyFile = "/run/secrets/rex-tailscale-auth-key";
+
+            # Owner-only (the default): just the Tailscale account that
+            # enrolled the node. Turning this on would admit every tailnet
+            # member the ACLs allow, which is broader than a personal machine
+            # needs. A tagged node has no owner and would require it.
+            allowTailnetMembers = false;
+          };
+
+          # Unused with a tsnet node, but harmless to leave unset; stated for
+          # searchability: nothing else listens on the tailnet.
+          extraListen = [ ];
         };
 
         # Group for local socket access. Creating it here rather than relying on
-        # the module keeps the membership explicit and lets `my.rexServerUser`
-        # be any account.
+        # the module keeps the membership explicit and lets my.rexServerUser be
+        # any account.
         users.groups.rex = { };
 
         # The account the server runs as is also the account most likely to
-        # attach locally, so put it in the group. The server's own User= is
-        # enough for it to *own* the socket; group membership is what makes the
-        # 0660 mode meaningful for the same person when Rex runs the terminal
-        # under a different effective group.
+        # attach locally. The server's own User= is enough for it to *own* the
+        # socket; group membership makes the 0660 mode meaningful when Rex runs
+        # a terminal under a different effective group.
         users.users.${config.my.rexServerUser}.extraGroups = [ "rex" ];
+
+        # Order the service after the key it needs.
+        #
+        # services.rex declares LoadCredential from
+        # /run/secrets/rex-tailscale-auth-key, and /run/secrets is tmpfs that
+        # host-secrets-populate fills at boot. The Rex module knows nothing
+        # about that unit, so the two start in parallel and systemd can try to
+        # exec rex before the file exists:
+        #
+        #   rex.service: Failed to set up credentials: No such file or directory
+        #   rex.service: Failed at step CREDENTIALS
+        #
+        # That failed the whole activation on the first switch. The one-time
+        # auth key was NOT spent (systemd aborted before exec), but a retry loop
+        # that lost the race twice in a row would leave a confusing state, so
+        # depend on it properly rather than relying on the restart to fix it.
+        #
+        # Requires= as well as After= — without the key the service cannot
+        # enroll, so a missing populator is a hard failure, not something to
+        # start optimistically against. Restart=on-failure in the Rex module
+        # then covers the case where the key exists but enrolment fails.
+        systemd.services.rex = {
+          requires = [ "host-secrets-populate.service" ];
+          after = [ "host-secrets-populate.service" ];
+        };
 
         assertions = [
           {
             assertion = config.my.rexServerUser != "";
-            message = "my.rexServer is enabled but my.rexServerUser is empty — set it to the account whose sessions the shared server should serve.";
-          }
-          {
-            assertion = config.my.access;
-            message = "my.rexServer requires my.access: its only remote listener is tailnet://, which needs this host enrolled in Tailscale.";
-          }
-          {
-            assertion = !config.my.rexLoginServer;
-            message = "my.rexServer and my.rexLoginServer are mutually exclusive: both own /run/rex.";
+            message = "my.rexServer is enabled but my.rexServerUser is empty — set it to the account whose sessions the server should serve.";
           }
         ];
-
-        # Turning the address trap into a visible warning rather than a
-        # silently local-only server: with no address the server still runs,
-        # but nothing remote can reach it, which looks exactly like a client-side
-        # problem from another machine.
-        warnings = lib.optional (config.my.rexServerTailnetAddress == null) ''
-          my.rexServer is enabled but my.rexServerTailnetAddress is null, so the
-          tailnet listener is off: sessions are reachable only over the local
-          Unix socket. Set it to the output of `tailscale ip -4`.
-        '';
       };
     };
 
-  # The Rex NixOS module, imported exactly once. Registering it as its own
-  # flag-agnostic deferred module is what lets the two server roles above stay
-  # separate fragments: `services.rex` is a single option tree (the login
-  # server's options are nested inside that same declaration), so the module
-  # cannot be imported by both roles. It is inert here — every option keeps its
-  # default until a role sets it.
+  # The Rex NixOS module, imported exactly once. `services.rex` is a single
+  # option tree, so importing it from more than one fragment re-declares it and
+  # evaluation fails. It is inert here — every option keeps its default until
+  # rex-server sets it.
   my.modules.nixos.rex-module = {
     imports = [ inputs.rex.nixosModules.default ];
   };

@@ -1,39 +1,55 @@
-While you switch, a few things to watch — all from the module source, so these are what a failure
-looks like rather than guesses:
+Rex test checklist (BOX-292)
 
-On lumquat:
+Both NixOS hosts run a Rex server published through Rex's own embedded Tailscale
+node (tsnet). No Tailscale Serve, no raw listeners, no addresses to maintain.
 
-- systemctl status rex-login-server should show active (running) and Type=notify-reload.
-- systemctl status rex-tailscale-serve — this is the one that would have failed without HTTPS
-  certs. It runs tailscale wait then tailscale serve --https=443. Since you enabled certs, it
-  should come up clean.
-- cat /etc/rex/accounts.jsonc should show podman and ashebanow, both with
-  tailscale:ashebanow@gmail.com.
+## Before the first switch
 
-On yuzu:
+- The BWS items `lumquat-rex-tailscale-auth-key` and
+  `yuzu-rex-tailscale-auth-key` must exist. The keys are ONE-TIME: they are
+  spent on first start, so a failed first start burns one and needs a fresh key.
 
-- systemctl status rex — now a system unit, not a user unit, running as ashebanow. If it failed,
-  journalctl -u rex will say why; the most likely cause is the tailnet listener
-  (`tailnet://100.127.173.24:7297`). If it says "cannot assign requested
-  address", the tailnet IP has changed — run `tailscale ip -4` and update
-  `my.rexServerTailnetAddress` in hosts/yuzu/configuration.nix. The bare
-  `tailnet://:7297` form crash-loops on yuzu and is deliberately not used.
-- systemctl --user status rex should fail to exist — if a stale user unit from a previous
-  experiment is still around, it'd collide on the socket.
+## On yuzu
 
-Then the real test, from a Mac:
+- `systemctl status host-secrets-populate` — must be active, and
+  `/run/secrets/rex-tailscale-auth-key` must exist (0600 root).
+- `systemctl status rex` — active (running), running as `ashebanow`.
+- `journalctl -u rex` should show the tsnet node coming up. A failure here is
+  almost always enrolment: a spent key, a revoked key, or no network.
+- `systemctl status rex-tailscale-serve` should **not exist** — Serve is gone.
+- `tailscale status | grep yuzu-rex` on yuzu should list the new node.
+
+## On lumquat
+
+- Same three checks, with the user `podman` and the node `lumquat-rex`.
+- `systemctl status rex-login-server` should **not exist** — the login server is
+  gone.
+
+## From a Mac
 
 ```
-  rex --server lumquat.fluffy-walleye.ts.net ls
-  rex --server yuzu.fluffy-walleye.ts.net:7297 ls
+  rex --server yuzu-rex.fluffy-walleye.ts.net ls
+  rex --server lumquat-rex.fluffy-walleye.ts.net ls
 ```
 
-If lumquat connects but yuzu times out, that's the tailnet:// listener rather than auth — and if
-both prompt or refuse, it's identity, which would mean the principal doesn't match
-ashebanow@gmail.com.
+Bare hostnames, no port. The same values go in the Rex app's "add remote host"
+dialog.
 
-One caveat worth flagging now: on the Macs, rex won't be on PATH until darwin-rebuild switch runs,
-and the ssh guard needs rex terminfo setup — but neither is needed to test connectivity, since rex
---server <host> uses the local rex you already have.
+Note: the Rex *app* on a Mac creates its own node (`miraclemax-rex`,
+`bergamot-rex`). Those are separate from the NixOS servers and appear in the
+tailnet only while the Mac is awake with Rex running.
 
-Ping me with whatever just switch reports, or if a service lands in failed.
+## What a failure looks like
+
+| Symptom | Cause |
+| --- | --- |
+| rex.service restart loop, "cannot assign requested address" | cannot happen any more — that was the raw-listener design; if seen, the deployed generation is old |
+| rex.service fails at start, enrolment error | auth key spent/revoked; mint a new one and update BWS |
+| node appears but the app cannot connect | `allowTailnetMembers` is false (owner-only) and the app is signed into a different Tailscale account |
+| `rex -S … ls` works locally but not from the Mac | the app/Mac is using a different tailnet identity |
+
+## Local access on the server itself
+
+`rex` run as `ashebanow` on yuzu prefers its personal socket and reports that
+this machine also has a shared server. Use `-S /run/rex/server.sock` or
+`REX_SERVER=/run/rex/server.sock`.

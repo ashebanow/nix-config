@@ -943,14 +943,14 @@
         "nixpkgs": "nixpkgs_9"
       },
       "locked": {
-        "lastModified": 1794251415,
-        "narHash": "sha256-XuSa+IISgjbIFsu3YeZ9J0WKloSbB1gXqahQutXqSgg=",
+        "lastModified": 1794599376,
+        "narHash": "sha256-EXeKXr+NeDEc6JyfZHckVzkJCiCU0/rRkR3EVOFR3vE=",
         "type": "tarball",
-        "url": "https://pkgs.superlogical.com/rex/nix/snapshot/0.0.1794251415-g6f8e4c.tar.gz"
+        "url": "https://pkgs.superlogical.com/rex/nix/preview/0.1.0-preview.19.tar.gz"
       },
       "original": {
         "type": "tarball",
-        "url": "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz"
+        "url": "https://pkgs.superlogical.com/rex/nix/preview.tar.gz"
       }
     },
     "root": {

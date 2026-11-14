@@ -28,26 +28,19 @@
 
   # Rex (BOX-292). yuzu is the machine other devices attach to: the laptop and
   # the macs connect here over the tailnet, so it needs a persistent server,
-  # not just a client. `my.rexServer` runs one shared server as `ashebanow`
-  # and reaches it through yuzu's own tailscaled (a tailnet:// listener) rather
-  # than embedding a second Rex-owned Tailscale node.
+  # not just a client. The server runs as `ashebanow` and publishes through
+  # Rex's own tailnet node (tsnet) as https://yuzu-rex.<tailnet>.ts.net — no
+  # Tailscale Serve, no host tailscaled involvement, no address to maintain.
   #
-  # NixOS-scope on purpose: tailnet:// listeners exist only in the NixOS
-  # module, and a system service keeps sessions alive across logout — the
-  # home-manager equivalent is a user unit that dies with the session.
+  # NixOS-scope rather than the home-manager service: a system service keeps
+  # sessions alive across logout, where the home-manager equivalent is a user
+  # unit that dies with the session.
   #
   # `my.rexClient` is NOT set here: it is a Home Manager flag, and Home Manager
   # evaluates its own config.my. It lives in capabilities.nix, like the CLI
   # flags above.
   my.rexServer = true;
   my.rexServerUser = "ashebanow";
-
-  # yuzu's IPv4 tailnet address, from `tailscale ip -4`. It must be explicit:
-  # the empty-host form `tailnet://:<port>` expands to both address families
-  # and crash-loops here, because tailscale0 has no IPv6 address. Update this if
-  # the node is ever re-authenticated to the tailnet (symptom: rex.service
-  # failing with "cannot assign requested address").
-  my.rexServerTailnetAddress = "100.127.173.24";
 
   # Resilio Sync — mirrors the macs' "Synced Files" folder (Books, Documents,
   # Fonts, Music, Pictures, Scans, Videos, personal_wiki, Google Photos) and

@@ -35,10 +35,14 @@ _: {
       # <HOST>_TAILSCALE_AUTH_KEY, declared in [profiles.production] and selected
       # by the [scopes.host-<host>] scope below.
       tailscaleVar = "${lib.toUpper config.my.hostName}_TAILSCALE_AUTH_KEY";
+      # The Rex tsnet node's own one-time key, same naming shape. Only passed
+      # when this host runs a Rex tailnet node; the script skips the file
+      # otherwise, so hosts without one keep working unchanged.
+      rexTailscaleVar = "REX_${lib.toUpper config.my.hostName}_TS_AUTHKEY";
       populateScript = pkgs.writeShellScript "populate-host-secrets" ''
         set -euo pipefail
         ${pkgs.secretspec}/bin/secretspec run -P production -S host-${config.my.hostName} -- \
-          ${pkgs.bash}/bin/bash ${populate} host ${tailscaleVar}
+          ${pkgs.bash}/bin/bash ${populate} host ${tailscaleVar} ${lib.optionalString config.my.rexServer rexTailscaleVar}
         ${pkgs.secretspec}/bin/secretspec run -P production -S dev -- \
           ${pkgs.bash}/bin/bash ${populate} dev ${config.my.baseUsername}
       '';
