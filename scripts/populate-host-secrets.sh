@@ -6,8 +6,9 @@
 # subprocess sees only its own secrets:
 #
 #   secretspec run -P production -S host-<host> -- \
-#     populate-host-secrets.sh host <HOST>_TAILSCALE_AUTH_KEY
+#     populate-host-secrets.sh host <HOST>_TAILSCALE_AUTH_KEY <HOST>_REX_TS_AUTHKEY
 #     /run/secrets/tailscale-auth-key  -> services.tailscale.authKeyFile   (0600 root)
+#     /run/secrets/rex-tailscale-auth-key -> services.rex.tailscale.authKeyFile (0600 root)
 #     /run/secrets/flakehub-token      -> determinate-nixd auth login --token-file (0600 root)
 #
 #   secretspec run -P production -S dev  -- populate-host-secrets.sh dev <operator-user>
@@ -16,8 +17,9 @@
 #     /run/secrets/vk-gate             -> `just reliability-gate`             (0400 <operator-user>)
 #     /run/secrets/bifrost-admin-password -> `just reliability-gate` /api/logs (0400 <operator-user>)
 #
-# The tailscale key is per node, so its variable name (<HOST>_TAILSCALE_AUTH_KEY)
-# is passed in by the caller rather than hardcoded.
+# The tailscale keys are per node, so their variable names are passed in by the
+# caller rather than hardcoded: one for the host's own node, one for the Rex
+# tsnet node that copies <HOST>_TAILSCALE_AUTH_KEY's shape.
 #
 # `host` secrets are root-only and mandatory: tailscale and determinate-nixd
 # demand a file interface, and a host without them is misconfigured, so an
@@ -89,6 +91,19 @@ case "${1:-host}" in
     [[ -n "${2:-}" ]] || fail "host mode needs the node's tailscale variable name as its second argument"
     write "$2" /run/secrets/tailscale-auth-key
     write FLAKEHUB_TOKEN /run/secrets/flakehub-token
+
+    # Rex's tsnet node key. Optional: a host that does not run a Rex tailnet
+    # node has no value, and that must not fail the unit — but if the host DOES
+    # run one and the value is missing, the service fails to enroll, so say so
+    # loudly here rather than leaving a puzzling rex.service failure.
+    if [[ -n "${3:-}" ]]; then
+      if [[ -n "${!3:-}" ]]; then
+        write "$3" /run/secrets/rex-tailscale-auth-key
+      else
+        echo "$3 is empty/absent — skipping /run/secrets/rex-tailscale-auth-key (host runs no Rex tailnet node)"
+        rm -f /run/secrets/rex-tailscale-auth-key
+      fi
+    fi
     ;;
   dev)
     [[ -n "${2:-}" ]] || fail "dev mode needs the operator user as its second argument"
@@ -98,6 +113,6 @@ case "${1:-host}" in
     write_user BIFROST_ADMIN_PASSWORD /run/secrets/bifrost-admin-password "$2"
     ;;
   *)
-    fail "unknown mode '$1' (expected: host <HOST>_TAILSCALE_AUTH_KEY | dev <operator-user>)"
+    fail "unknown mode '$1' (expected: host <HOST>_TAILSCALE_AUTH_KEY [<HOST>_REX_TS_AUTHKEY] | dev <operator-user>)"
     ;;
 esac

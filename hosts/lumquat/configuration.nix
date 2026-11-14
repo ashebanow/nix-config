@@ -30,20 +30,20 @@
   my.zmx = true;
   my.memory = true;
 
-  # Rex — the login server, with the tailnet as its only door (BOX-292).
-  # modules/features/rex.nix explains the three roles; this host plays the
-  # login server, so it needs no my.rexClient: the Rex NixOS module already
-  # installs the client into environment.systemPackages for every user
-  # (installClient), which is the same binary programs.rex would add.
+  # Rex — a server for the `podman` account, published through Rex's own
+  # tailnet node (BOX-292). modules/features/rex.nix explains the roles.
   #
-  # `podman` is this host's owner account, `ashebanow` the same person's
-  # account on the desktops. Both are reachable only by that person's Tailscale
-  # login — the tailnet's only human identity.
-  my.rexLoginServer = true;
-  my.rexAccounts = {
-    podman = [ "tailscale:ashebanow@gmail.com" ];
-    ashebanow = [ "tailscale:ashebanow@gmail.com" ];
-  };
+  # This host runs no `my.rexClient`: the Rex NixOS module already installs the
+  # client into environment.systemPackages for every user (installClient),
+  # which is the same binary programs.rex would add.
+  #
+  # Only `podman` is served, deliberately. The point of Rex on a headless host
+  # is attaching to persistent sessions for debugging, and `podman` is the
+  # operator account here; there is no /home/ashebanow on lumquat at all. The
+  # restriction is Tailscale's job now (owner-only on the node), not an
+  # accounts file, because the login server cannot use tsnet.
+  my.rexServer = true;
+  my.rexServerUser = "podman";
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;

@@ -99,17 +99,39 @@
     # as a system service) and a home-manager module (installs the client for
     # one account). Reaches hosts via modules/features/rex.nix.
     #
-    # `snapshot` is the "every change" channel; `stable` and `preview` are the
-    # other two. The channel URL always serves the newest release, but Nix
-    # records the release's immutable URL in flake.lock, so a lock keeps
-    # working after newer releases ship — bump with `nix flake update rex`.
+    # `preview`, not `snapshot`. These track different version lines:
+    #
+    #   snapshot  0.0.<unix-ts>-g<sha>   built from every change
+    #   preview   0.1.0-preview.N
+    #   stable    (nothing published yet — the blob 404s)
+    #
+    # The Rex APP is on the 0.1.0 line, so a snapshot server is a different API
+    # revision from it. On snapshot 0.0.1794251415-g6f8e4c the server spoke API
+    # revision 12 while preview 0.1.0-preview.19 speaks 14, and the app's block
+    # data channel failed its TLS handshake and retried forever — the control
+    # channel negotiated down and worked, which made the server look healthy
+    # while every terminal spun. The CLI masked it completely, because the
+    # pinned CLI was revision 12 too.
+    #
+    # So keep this on the same line as the app. If the app is ever older than
+    # preview, a data-channel handshake failure like that is version skew
+    # first, and configuration second.
+    #
+    # The channel URL always serves the newest release, but Nix records the
+    # release's immutable URL in flake.lock, so a lock keeps working after
+    # newer releases ship — bump with `nix flake update rex`.
+    #
+    # Upgrading does NOT require re-enrolling the server's tsnet node: its
+    # identity lives in /var/lib/rex/tsnet/node/tailscaled.state, a systemd
+    # StateDirectory that survives rebuilds, so the one-time auth key stays
+    # spent.
     #
     # Neither module pulls a second nixpkgs into this flake's evaluation:
     # the flake declares no home-manager input (its modules only *set* options
     # home-manager defines, and get them from our own instance), and the NixOS
     # module takes `config`, `lib` and `pkgs` from the host being built. Its
     # `package` default still resolves the flake's own prebuilt derivation.
-    rex.url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
+    rex.url = "https://pkgs.superlogical.com/rex/nix/preview.tar.gz";
 
     # Zed Delta — official Linux binary distribution packaged for Nix
     # (x86_64-linux and aarch64-linux only; macOS installs Delta outside Nix).
