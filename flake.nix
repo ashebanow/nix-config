@@ -182,7 +182,7 @@
     # This pin drops entirely once nixpkgs unstable ships >= 0.78.0 — then the
     # overlay in lib/overlays/worktrunk.nix goes too. Tracked in BOX-190.
     worktrunk = {
-      url = "github:max-sixty/worktrunk/v0.78.0";
+      url = "github:max-sixty/worktrunk/v0.82.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
