@@ -1,4 +1,69 @@
-# Gaming — Battle.net (and Diablo IV) through umu-launcher + Proton-GE.
+# Gaming — three storefronts, one capability flag (`my.gaming`).
+#
+#   Steam   `programs.steam` from nixpkgs: the client itself, so its whole
+#           library installs and updates the normal way. Plus gamemode,
+#           gamescope and protontricks as tools.
+#   GOG     `pkgs.heroic` in Home Manager: Heroic talks to GOG through gogdl
+#           (Heroic's own official GOG CLI), installs and updates games into
+#           its own per-game Wine prefixes, and runs them under Proton-GE.
+#   Battle.net  The hand-rolled umu-launcher wrappers described at length below.
+#               Diablo IV installs from inside Battle.net, not from any entry
+#               here.
+#
+# ── Why this split, and not one mechanism for all three ──────────────────
+# Each storefront is served by whatever the Linux gaming community actually
+# uses for it, and none of the three is reimplemented here:
+#
+#   * Steam has a first-class NixOS module. Using it is the entire job; the
+#     module already brings `hardware.steam-hardware`, 32-bit graphics, the
+#     `steam-run` FHS wrapper and the firewall options. Hand-wrapping a Steam
+#     client in umu would be strictly worse in every respect.
+#   * GOG has no client on Linux at all — GOG ships Galaxy for Windows and
+#     macOS only, and there is no Linux build to wrap. Heroic is the de facto
+#     answer (Lutris is the other, and it would be a second launcher doing the
+#     same job). Heroic is in nixpkgs, needs no flake input, and manages its
+#     own prefixes, so there is nothing here to maintain.
+#   * Battle.net ships no Linux client either, and the wrapper is the part
+#     nobody else gets right for this host — see the long header below.
+#
+# What is deliberately NOT here, and why, since each is a common r/nixos and
+# NixOS-wiki suggestion:
+#
+#   * No Lutris. Heroic covers GOG; Steam covers Steam; Lutris would be a
+#     third launcher for the same two stores.
+#   * No protonup-qt. `programs.steam.extraCompatPackages` installs Proton-GE
+#     declaratively from the same nixpkgs pin the Battle.net wrappers use, so
+#     there is nothing to download into `~/.steam` and no tool to keep in sync.
+#   * No Flatpak, Bottles, or a `steam.override` with a hand-picked library
+#     list. Those are for making one specific broken game work; none of the
+#     three storefronts needs them to be installed and launchable, and a
+#     hand-picked FHS library list is a maintenance burden that silently rots.
+#   * No gamescope *session*. `programs.gamescope.enable` puts the tool on the
+#     host so a game can be launched through it from Steam's launch options.
+#     Registering a Steam Big Picture session in the display manager is a
+#     separate commitment — a new entry at the login screen next to niri and
+#     GNOME — and is easy to add later if it is ever wanted. Reliability over
+#     cleverness.
+#
+# ── Two worlds of Wine prefixes, on purpose ─────────────────────────────
+# Heroic does NOT share a prefix with the Battle.net wrappers, and the GOG
+# games do not get `gaming-umu` launchers. Heroic owns one prefix per game
+# under `~/.config/heroic/GamesConfig` and that ownership is exactly what makes
+# its install/update/repair cycle work; reaching in to share a prefix, or to
+# launch a GOG game through `umu-run`, would break the thing being used. There
+# are therefore three independent prefix families on a gaming host:
+#
+#   ~/.local/share/battlenet-umu/prefixes/<name>/   Battle.net (this module)
+#   ~/.config/heroic/...                            GOG (Heroic's own)
+#   ~/.local/share/Steam/steamapps/compatdata/      Steam (Valve's own)
+#
+# Only the first is documented in docs/gaming.md's repair ladder, because only
+# the first is ours. For the other two the answer to corruption is the same as
+# on any other Linux box: let Steam or Heroic rebuild it, or delete the game's
+# prefix and reinstall. That is a feature — it means a Proton regression in
+# Cyberpunk is fixed by Heroic's UI, not by editing this repo.
+#
+# ── Battle.net (Diablo IV) through umu-launcher + Proton-GE ───────────────
 #
 # Everything here is nixpkgs: `pkgs.umu-launcher` (1.4.4) and
 # `pkgs.proton-ge-bin` (GE-Proton11-11) are already inputs of this flake, so
@@ -81,19 +146,25 @@
 # This file registers TWO modules:
 #
 #   my.modules.nixos.gaming          — host requirements, one list, gated on
-#                                      `my.gaming`.
+#                                      `my.gaming`: 32-bit graphics, Steam,
+#                                      gamemode, gamescope.
 #   my.modules.home-manager.gaming   — the wrappers, desktop entries and Wine
-#                                      prefixes for Battle.net.
+#                                      prefixes for Battle.net, plus Heroic
+#                                      for GOG.
 #
-# The split is not ceremony. `hardware.graphics.enable32Bit` is a NixOS option
-# and simply cannot be set from the Home Manager scope, which is what the
-# original single-scope version got wrong (see the 32-bit block below). And
-# anything that has to be true of the *machine* for games to run — 32-bit
-# graphics, a controller udev rule, gamemode's daemon, a gamescope session —
-# belongs to no particular storefront. Keeping those in a NixOS-scope module
-# gated on the one `my.gaming` flag means a future Steam or GOG feature module
-# inherits them instead of re-deriving them, and that no launcher is required to
-# be a Home Manager module at all.
+# The split is not ceremony, and it is the reason Steam lives in the NixOS
+# half and Heroic in the Home Manager half:
+#   * `programs.steam`, `programs.gamemode`, `programs.gamescope` and
+#     `hardware.graphics.enable32Bit` are NixOS options and cannot be set from
+#     the Home Manager scope — which is what the original single-scope version
+#     of this file got wrong (see the 32-bit / Steam block below).
+#   * anything that has to be true of the *machine* for games to run — 32-bit
+#     graphics, a controller udev rule, gamemode's daemon, the gamescope tool —
+#     belongs to no particular storefront. Gating those on the one `my.gaming`
+#     flag means a future storefront inherits them instead of re-deriving them,
+#     which is exactly what happened when Steam and GOG were added here.
+#   * Heroic is a per-user application with per-user state, so it belongs to
+#     the Home Manager scope: one user's GOG account, one user's game library.
 #
 # What deliberately does NOT move: `my.gamingWinePrefixes` and the
 # `programs.gaming-umu.*` option, because Wine prefixes are per-user state under
@@ -103,6 +174,7 @@ _: {
   my.modules.nixos.gaming =
     {
       lib,
+      pkgs,
       config,
       ...
     }:
@@ -127,7 +199,69 @@ _: {
         # requirement, so it lives here rather than in the umu module.
         # mkDefault so a host that already asked for it (lumquat does) is not
         # fought over.
+        #
+        # Note `programs.steam.enable` below sets this too; the explicit line
+        # stays because it is what Heroic and the Battle.net wrappers rely on,
+        # and GOG games must not depend on Steam being installed for them to
+        # have 32-bit Vulkan.
         hardware.graphics.enable32Bit = lib.mkDefault true;
+
+        # ── Steam ────────────────────────────────────────────────────────
+        # The nixpkgs module and nothing else. It brings, in its own `config`:
+        # `hardware.steam-hardware` (controller udev rules and the HID
+        # permissions for a Steam Controller / Deck / Index), 32-bit graphics
+        # and pulse/pipewire ALSA, `steam` plus `steam-run` on the system path,
+        # and the Remote Play / transfer firewall options (all left off here:
+        # this host does not stream, and a closed firewall is the better
+        # default until it does).
+        #
+        # `pkgs.steam` is unfreeRedistributable, already permitted globally by
+        # modules/infra/nix/nix.nix's `nixpkgs.config.allowUnfree = true`.
+        programs.steam = {
+          enable = true;
+
+          # Proton-GE in Steam's own compatibility dropdown, from the same
+          # pkgs.proton-ge-bin the Battle.net wrappers below use — one pinned
+          # build shared by both worlds, rather than a second one downloaded
+          # into ~/.steam by protonup-qt. `extraCompatPackages` requires a
+          # package with a `steamcompattool` output, which is exactly what
+          # proton-ge-bin provides (the wrappers use the same output as
+          # PROTONPATH).
+          extraCompatPackages = [ pkgs.proton-ge-bin ];
+
+          # protontricks is the standard "this one game needs a Windows DLL or
+          # a registry key" escape hatch, and it needs `extraCompatPackages` to
+          # find Proton-GE, so enabling it is only worth it alongside the line
+          # above. It reaches the prefixes Steam owns; the Battle.net prefix
+          # is reached by pointing protontricks at it explicitly.
+          protontricks.enable = true;
+        };
+
+        # ── gamemode: the daemon, and the `gamemoderun` shim ─────────────
+        # Distinct from `programs.steam.enable`'s 32-bit audio work: gamemode is
+        # a D-Bus-activated daemon that raises the game's CPU governor and I/O
+        # priority while it runs. It does nothing unless a game asks for it, so
+        # enabling it host-wide costs nothing at idle and is used per-game via
+        # Steam's launch options (`gamemoderun %command%`) or Heroic's
+        # "Use GameMode" toggle.
+        #
+        # `renice` is granted through the module's own `security.polkit`
+        # setup; nothing here needs a setuid binary.
+        programs.gamemode.enable = true;
+
+        # ── gamescope: the tool, not a session ──────────────────────────
+        # A micro-compositor used per-game to force a resolution, add FSR or
+        # HDR, or make a windowed game fullscreen. Exposed as a package so a
+        # launch option can say `gamescope -W 2560 -H 1440 -f -- %command%`.
+        #
+        # NOT `programs.steam.gamescopeSession.enable`: that registers a Steam
+        # Big Picture session in the display manager, i.e. a third entry at the
+        # login screen next to niri and GNOME. Real on a console-style box, a
+        # surprise on a workstation, and trivial to turn on later if wanted.
+        #
+        # capSysNice is left off deliberately: it needs a CAP_SYS_NICE wrapper,
+        # and gamemode above already does the scheduling work it duplicates.
+        programs.gamescope.enable = true;
       };
     };
 
@@ -439,14 +573,29 @@ _: {
         enable = lib.mkEnableOption "Battle.net and its games through umu-launcher + Proton-GE";
       };
 
-      # NOTE: the guard names the merged source, not one of the two option
-      # sets. Testing `programs.gaming-umu.winePrefixes` here would be empty on
-      # a host that configured `my.gamingWinePrefixes` (the normal case) and
-      # would silently produce no launchers at all — the same failure mode as
-      # trap 2 above. `my.gaming` stays in the condition so the flag remains the
-      # master switch.
-      config =
-        lib.mkIf
+      # ── GOG: Heroic, and only Heroic ──────────────────────────────────
+      # GOG has no Linux client (Galaxy is Windows/macOS only), so there is
+      # nothing to wrap: Heroic is the launcher, it drives GOG through gogdl,
+      # and it owns everything about the installs. There is no option for it
+      # because there is nothing to configure here that Heroic does not
+      # already configure better through its own UI — the NixOS-wiki recipe
+      # of `heroic.override { extraPkgs = [ gamescope gamemode ]; }` is
+      # deliberately not used either: Heroic looks for those on the system
+      # PATH, and `programs.gamescope`/`programs.gamemode` above put them in
+      # /run/current-system/sw/bin, which the FHS wrapper's PATH includes.
+      #
+      # `pkgs.heroic` rather than `heroic-unwrapped`: the former is nixpkgs'
+      # `steam.buildRuntimeEnv` wrapper, which is what makes Proton and the
+      # Steam runtime usable from Heroic at all. Installing the unwrapped
+      # binary on NixOS is the common broken-configuration mistake.
+      #
+      # Gated on `my.gaming` like everything else here, and independent of
+      # `my.gamingWinePrefixes` — Heroic needs no prefix from us.
+      config = lib.mkMerge [
+        (lib.mkIf config.my.gaming {
+          home.packages = [ pkgs.heroic ];
+        })
+        (lib.mkIf
           (
             config.my.gaming
             && (config.my.gamingWinePrefixes != [ ] || config.programs.gaming-umu.winePrefixes != { })
@@ -521,6 +670,8 @@ _: {
                 }
               ];
             }
-          );
+          )
+        )
+      ];
     };
 }

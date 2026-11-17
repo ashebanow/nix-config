@@ -37,17 +37,22 @@ _: {
   my.guiMediaApps = true;
   my.guiFonts = true;
 
-  # Battle.net + Diablo IV through umu-launcher and Proton-GE from nixpkgs —
-  # see modules/features/gaming.nix. Separate from guiMediaApps because the
-  # first launch downloads Battle.net's installer and populates a multi-GB
-  # Wine prefix that Nix does not manage.
+  # Gaming — Steam, GOG through Heroic, and Battle.net + Diablo IV through
+  # umu-launcher and Proton-GE. One flag covers all three; they share the same
+  # host prerequisites (32-bit Vulkan, gamemode, gamescope). See
+  # modules/features/gaming.nix and docs/gaming.md.
   #
-  # The prefix is named for the host: it holds yuzu's one C: drive and lives at
-  # ~/.local/share/battlenet-umu/prefixes/yuzu. One prefix is the normal case.
-  # Add a second on demand (e.g. `probe`) to test a Proton release without
-  # risking this one; whether a pre-installed `spare` is worth ~25 GB of disk
-  # purely as recovery is a judgement call — see docs/gaming.md, "What a second
-  # prefix is actually for". Install with `battlenet-umu-install-yuzu`.
+  # Everything is on this host's single disk: no second Steam library root and
+  # no separate Heroic install path, by choice. Steam and GOG need nothing
+  # further after `my.gaming = true` — just launch Steam or Heroic.
+  #
+  # The Battle.net prefix is named for the host and is what the lines below
+  # configure. It lives at ~/.local/share/battlenet-umu/prefixes/yuzu. One
+  # prefix is the normal case. Add a second on demand (e.g. `probe`) to test a
+  # Proton release without risking this one; whether a pre-installed `spare` is
+  # worth ~25 GB of disk purely as recovery is a judgement call — see
+  # docs/gaming.md, "What a second prefix is actually for". Install with
+  # `battlenet-umu-install-yuzu`.
   my.gaming = true;
   my.gamingWinePrefixes = [ "yuzu" ];
 

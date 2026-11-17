@@ -1,4 +1,4 @@
-# Gaming on NixOS: Battle.net and Diablo IV via umu-launcher
+# Gaming on NixOS: Steam, GOG (Heroic) and Battle.net
 
 Operating guide for `modules/features/gaming.nix`. Install, update, and the
 recovery procedures — including what to do when a Wine prefix breaks, which is
@@ -8,7 +8,132 @@ The module itself explains _why_ it is shaped the way it is (that reasoning
 lives as a header comment in the file, deliberately next to the code it
 describes). This file is the _how_.
 
-## What this is, in one paragraph
+## Three storefronts, three mechanisms, one flag
+
+`my.gaming = true` turns on all of it — there is no per-storefront switch.
+Each storefront is served by whatever the Linux gaming community actually uses
+for it, and none is reimplemented here:
+
+| Storefront | Mechanism | Where it lives | Installs/updates via |
+|---|---|---|---|
+| **Steam** | `programs.steam` (nixpkgs module) | NixOS scope | Steam itself |
+| **GOG** | `pkgs.heroic` (Heroic Games Launcher) | Home Manager | Heroic (via `gogdl`) |
+| **Battle.net** | Hand-rolled `umu-launcher` wrappers | Home Manager | Battle.net itself |
+
+Alongside them, three tools on every gaming host: `gamemode` (a daemon that
+raises CPU/IO priority for a game when asked), `gamescope` (a micro-compositor
+for per-game resolution/FSR/HDR control, **not** registered as a desktop
+session), and `protontricks` (the "this game needs a Windows DLL" escape
+hatch). `proton-ge-bin` is installed once and shared by Steam's compatibility
+dropdown and the Battle.net wrappers — the same pinned build, no
+`protonup-qt`, no downloads into `~/.steam`.
+
+### Steam
+
+Open **Steam** from the application menu, log in, install whatever you own.
+Nothing is pinned per game and nothing needs Nix after this point: Steam owns
+the downloads, the updates and the prefixes, exactly as on any Linux box.
+
+#### First launch: it is a ~495 MB self-update, and it may have no window
+
+`programs.steam` installs only a bootstrap stub (`~/.local/share/Steam/` holds
+`bootstrap.tar.xz`, `steam.sh` and `ubuntu12_32/` at that point). The first
+launch downloads **~495 MB of client, extracts it, and installs it** before any
+login window exists. Budget a few minutes and don't conclude it's broken.
+
+**It can run entirely windowless.** The bootstrap's progress window is drawn
+by a `steam -child-update-ui` child process, and that child has no display
+connection of its own — its only fds are the IPC socket back to the parent, a
+pipe, and `logs/updateui_child.txt`. So on a first run there may be *nothing*
+to see: no window, no tray icon, no overview entry. Absence of a window is not
+absence of progress.
+
+Watch it instead of guessing:
+
+```bash
+tail -f ~/.local/share/Steam/logs/bootstrap_log.txt
+```
+
+Reassuring lines, in order: `Downloading update (N of 504,927 KB)`, then
+`Download Complete.`, then `Extracting package...`, then `Installing update...`.
+**The completion checkpoint is
+`~/.local/share/Steam/package/steam_client_ubuntu12.installed`** — when that
+file exists, bootstrap is done and the client's own window (and
+`"app_id":"steam"` in the compositor) appears next. Expect **two** bootstrap
+passes on a first run: one to install, one `Verifying installation...`.
+
+When a window still hasn't appeared and you want to know whether it is hidden,
+scrolled off, or simply not mapped yet, ask the compositor rather than the
+screen — on niri this lists every workspace, tiled and floating:
+
+```bash
+niri msg --json windows | grep -E '"title"|"app_id"'
+```
+
+No `steam` entry at all means the client has not created a surface yet (still
+in the headless bootstrap phase). An entry you can't see means a layout
+question, not a Steam one.
+
+If the `bootstrap_log.txt` byte count is genuinely frozen for several minutes,
+kill and retry — the partial `package/` cache means the download resumes rather
+than restarting:
+
+```bash
+pkill -f 'Steam/ubuntu12_32/steam'; pkill -f 'Steam/steam.sh'
+steam    # from a terminal, so you see what it says
+```
+
+- Proton-GE appears in *Properties → Compatibility → Force the use of a
+  specific Steam Play compatibility tool*. Use it when a game misbehaves on
+  stock Proton.
+- Per-game "optimise" options go in *Properties → General → Launch Options*:
+  `gamemoderun %command%`, or
+  `gamescope -W 2560 -H 1440 -f -- %command%`.
+- Steam's prefixes are under `~/.local/share/Steam/steamapps/compatdata/` and
+  are Valve's to manage. **This repo does not touch them**, and there is no
+  repair ladder for them below — for a broken Steam game, use *Properties →
+  Installed Files → Verify integrity*, then delete `compatdata/<appid>` to
+  force a fresh prefix. That is the same procedure as on Arch or Fedora.
+
+### GOG (Heroic)
+
+Open **Heroic** from the application menu and log in with your GOG account.
+Heroic authorises against gog.com in a browser window and keeps only a token.
+Your library appears; install from there.
+
+Why Heroic and not something else: **GOG Galaxy does not exist on Linux.** GOG
+ships it for Windows and macOS only, and there is no Linux build to wrap. So
+every Linux GOG solution is third-party, and Heroic is the mainstream one — it
+drives GOG through `gogdl`, Heroic's own official CLI, and is packaged in
+nixpkgs with no flake input here.
+
+Practical notes:
+
+- **Cyberpunk 2077** has no native Linux build; install the Windows version and
+  let Heroic run it under Proton. It runs well, and the CD Projekt launcher it
+  starts is where mods get enabled.
+- **The Witcher 3: Wild Hunt** has a **native Linux build** on GOG. Heroic
+  offers both platforms in the install dialog — take the native one, which
+  needs no Proton at all. If you later find a mod that wants the Windows build,
+  install that instead; the choice is per-install and nothing else changes.
+- Heroic may offer to download a Wine or Proton build on first use. Decline and
+  point it at the system **Proton-GE** instead: it is already installed, it is
+  the build the Battle.net wrappers use, and it removes a download and a
+  version to keep current. (*Settings → Wine / Proton*, choose GE-Proton.)
+- Heroic's prefixes and installs live under `~/.config/heroic` and wherever you
+  installed the game (default `~/Games/Heroic`). Like Steam's, they are
+  Heroic's to manage: to reset one game, use Heroic's own *Repair* or
+  *Uninstall*→*Install*, not this file's repair ladder.
+
+What GOG on Linux does **not** give you, on any launcher: Galaxy achievements,
+the friends list, and Galaxy-only extras. Cloud saves do work for games that
+support them (Heroic lists this as a supported feature). This is a limitation of
+Galaxy's absence, not of Heroic.
+
+### Battle.net (Diablo IV)
+
+The rest of this document is about this one, because it is the only storefront
+whose plumbing is ours.
 
 `pkgs.umu-launcher` runs a Windows program inside a **Wine prefix** — a
 complete fake `C:` drive with its own registry and `system32` — using
@@ -18,24 +143,33 @@ nothing runs as root. Nix owns the wrappers and the desktop entries; **it does
 not own the prefix**, which is ordinary mutable state under `$HOME`.
 
 Everything is nixpkgs — there is no third-party flake input, and nothing in
-`flake.lock` tracks gaming. `umu-launcher` (1.4.4) and `proton-ge-bin`
-(GE-Proton11-11) are already packages of the pinned nixpkgs, so an update
-arrives with `nix flake update nixpkgs`, not with a gaming-specific bump.
+`flake.lock` tracks gaming. `umu-launcher` (1.4.4), `proton-ge-bin`
+(GE-Proton11-11), `steam` (1.0.0.87) and `heroic` (2.22.4) are all packages of
+the pinned nixpkgs, so an update arrives with `nix flake update nixpkgs`, not
+with a gaming-specific bump.
 
 ## Layout
 
-One prefix per name listed in `my.gamingWinePrefixes` on the host
-(`hosts/yuzu/capabilities.nix` sets `[ "yuzu" ]`):
+**Three prefix families, deliberately separate.** Only the first is this
+repo's, which is why only the first gets a repair ladder here.
 
 ```
-~/.local/share/battlenet-umu/prefixes/yuzu/     ← the Wine prefix (the C: drive)
-    drive_c/Program Files (x86)/Battle.net/     ← Battle.net itself
-    drive_c/Program Files (x86)/Diablo IV/      ← where D4 ends up
-    drive_c/windows/system32/                   ← Wine's own
-    system.reg, user.reg, userdef.reg           ← the registry
+~/.local/share/battlenet-umu/prefixes/<name>/   ← Battle.net (ours)
+    drive_c/Program Files (x86)/Battle.net/
+    drive_c/Program Files (x86)/Diablo IV/
+    drive_c/windows/system32/
+    system.reg, user.reg, userdef.reg
+
+~/.local/share/Steam/steamapps/compatdata/<appid>/   ← Steam's (Valve's)
+~/.config/heroic/ + ~/Games/Heroic/                  ← Heroic's (GOG)
 ```
 
-The name you choose is the directory name and part of every command name, so
+They are not unified on purpose: sharing a prefix between launchers breaks the
+install/update cycle of whichever launcher owns it. See the module header.
+
+One Battle.net prefix per name listed in `my.gamingWinePrefixes` on the host
+(`hosts/yuzu/capabilities.nix` sets `[ "yuzu" ]`). The name you choose is the
+directory name and part of every command name, so
 `ls ~/.local/share/battlenet-umu/prefixes/` answers "which C: drives exist on
 this machine" without opening any of them.
 
@@ -43,15 +177,27 @@ this machine" without opening any of them.
 |---|---|
 | `battlenet-umu-install-<name>` | Downloads Battle.net's installer and runs it. Once per prefix. |
 | `battlenet-umu-<name>-<game>` | Launches a game through Proton. Also appears in the app menu. |
+| `steam` | Steam itself (also in the app menu). |
+| `heroic` | Heroic, for GOG (also in the app menu). |
 
 On yuzu that is `battlenet-umu-install-yuzu` and
 `battlenet-umu-yuzu-battlenet`.
 
 ## Installing
 
-Prerequisites, once per host: `my.gaming = true` and
-`my.gamingWinePrefixes = [ "yuzu" ];` in `hosts/yuzu/capabilities.nix`, then
-`just switch` (or `nh os switch`).
+Prerequisites, once per host: `my.gaming = true` in
+`hosts/yuzu/capabilities.nix`, then `just switch` (or `nh os switch`). That one
+flag installs Steam, Heroic, gamemode, gamescope and protontricks, and enables
+32-bit graphics on the host.
+
+**Steam and GOG then need nothing else** — launch Steam or Heroic from the app
+menu and log in (see the sections above).
+
+The Battle.net half additionally needs a prefix name in the same file:
+
+```nix
+my.gamingWinePrefixes = [ "yuzu" ];
+```
 
 Then, as your normal user — **not** root, and from a terminal, because the
 installer is interactive:
@@ -107,15 +253,22 @@ builds — trying a new build is itself a reason to make a second prefix (see
 
 ## Updating
 
-Three things update on three different clocks. Keeping them apart is most of
-what "updating" means here.
+Four things update on four different clocks. Keeping them apart is most of what
+"updating" means here.
+
+### 0. Steam games, Steam itself, and GOG games — not yours to manage
+
+Steam updates its client and its games on its own schedule, as on any Linux
+box. Heroic patches GOG games itself, in-app, and `gogdl` updates with the
+Heroic package. Neither needs anything from Nix after `my.gaming = true`. Do
+not try to pin or freeze game files in either storefront.
 
 ### 1. Diablo IV and Battle.net — not yours to manage
 
 Battle.net patches D4 itself, in-app, exactly as on Windows. This is the
 common case and needs nothing from Nix. Do not try to pin or freeze it.
 
-### 2. umu-launcher and Proton-GE — with nixpkgs
+### 2. umu-launcher, Proton-GE, Steam and Heroic — with nixpkgs
 
 ```bash
 nix flake update nixpkgs
@@ -125,13 +278,16 @@ just switch
 Then **launch Battle.net and confirm it still opens before closing the door on
 the previous generation.** A Proton major bump is the single most likely change
 to require a prefix repair, and knowing that's the cause saves an hour of
-confused debugging.
+confused debugging. The same generation is also worth a Steam launch: a broken
+system graphics stack shows up in both places.
 
 Check what you're on:
 
 ```bash
 nix eval --raw .#nixosConfigurations.yuzu.pkgs.umu-launcher.version
 nix eval --raw .#nixosConfigurations.yuzu.pkgs.proton-ge-bin.version
+nix eval --raw .#nixosConfigurations.yuzu.pkgs.steam.version
+nix eval --raw .#nixosConfigurations.yuzu.pkgs.heroic.version
 ```
 
 To try a new Proton **without risking the working install**, create a throwaway
@@ -184,7 +340,22 @@ rm -rf ~/.local/share/umu/steamrt3     # then launch; umu downloads it again
 the game prefix — nothing about Battle.net lives there — and removing it cannot
 fix a broken prefix.
 
-## Fixing corruption
+## Fixing corruption (Battle.net's prefix — read this first)
+
+**This section is about the Battle.net prefix only.** It is the one prefix this
+repo creates, so it is the one with a procedure here. If the broken thing is a
+**Steam** game or a **GOG/Heroic** game, the answer is their own tooling and is
+short:
+
+| Symptom | Fix |
+|---|---|
+| A Steam game won't launch | *Properties → Installed Files → Verify integrity of game files*, then delete `~/.local/share/Steam/steamapps/compatdata/<appid>` to force a fresh Proton prefix. |
+| A Steam game regressed after a Proton change | *Properties → Compatibility*: pin a specific Proton, or switch between stock Proton and GE-Proton. |
+| A GOG game won't launch | Heroic → the game's *Settings → Repair*, or uninstall and reinstall. Delete the game's prefix from Heroic's own UI to force a clean one. |
+| Heroic itself won't start | It is a normal package: `just switch`, then run `heroic` from a terminal and read the output. |
+| Anything at all looks graphics-broken across *both* stores | Not the storefront. Go to triage step 5 below — the host's Vulkan stack is the common cause, and it is shared by all three. |
+
+What follows is the Battle.net ladder.
 
 Wine prefixes break. That is normal, not a sign of a mistake: an update
 half-applies, the registry accumulates junk, a Proton version change lands
@@ -475,16 +646,24 @@ launchers.
 | What | Where |
 |---|---|
 | The module | `modules/features/gaming.nix` — registers both a NixOS and a Home Manager module |
-| Host requirements (`enable32Bit`) | NixOS scope in that file, gated on `my.gaming` |
+| Host requirements (32-bit graphics, Steam, gamemode, gamescope) | NixOS scope in that file, gated on `my.gaming` |
+| Heroic (GOG) | Home Manager scope in that file, gated on `my.gaming` |
 | The switches | `hosts/yuzu/capabilities.nix` (`my.gaming`, `my.gamingWinePrefixes`) |
-| Option declarations | `lib/my-options-module.nix` (`my.gamingWinePrefixes`); `programs.gaming-umu.winePrefixes` in the module |
-| Wine prefixes | `~/.local/share/battlenet-umu/prefixes/<name>/` |
+| Option declarations | `lib/my-options-module.nix` (`my.gaming`, `my.gamingWinePrefixes`); `programs.gaming-umu.winePrefixes` in the module |
+| Battle.net Wine prefixes | `~/.local/share/battlenet-umu/prefixes/<name>/` |
+| Steam library and prefixes | `~/.local/share/Steam/` (`steamapps/compatdata/<appid>/` per game) |
+| Heroic state and its prefixes | `~/.config/heroic/`; GOG games default to `~/Games/Heroic/` |
 | 32-bit graphics root | `/run/opengl-driver-32/` (not `/run/opengl-driver/lib32`) |
 | Battle.net crash reports | `prefixes/<name>/drive_c/users/*/AppData/Local/Battle.net/Errors/` |
+| Steam bootstrap/update logs | `~/.local/share/Steam/logs/` (`bootstrap_log.txt`, `console-linux.txt`) |
+| Steam client-installed checkpoint | `~/.local/share/Steam/package/steam_client_ubuntu12.installed` |
 | umu's own state | `~/.local/share/umu/` (runtimes), `~/.cache/umu/` (download staging) |
-| Launchers | `<hm-profile>/bin/battlenet-umu-<name>-<game>` |
-| Desktop entries | `<hm-profile>/share/applications/battlenet-umu-<name>-<game>.desktop` |
+| Battle.net launchers | `<hm-profile>/bin/battlenet-umu-<name>-<game>` |
+| Battle.net desktop entries | `<hm-profile>/share/applications/battlenet-umu-<name>-<game>.desktop` |
 
-Nothing under `~/.local/share/battlenet-umu/` is tracked by Nix, backed up by
-anything, or reproducible from this repo. Treat it as a cache: disposable,
-rebuildable, and not worth preserving.
+Nothing under `~/.local/share/battlenet-umu/`, `~/.local/share/Steam/` or
+`~/.config/heroic/` is tracked by Nix, backed up by anything, or reproducible
+from this repo. Treat all three as caches: they hold program files and
+operating-system state, and the saves that matter live in the cloud or in
+`$HOME/Documents`-style paths. Game libraries are kept on this host's single
+disk by choice — there is no second library root configured.

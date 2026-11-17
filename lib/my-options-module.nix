@@ -575,12 +575,25 @@
     };
 
     # Gaming is its own flag rather than part of guiMediaApps: it pulls in a
-    # multi-GB Proton build and creates a non-declarative Wine prefix under
+    # multi-GB Proton build and creates non-declarative Wine prefixes under
     # $HOME, which is a very different commitment from "vlc is installed".
+    #
+    # One flag covers all three storefronts — Steam (`programs.steam`), GOG
+    # (Heroic, in Home Manager) and Battle.net (the umu-launcher wrappers, via
+    # `gamingWinePrefixes`). They share the same host prerequisites — 32-bit
+    # Vulkan, gamemode, gamescope — so a host that games wants all of them and a
+    # host that does not wants none. A per-storefront flag would add switches
+    # with no configuration behind them. See modules/features/gaming.nix.
     gaming = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable gaming via umu-launcher + Proton-GE (Battle.net, and the Diablo IV launcher).";
+      description = ''
+        Enable gaming on this host: Steam, GOG through Heroic, and Battle.net
+        through umu-launcher + Proton-GE (with the Diablo IV launcher).
+
+        Steam and GOG need nothing further. Battle.net is only instantiated for
+        prefixes named in `gamingWinePrefixes`.
+      '';
     };
 
     # Which Wine prefixes this host manages. Names only — the per-prefix
