@@ -116,10 +116,44 @@ Practical notes:
   offers both platforms in the install dialog — take the native one, which
   needs no Proton at all. If you later find a mod that wants the Windows build,
   install that instead; the choice is per-install and nothing else changes.
-- Heroic may offer to download a Wine or Proton build on first use. Decline and
-  point it at the system **Proton-GE** instead: it is already installed, it is
-  the build the Battle.net wrappers use, and it removes a download and a
-  version to keep current. (*Settings → Wine / Proton*, choose GE-Proton.)
+- **Heroic manages its own Proton downloads, and that is fine.** On first use
+  it offers to download a build; the one on this host is Proton-CachyOS. Let
+  it. An earlier version of this document said to "decline and point it at the
+  system Proton-GE" — that advice was **wrong**, and it is why CP2077 looked
+  misconfigured when it was not:
+  - The Nix-managed Proton-GE lives in the **read-only Nix store**. Heroic's
+    tool manager expects to own the directory it installs Proton into, so the
+    store path cannot be its *default*.
+  - `customWinePaths` is Heroic's "extra tools" escape hatch, and it only
+    treats an entry as Proton when the string **ends in `proton`** (see
+    `getCustomWinePaths()` in Heroic's `compatibility_layers.ts`). Derive the
+    correct form from this repo rather than copying a store hash — a hash in a
+    doc rots on the next `nix flake update nixpkgs`:
+
+    ```bash
+    P="$(nix eval --raw /etc/nixos#nixosConfigurations.yuzu.pkgs.proton-ge-bin.steamcompattool)/proton"
+    ```
+
+    Merge it into Heroic's menu once — Heroic's `config.json` is per-user
+    mutable state this repo deliberately does not own, so this is not done by
+    Nix:
+
+    ```bash
+    jq --arg p "$P" '.defaultSettings.customWinePaths = ((.defaultSettings.customWinePaths // []) + [$p] | unique)' \
+      ~/.config/heroic/config.json > /tmp/h.json && mv /tmp/h.json ~/.config/heroic/config.json
+    ```
+
+    Restart Heroic and the build appears as *Custom Proton - …*. Per-game
+    selection stays a Heroic UI choice; nothing here forces a default.
+- **Wine Wayland is available on both Proton builds** (CachyOS and GE-Proton
+  both ship `winewayland.drv`), and on niri it is the better path: native
+  Wayland, no XWayland scaling blur. Turn it on per game in
+  *Settings → Advanced → Enable Wine-Wayland*. It is off by default because
+  there is no XWayland fallback — a game whose overlay or video path assumes X
+  will regress, and the fix is that one checkbox. The AAA titles here (Cyberpunk
+  2077, The Witcher 3, Diablo IV, Fallout 4) are the well-trodden cases.
+  Note this affects only how a *game* presents; Heroic's own UI is Electron and
+  is unaffected.
 - Heroic's prefixes and installs live under `~/.config/heroic` and wherever you
   installed the game (default `~/Games/Heroic`). Like Steam's, they are
   Heroic's to manage: to reset one game, use Heroic's own *Repair* or
