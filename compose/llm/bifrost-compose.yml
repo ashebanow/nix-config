@@ -78,6 +78,10 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # SubQ: OpenAI-compatible Chat Completions (subq-savant-1.4) only. The
+      # Decisions API (/v1/systemone) has no OpenAI shape, so it is not fronted
+      # by the gateway; call it directly and read the key from the same BWS item.
+      - SUBQ_API_KEY=${SUBQ_API_KEY}
       # Per-client virtual keys (BOX-149). One per client tool; the gateway
       # records which client sent each request so the log view can attribute it.
       # Randomly generated, held in BWS, referenced by name in config.json —
