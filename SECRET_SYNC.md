@@ -62,7 +62,7 @@ Tailscale auth key is issued per node, so the host scope is per node
 | `dev` | `LINEAR_API_KEY`, `VK_PI`, `VK_HERMES`, `VK_GATE`, `BIFROST_ADMIN_PASSWORD` | `host-secrets-populate.service` (root) — files readable by the operator user; see [ADR 0001](./docs/adr/0001-operator-tool-secrets-via-run-secrets.md) |
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
-| `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `MINIMAX_API_KEY`, `BIFROST_ADMIN_PASSWORD`, `VK_*` | `bifrost-compose.service` |
+| `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `SUBQ_API_KEY`, `BIFROST_ADMIN_PASSWORD`, `VK_*` | `bifrost-compose.service` |
 
 ### Provider routing
 
@@ -230,6 +230,8 @@ fetch secrets from BWS — API keys are expected in the environment already:
 | `deepseek-api-key` | bifrost |
 | `anthropic-api-key-pi` | bifrost |
 | `minimax-api-key` | bifrost |
+| `gemini-api-key` | bifrost |
+| `subq-api-key` | bifrost (`SUBQ_API_KEY`; also the Decisions API when called directly) |
 | `OpenWebUI TS Auth Key` | openwebui tailscale sidecar |
 | `mnemo-tailscale-auth-key` | mnemosyne tailscale sidecar |
 | `mnemosyne-mcp-token` | mnemosyne MCP auth |

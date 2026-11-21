@@ -72,6 +72,17 @@
               "gemini-3-pro-image"
             ],
             "weight": 1
+          },
+          {
+            "provider": "subq",
+            "key_ids": [
+              "*"
+            ],
+            "allowed_models": [
+              "subq-savant-1.4",
+              "subq-savant-latest"
+            ],
+            "weight": 1
           }
         ]
       },
@@ -133,6 +144,17 @@
               "gemini-3.7-flash",
               "gemini-nano-banana-2.1",
               "gemini-3-pro-image"
+            ],
+            "weight": 1
+          },
+          {
+            "provider": "subq",
+            "key_ids": [
+              "*"
+            ],
+            "allowed_models": [
+              "subq-savant-1.4",
+              "subq-savant-latest"
             ],
             "weight": 1
           }
@@ -198,6 +220,17 @@
               "gemini-3-pro-image"
             ],
             "weight": 1
+          },
+          {
+            "provider": "subq",
+            "key_ids": [
+              "*"
+            ],
+            "allowed_models": [
+              "subq-savant-1.4",
+              "subq-savant-latest"
+            ],
+            "weight": 1
           }
         ]
       },
@@ -259,6 +292,17 @@
               "gemini-3.7-flash",
               "gemini-nano-banana-2.1",
               "gemini-3-pro-image"
+            ],
+            "weight": 1
+          },
+          {
+            "provider": "subq",
+            "key_ids": [
+              "*"
+            ],
+            "allowed_models": [
+              "subq-savant-1.4",
+              "subq-savant-latest"
             ],
             "weight": 1
           }
@@ -324,6 +368,17 @@
               "gemini-3-pro-image"
             ],
             "weight": 1
+          },
+          {
+            "provider": "subq",
+            "key_ids": [
+              "*"
+            ],
+            "allowed_models": [
+              "subq-savant-1.4",
+              "subq-savant-latest"
+            ],
+            "weight": 1
           }
         ]
       },
@@ -387,6 +442,17 @@
               "gemini-3-pro-image"
             ],
             "weight": 1
+          },
+          {
+            "provider": "subq",
+            "key_ids": [
+              "*"
+            ],
+            "allowed_models": [
+              "subq-savant-1.4",
+              "subq-savant-latest"
+            ],
+            "weight": 1
           }
         ]
       },
@@ -448,6 +514,17 @@
               "gemini-3.7-flash",
               "gemini-nano-banana-2.1",
               "gemini-3-pro-image"
+            ],
+            "weight": 1
+          },
+          {
+            "provider": "subq",
+            "key_ids": [
+              "*"
+            ],
+            "allowed_models": [
+              "subq-savant-1.4",
+              "subq-savant-latest"
             ],
             "weight": 1
           }
@@ -548,6 +625,40 @@
           "weight": 1.0
         }
       ]
+    },
+    "subq": {
+      "keys": [
+        {
+          "name": "subq",
+          "value": "env.SUBQ_API_KEY",
+          "models": [
+            "subq-savant-1.4",
+            "subq-savant-latest"
+          ],
+          "weight": 1.0,
+          "aliases": {
+            "subq-savant-latest": "subq-savant-1.4"
+          }
+        }
+      ],
+      "network_config": {
+        "base_url": "https://api.subq.ai",
+        "default_request_timeout_in_seconds": 2700,
+        "stream_idle_timeout_in_seconds": 300
+      },
+      "custom_provider_config": {
+        "base_provider_type": "openai",
+        "allowed_requests": {
+          "chat_completion": true,
+          "chat_completion_stream": true,
+          "list_models": true
+        },
+        "request_path_overrides": {
+          "chat_completion": "/v1/chat/completions",
+          "chat_completion_stream": "/v1/chat/completions",
+          "list_models": "/v1/models"
+        }
+      }
     }
   }
 }
