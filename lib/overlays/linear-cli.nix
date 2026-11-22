@@ -10,7 +10,7 @@
 # Upstream ships prebuilt binaries for both of our systems, so this fetches
 # those instead: two hashes, no toolchain.
 #
-# v3.0.0 is a rewrite in Rust (2.x was TypeScript run through `deno compile`),
+# 3.x is a rewrite in Rust (2.x was TypeScript run through `deno compile`),
 # which simplified this derivation. The 2.x Linux binary was
 # [ELF runtime][program payload][16-byte libsui trailer] and needed the
 # install step to split on that trailer, patchelf the bare ELF, and rejoin —
@@ -47,18 +47,18 @@
 # hash lines by the `target = "..."` line above each, so keep that shape.
 final: _prev:
 let
-  version = "3.0.0";
+  version = "3.1.0";
 
   # Release asset per system; hashes are the SRI form of upstream's
   # `.sha256` file for the same tag.
   assets = {
     aarch64-darwin = {
       target = "aarch64-apple-darwin";
-      hash = "sha256-heuE55VUSld63Be5b4sAdxvOyU840mRC/X1WHNgjNvI=";
+      hash = "sha256-u6gc884Z80hvGtpSz5hBqNdJ/KcWM46mhOazsIpwaVQ=";
     };
     x86_64-linux = {
       target = "x86_64-unknown-linux-gnu";
-      hash = "sha256-UGSmOn5qi1iTpVDhOMCnujc6rWXUJd3msrZrUKbBAok=";
+      hash = "sha256-v3cSCXzmoB6KN53oNX7KZtV0gFAgHTNrp4e2rTaH8+c=";
     };
   };
 
@@ -84,7 +84,7 @@ in
     dontConfigure = true;
     dontBuild = true;
     dontStrip = true;
-    dontPatchELF = true; # would re-break the trailer (see header comment)
+    dontPatchELF = true; # patchelf already ran in installPhase; no second pass
 
     installPhase = ''
       runHook preInstall
