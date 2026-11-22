@@ -157,9 +157,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # worktrunk (wt, the git-worktree CLI) — nixpkgs unstable is 0.74.0, three
-    # releases behind, and the agent integrations the workflow needs
-    # (`wt config plugins pi`, .codex, .opencode) only exist from 0.77.0.
+    # worktrunk (wt, the git-worktree CLI) — pinned ahead of our nixpkgs, which
+    # carries 0.80.0. The agent integrations the workflow needs (`wt config
+    # plugins pi`, .codex, .opencode) only exist from 0.77.0, so the pin keeps
+    # us clear of that floor regardless of what nixpkgs settles on.
     # Upstream publishes no `overlays` output, so lib/overlays/worktrunk.nix
     # wraps the package its own flake builds with crane under the nixpkgs
     # attribute name. That overlay reaches the dev shell on every host and
@@ -175,12 +176,14 @@
     #
     # Pinned to the tag, NOT `main`: `main` runs ahead of releases with
     # release-please and would re-inherit the unreleased-commit churn this pin
-    # exists to avoid. `v0.78.0` is upstream's newest *published* release; a
-    # `Release v0.79.0` commit exists on `main` but the tag is not pushed, so
-    # there is nothing newer to point at.
+    # exists to avoid.
     #
-    # This pin drops entirely once nixpkgs unstable ships >= 0.78.0 — then the
-    # overlay in lib/overlays/worktrunk.nix goes too. Tracked in BOX-190.
+    # Version claims in this block go stale the moment `just update-worktrunk`
+    # runs — that recipe rewrites only the url below, never these comments.
+    # It rewrites the url in lib/overlays/worktrunk.nix,
+    # modules/features/cli-vcs-tools.nix and modules/infra/darwin-builder.nix
+    # not at all, so bumping is a two-step job: run the recipe, then grep this
+    # repo for the old tag and fix whatever prose still names it.
     worktrunk = {
       url = "github:max-sixty/worktrunk/v0.82.0";
       inputs.nixpkgs.follows = "nixpkgs";
