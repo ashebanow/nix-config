@@ -28,9 +28,9 @@ _: {
           linear-cli
           mergiraf
           svu
-          # nixpkgs' worktrunk is 0.74.0 and lacks `wt config plugins pi`.
-          # The worktrunk overlay (lib/overlays/worktrunk.nix) makes this
-          # 0.78.0 on every host; the dev shell applies the same overlay.
+          # nixpkgs' worktrunk is 0.80.0; the worktrunk overlay
+          # (lib/overlays/worktrunk.nix) makes this 0.82.0 on every host; the
+          # dev shell applies the same overlay.
           worktrunk
         ];
       };
