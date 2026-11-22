@@ -57,11 +57,30 @@
 # `secretspec` in base.nix is the standalone operator-shell package for the
 # `just` recipes and is deliberately untouched by this overlay.
 #
-# RETIRE ME: this overlay is self-terminating. Darwin hosts already compute
-# `pkgs` from the 0.2605 pin, so `nix flake update` on that pin eventually
-# brings devenv >= 2.4.0 in on its own. Once it does, delete this file and the
-# `devenvUnstable` input in flake.nix, and confirm the bundled secretSpec is
-# >= 0.21 with `secretspec --version`. Tracked in BOX-245.
+# RETIRE ME: this overlay is now a NO-OP. The 0.2605 pin has caught up —
+# `inputs.nixpkgs.legacyPackages.aarch64-darwin.devenv` is already 2.4.0, and
+# it resolves to the SAME derivation this overlay selects (both
+# `813dgbwx...-devenv-2.4.0.drv`), so the swap changes nothing in any Darwin
+# closure. Delete this file and the `devenvUnstable` input in flake.nix, then
+# prune the lock, to retire it. Tracked in BOX-240.
+#
+# Checking the retirement gate: read the version from the PINNED input, never
+# from a bare `nixpkgs#` or a `github:nixos/nixpkgs/<rev>` URL. This repo pins
+# `nixpkgs-2605-mirror-staging-next` (a FlakeHub tarball), so:
+#
+#   * `nixpkgs#devenv` resolves the FLOATING FlakeHub weekly, a different tree;
+#   * `github:nixos/nixpkgs/<rev>` does not exist — revs are not portable
+#     across forks.
+#
+# Both give a confident, wrong answer. Use the flake's own input instead:
+#
+#   nix eval --impure --raw --expr \
+#     'let f = builtins.getFlake (toString ./.); in
+#      f.inputs.nixpkgs.legacyPackages.aarch64-darwin.devenv.version'
+#
+# Gate is met when that prints 2.4.0 or higher AND
+# `...legacyPackages.aarch64-darwin.secretspec.version` is >= 0.21. Both are
+# true today (2.4.0 / 0.21.1), which is why this overlay is retirable now.
 { devenvUnstable }:
 final: _prev: {
   devenv = devenvUnstable.legacyPackages.${final.stdenv.hostPlatform.system}.devenv;

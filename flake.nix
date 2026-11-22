@@ -186,7 +186,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # devenv 2.4.0, ahead of our FlakeHub 0.2605 nixpkgs pin (BOX-245).
+    # devenv 2.4.0 — RETIREMENT PENDING (BOX-240).
     #
     # A SECOND nixpkgs input, deliberately NOT applied to any host's package
     # set wholesale — it exists to source one attribute, `devenv`, via
@@ -199,8 +199,10 @@
     # which fixes the sealed-keychain-ACL bug that made macOS re-prompt for the
     # Cachix token on every `cd`. Full reasoning in the overlay header.
     #
-    # Retired together with the overlay — see RETIRE ME there. Not
-    # `inputs.nixpkgs.follows`-ed, on purpose: following would defeat the point.
+    # This input and the overlay have outlived their purpose: the 0.2605 pin now
+    # ships devenv 2.4.0 itself, resolving to the same derivation. Both are
+    # scheduled for deletion — see RETIRE ME in lib/overlays/devenv.nix for the
+    # gate and the only correct way to check it.
     devenvUnstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 

@@ -44,10 +44,10 @@ let
   # overlay supplies pi.nix's build. Installed by cli-ai-tools.nix.
   piOverlay = import ../../lib/overlays/pi.nix { inherit (inputs) pi-nix; };
 
-  # devenv (BOX-245): nixpkgs is on 2.3.1, which bundles SecretSpec 0.20.0 and
-  # re-prompts for the macOS keychain on every `cd` because the item's
-  # change_acl list is sealed. 2.4.0 is the first release carrying SecretSpec
-  # 0.21.0 and its keyring fix. That overlay deliberately pins devenv ONLY and
+  # devenv (BOX-240): nixpkgs' devenv bundling SecretSpec 0.20.0 re-prompts
+  # for the macOS keychain on every `cd` because the item's change_acl list is
+  # sealed. 2.4.0 is the first release carrying SecretSpec 0.21.0 and its
+  # keyring fix. That overlay deliberately pins devenv ONLY and
   # not `secretspec` — SecretSpec is vendored into devenv's workspace, so the
   # bundled binary is the one that reads the keychain. See the overlay header.
   devenvOverlay = import ../../lib/overlays/devenv.nix { inherit (inputs) devenvUnstable; };
