@@ -328,7 +328,8 @@ To add a second model:
 
 There is no remote deployment tool and no per-host fan-out: `just switch` runs
 `nh os switch` for the current hostname, so it is run **on the host being updated**.
-NixOS hosts are lumquat (server, `podman`) and yuzu (desktop, `ashebanow`).
+NixOS hosts are lumquat (AI server, `podman`), calamansi (observability host,
+`podman`) and yuzu (desktop, `ashebanow`).
 
 ```bash
 just dry-run       # show what would change
