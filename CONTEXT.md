@@ -60,3 +60,30 @@ The program that presents the login screen and launches the chosen session —
 GDM here; its login UI is a greeter, and DankGreeter would be a greetd-based
 alternative to GDM itself, not an addition to it.
 _Avoid_: greeter, login manager.
+
+## Observability
+
+**observability host**:
+The one machine that stores, queries, alerts on and displays every server's
+logs and metrics — calamansi.
+_Avoid_: monitoring server, log server.
+
+**observability agent**:
+The set of collector processes on a machine that gathers its logs and metrics
+and ships them to the observability host. There is one per machine, shared by
+every service on it; a service never brings its own.
+_Avoid_: exporter (an agent runs several), sidecar.
+
+**source**:
+Anything that emits logs or metrics for an observability agent to collect — the
+host itself, a container, a scrape endpoint, a periodic check.
+_Avoid_: target (a scrape target is one kind of source), input.
+
+**archive**:
+Long-term storage of older logs and summary data, kept off the observability
+host and not queried live — storage2.
+_Avoid_: backup.
+
+**monitoring**:
+Not used for this stack. It names the Cockpit capability until that flag is
+renamed; say observability for logs, metrics, alerting and dashboards.
