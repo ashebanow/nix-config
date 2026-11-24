@@ -53,21 +53,20 @@
   # remote-write their metrics here. The port is VictoriaMetrics' default.
   my.observabilityIngestPort = 8428;
 
-  # PLACEHOLDER — the agent hosts allowed to reach the ingest port.
+  # The agent hosts allowed to reach the ingest port.
   #
-  # lumquat is the only such host, and **its real LAN address is not recorded
-  # anywhere in this repo**: `docs/lumquat-hardware.md` has the hardware, not
-  # the network, and git history shows only the 10.40.60.0/24 subnet the house
-  # LAN uses (bergamot 10.40.60.74, miracle_max 10.40.60.97, the printer
-  # 10.40.60.111, gateway 10.40.60.1) — never lumquat itself. So this is a
-  # placeholder on that subnet, not a claim about the machine.
+  # lumquat is the only such host, and its address is now known: 10.40.0.87.
+  # Note the subnet — the house runs two. 10.40.0.0/24 carries lumquat
+  # (10.40.0.87), storage2 (10.40.0.59) and miraclemax's secondary
+  # (10.40.0.240); 10.40.60.0/24 carries bergamot (.74), miracle_max (.97),
+  # the printer (.111) and the gateway (.1). A rule written for the wrong
+  # subnet fails closed, which is why this is pinned to the /32 rather than to
+  # a CIDR: the port should open to one machine, not to whatever else shares
+  # its subnet.
   #
-  # BOX-324 sets the real address at install (either "/32" here, or
-  # "10.40.60.0/24" if calamansi's own DHCP lease should simply be pinned
-  # instead). Until then the rule below matches nothing useful, which is the
-  # safe direction: an ingest port that nobody can reach is a bug, an ingest
-  # port the whole LAN can reach is a hole.
-  my.observabilityHostAllowedSources = [ "10.40.60.20" ];
+  # BOX-324 must also add the UniFi gateway and storage2 here when the syslog
+  # path lands (BOX-335): those are 10.40.60.1 and 10.40.0.59 respectively.
+  my.observabilityHostAllowedSources = [ "10.40.0.87" ];
 
   # Nothing else is decided yet. my.cockpit only if the observability work
   # wants it (BOX-325 renamed my.monitoring to my.cockpit; lumquat keeps it).

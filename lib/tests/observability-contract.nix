@@ -65,7 +65,10 @@ let
   # remote-write address off loopback, so the simulation does not depend on any
   # committed host's LAN address.
   remoteAgentModule = {
-    config.my.observabilityHostAddress = "10.40.60.20";
+    # Deliberately a documentation-range address (TEST-NET-3), not any host's
+    # real one: this asserts the *mechanism* (remote-write follows the option),
+    # and must not start failing because the house LAN was re-addressed.
+    config.my.observabilityHostAddress = "203.0.113.10";
   };
 
   # A host with a GPU whose telemetry node_exporter can read.

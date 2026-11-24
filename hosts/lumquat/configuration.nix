@@ -46,23 +46,27 @@
   # `docs/lumquat-hardware.md` and still needs confirming on the box.
   my.observabilityGpuMetrics = true;
 
-  # PLACEHOLDER — calamansi's LAN address, for vmagent's remote-write target.
+  # calamansi's LAN address, for vmagent's remote-write target.
   #
-  # Same caveat as `my.observabilityHostAllowedSources` on calamansi, and the
-  # same value, because both sides of one connection have to agree: neither
-  # host's real LAN address is recorded anywhere in this repo. Git history
-  # shows only the 10.40.60.0/24 subnet the house LAN uses (bergamot .74,
-  # miracle_max .97, the printer .111, gateway .1); calamansi is not on it yet
-  # and lumquat's address appears nowhere at all. .20 was picked as a
-  # free-looking address on that subnet — it is not a claim about either
-  # machine.
+  # The real address is not known yet: calamansi is not on the network (BOX-324
+  # installs it). lumquat's own address is now recorded — it is 10.40.0.87, on
+  # the 10.40.0.0/24 side of the house — and the two subnets in use are
+  # 10.40.0.0/24 (lumquat, storage2 10.40.0.59, miraclemax's secondary
+  # 10.40.0.240) and 10.40.60.0/24 (bergamot 10.40.60.74, miracle_max
+  # 10.40.60.97, printer 10.40.60.111, gateway 10.40.60.1). Do not assume
+  # calamansi lands on either one; confirm its lease at install.
+  #
+  # 10.40.60.20 is a placeholder, not a claim: it is a free-looking address on
+  # the .60 subnet, which is the side lumquat is NOT on, so this also does not
+  # pretend the two agree. BOX-324 sets it to calamansi's real address.
   #
   # The default (`127.0.0.1`) is wrong here in a way that is easy to miss:
   # vmagent would happily buffer forever writing to a VictoriaMetrics that does
   # not exist on this host, and the only symptom would be an empty Grafana.
   #
-  # BOX-324 sets the real address on both hosts at install. Until then this is
-  # a placeholder and the data path does not work.
+  # vmagent runs here and remote-writes to calamansi, so this is the
+  # observability host's address — not this host's. See the comment above; it is
+  # still a placeholder because calamansi has no address until BOX-324.
   my.observabilityHostAddress = "10.40.60.20";
 
   # Rex — a server for the `podman` account, published through Rex's own

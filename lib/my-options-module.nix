@@ -192,7 +192,7 @@
     observabilityHostAddress = lib.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
-      example = "10.40.60.20";
+      example = "10.40.0.50";
       description = ''
         Where a non-host agent remote-writes its metrics: the observability
         host's address, as `<host>` or `<host>:<port>`.
@@ -312,7 +312,7 @@
     observabilityHostAllowedSources = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
-      example = lib.literalExpression ''[ "10.40.60.20" ]'';
+      example = lib.literalExpression ''[ "10.40.0.87" ]'';
       description = ''
         Source IP addresses allowed to reach the observability host's ingest
         ports: `observabilityIngestPort` (metrics) and `observabilityLogsPort`
