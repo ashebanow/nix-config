@@ -446,6 +446,16 @@ The BWS access token is provisioned once, out-of-band, at
 and delivered to services through `LoadCredential` + the
 `systemd-credential://` provider. See `SECRET_SYNC.md` for details.
 
+### Runbooks
+
+Some secrets have no value anyone can generate on a machine — they are issued by
+a third-party account a human has to create. Those accounts are set up from a
+runbook, not from Nix; `docs/runbooks/` collects them.
+
+| Runbook | Covers |
+|---------|--------|
+| [`alerting-accounts.md`](./runbooks/alerting-accounts.md) | Pushover app and quiet hours, the healthchecks.io watchdog check, and the three `alerting` scope values in BWS |
+
 ---
 
 ## Colmena Setup
