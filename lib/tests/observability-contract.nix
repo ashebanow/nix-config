@@ -1,4 +1,6 @@
-# Contract test for the `my.observability` option set (BOX-326).
+# Contract test for the `my.observability` option set (BOX-326) and the two
+# things every agent host gets without declaring them (BOX-330's journal
+# shipping).
 #
 # The seam this ticket establishes is "a feature module declares a source and
 # the machine's machinery picks it up". That is exactly what BOX-327 (lumquat's
@@ -12,15 +14,17 @@
 # installed until BOX-324), and a broken contract shows up in rendered
 # configuration values long before it shows up as a running system.
 #
-# Two seams are covered, because they gather differently:
+# Three seams are covered, because they gather differently:
 #
 #   scrapeTargets -> this host's agent       extended in-process
 #   dashboards    -> the observability host  gathered from `inputs.self`
+#   journald      -> the observability host  extended in-process (BOX-330)
 #
-# The second reads the *committed* flake's host configurations, so it cannot be
-# exercised by `extendModules` (an extended config is not in `inputs.self`). It
-# is asserted on the committed hosts instead: whatever dashboards calamansi
-# declares must appear in the provider's directory alongside the prebuilts.
+# The dashboard seam reads the *committed* flake's host configurations, so it
+# cannot be exercised by `extendModules` (an extended config is not in
+# `inputs.self`). It is asserted on the committed hosts instead: whatever
+# dashboards calamansi declares must appear in the provider's directory
+# alongside the prebuilts.
 let
   flake = builtins.getFlake (toString ../../.);
 
@@ -72,6 +76,14 @@ let
   declaredDashboardKeys = builtins.attrNames (
     flake.nixosConfigurations.calamansi.config.my.observability.dashboards
   );
+
+  # ── BOX-330: the agent's always-on collectors ──────────────────────
+  #
+  # The observability host is also an agent, so its own config proves the shared
+  # module wires journal shipping. The remote case — an agent host that is not
+  # the observability host — is `remoteCfg` below, which is BOX-327's call shape.
+  hostCfg = flake.nixosConfigurations.calamansi.config;
+  hostJournal = hostCfg.services.journald.upload;
 in
 {
   # ── Seam 1: a feature declares a scrape target, the agent scrapes it ──
@@ -96,4 +108,37 @@ in
   # ── Seam 3: a remote agent ships to the host, not to its own loopback ──
   localRemoteWrite = cfg.services.vmagent.remoteWrite.url;
   remoteRemoteWrite = remoteCfg.services.vmagent.remoteWrite.url;
+
+  # ── Seam 4 (BOX-330): journal shipping is part of the agent, not a feature ──
+  #
+  # Journal shipping has to arrive with the agent *flag*, on every agent host,
+  # with no per-host and no per-service change — that is what makes "logs need
+  # no declaration" true. So the assertions are against `hostCfg` (calamansi,
+  # an agent but also the host) and `remoteCfg` (an agent whose host address is
+  # remote, i.e. BOX-327's lumquat).
+  journalEnabledOnHost = hostJournal.enable;
+  journalEnabledOnRemoteAgent = remoteCfg.services.journald.upload.enable;
+
+  # The URL must follow `observabilityHostAddress`, so logs and metrics cannot
+  # point at different machines. On the host that is loopback; on a remote agent
+  # it is that agent's configured host address, and the same one vmagent uses.
+  journalUrlOnHost = hostJournal.settings.Upload.URL;
+  journalUrlOnRemoteAgent = remoteCfg.services.journald.upload.settings.Upload.URL;
+
+  # ── Seam 5 (BOX-330): the store's retention and the datasource's UID ──
+  #
+  # ExecStart is where nixpkgs' VictoriaLogs module puts the binary's flags, and
+  # `services.victorialogs` has no retention option — so this is the only place
+  # to prove BOX-319's "90 days, 80% disk cap" actually reaches the process.
+  victorialogsExecStart = hostCfg.systemd.services.victorialogs.serviceConfig.ExecStart;
+
+  # The UID was reserved by BOX-326 before the datasource existed; this asserts
+  # the provisioned datasource uses that exact value, because every dashboard
+  # written in between already points at it. The literal is deliberate: it is
+  # the contract, so a test that read it from the same place the implementation
+  # does could not catch a typo in it.
+  logDatasource = builtins.head (
+    builtins.filter (d: d.uid == "victorialogs")
+      hostCfg.services.grafana.provision.datasources.settings.datasources
+  );
 }
