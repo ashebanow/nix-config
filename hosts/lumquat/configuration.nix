@@ -25,8 +25,8 @@
   my.accessEnableExitNode = false;
   my.accessEnableFallbackSSH = true;
   my.accessFallbackPort = 2222;
-  my.monitoring = true;
-  my.monitoringPort = 9090;
+  my.cockpit = true;
+  my.cockpitPort = 9090;
   my.zmx = true;
   my.memory = true;
 

@@ -63,6 +63,8 @@ Tailscale auth key is issued per node, so the host scope is per node
 | `openwebui` | `OPENWEBUI_TS_AUTHKEY`, `WEBUI_SECRET_KEY` | `openwebui-compose.service` |
 | `memory` | `MEMORY_TS_AUTHKEY`, `MNEMOSYNE_MCP_TOKEN` | `memory-compose.service`, `memory-health-check.service` |
 | `bifrost` | `BIFROST_TS_AUTHKEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `SUBQ_API_KEY`, `BIFROST_ADMIN_PASSWORD`, `VK_*` | `bifrost-compose.service` |
+| `unifi-snmp` | `UNIFI_SNMP_USER`, `UNIFI_SNMP_PASSWORD` | SNMP collector on the observability host (resolved by hand for now) |
+| `alerting` | `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`, `HEALTHCHECKS_PING_URL` | Alertmanager on the observability host (BOX-329); accounts and values are set up by hand — see [`docs/runbooks/alerting-accounts.md`](./docs/runbooks/alerting-accounts.md) |
 
 ### Provider routing
 
@@ -206,7 +208,10 @@ fetch secrets from BWS — API keys are expected in the environment already:
 
 1. **Create/update the value in BWS** (Homelab project). Naming convention: env
    var lowercased, service prefix, underscores → dashes
-   (e.g. `bifrost-tailscale-auth-key`).
+   (e.g. `bifrost-tailscale-auth-key`). Values for accounts that only a human
+   can create (Pushover, healthchecks.io) come from a runbook in
+   [`docs/runbooks/`](./docs/runbooks/) — start with
+   [`alerting-accounts.md`](./docs/runbooks/alerting-accounts.md).
 2. **Declare it** in `secretspec.toml` under `[profiles.production]` (all real
    secrets live there; `default`/`development` are development-safe), and add it
    to the relevant `[scopes.<name>].secrets` list. A genuinely per-node secret
@@ -238,6 +243,10 @@ fetch secrets from BWS — API keys are expected in the environment already:
 | `bifrost-tailscale-auth-key` | bifrost tailscale sidecar (the `ai` node) |
 | `bifrost-admin-password` | bifrost dashboard / `/api` admin password (username `admin`, literal in `bifrost-config.json`); also the reliability gate (`dev` scope) |
 | `linear-mcp-api-key` | `linear` CLI on lumquat (`dev` scope → `/run/secrets/linear-api-key`); also the Darwin `secrets.sh` cache (dotfiles). Name predates the MCP → CLI move. |
+| `unifi-snmp-user`, `unifi-snmp-password` | SNMPv3 credentials for UniFi devices (`unifi-snmp` scope) |
+| `pushover-app-token` | Pushover application token for alert delivery (`alerting` scope) |
+| `pushover-user-key` | Pushover user key of the phone receiving alerts (`alerting` scope) |
+| `healthchecks-ping-url` | healthchecks.io watchdog ping URL (`alerting` scope) — a capability URL, so a secret |
 
 > The `OpenWebUI TS Auth Key` / `anthropic-api-key-pi` names predate this
 > migration; they are referenced as-is to avoid re-pointing the dev-shell and

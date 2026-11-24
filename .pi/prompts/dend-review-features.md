@@ -66,7 +66,7 @@ For each feature module in `modules/features/`:
 ```nix
 # modules/features/good-example.nix
 _: {
-  my.modules.nixos.example = lib.mkIf config.my.hasMonitoring _: {
+  my.modules.nixos.example = lib.mkIf config.my.cockpit _: {
     services.example.enable = true;
   };
 }

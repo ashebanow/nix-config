@@ -8,7 +8,7 @@ Capability flags are defined in `lib/my-options-module.nix` and used by feature 
 |------|---------|
 | `my.hasDesktop` | Host has a graphical desktop environment |
 | `my.hasNvidia` | Host has NVIDIA GPU |
-| `my.hasMonitoring` | Host should have monitoring enabled |
+| `my.cockpit` | Host should run the Cockpit web UI |
 | `my.hostName` | The hostname of the current host |
 
 ## Usage in Feature Modules

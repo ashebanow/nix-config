@@ -40,6 +40,7 @@ Each consumer resolves only its own scope:
 | `bifrost` | `bifrost-compose.service` |
 | `openwebui` | `openwebui-compose.service` |
 | `memory` | `memory-compose.service`, `memory-health-check.service` |
+| `alerting` | Alertmanager on the observability host (BOX-329) — human-only setup, see [`docs/runbooks/alerting-accounts.md`](../../../docs/runbooks/alerting-accounts.md) |
 
 ## Step-by-Step: Adding a New Secret
 
