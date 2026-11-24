@@ -2,6 +2,18 @@
 
 This document describes the architectural decisions and patterns for the lumquat AI server configuration.
 
+## Hosts
+
+One flake, three NixOS hosts, built by `modules/infra/nixos-builder.nix`.
+
+| Host | Role | Operator account | Notes |
+|------|------|------------------|-------|
+| `lumquat` | AI server — llama.cpp containers, the Bifrost gateway, model storage | `podman` | the only build host (`remoteBuilder`) |
+| `calamansi` | Observability host — logs, metrics, alerting and dashboards for the servers; everything not AI serving | `podman` | see BOX-311 |
+| `yuzu` | Desktop workstation | `ashebanow` | |
+
+The Macs (`bergamot`, `miraclemax`) are nix-darwin hosts, not NixOS ones.
+
 ## Core Architecture Decisions
 
 | Decision | Choice |

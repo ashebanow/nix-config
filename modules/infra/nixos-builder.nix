@@ -188,6 +188,31 @@ let
     chezmoiActivation = true;
   };
 
+  # calamansi — the observability host (BOX-311): logs, metrics, alerting and
+  # dashboards for the servers. Not an AI-serving host; lumquat owns that.
+  #
+  # Same operator account, home directory and HM state version as lumquat, so
+  # the two servers behave alike. No capabilities.nix either: like lumquat,
+  # calamansi's Home Manager profile is the baseline CLI set that
+  # hm-infra.nix's `my.cliTools = true` pulls in, so there are no flags for the
+  # Home Manager scope to read.
+  #
+  # remoteBuilder = false: calamansi is a deployment target, not a build host.
+  #
+  # chezmoiActivation = false, deliberately, though calamansi *is* headless:
+  # its dotfiles will be applied by hand. The only way this flake builds
+  # calamansi is `nixos-rebuild --target-host` over the tailnet, and the BWS
+  # bootstrap token (BOX-174) is not installed on a machine the operator does
+  # not sit at; an activation whose chezmoi apply has no token is a failure mode
+  # worth not owning. Nothing calamansi runs depends on chezmoi-managed
+  # dotfiles. Revisit if a dotfile ever matters there.
+  calamansi = mkNixosHost {
+    hostName = "calamansi";
+    username = "podman";
+    homeDirectory = "/home/podman";
+    hmStateVersion = "26.05";
+  };
+
   yuzu = mkNixosHost {
     hostName = "yuzu";
     username = "ashebanow";
@@ -198,6 +223,7 @@ in
 {
   flake = {
     nixosConfigurations = {
+      calamansi = calamansi.nixos;
       lumquat = lumquat.nixos;
       yuzu = yuzu.nixos;
     };
