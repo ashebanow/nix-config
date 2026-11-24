@@ -41,10 +41,36 @@
   my.accessEnableFallbackSSH = true;
   my.accessFallbackPort = 2222;
 
-  # Nothing else is decided yet. Deliberately NOT set here, and owned by later
-  # tickets on BOX-311: my.observabilityHost (BOX-326), my.observabilityAgent
-  # (BOX-327) — and my.cockpit only if the observability work wants it
-  # (BOX-325 renames my.monitoring to my.cockpit; lumquat keeps it).
+  # Observability — both roles. calamansi is the observability host (it stores,
+  # queries, alerts on and displays every server's logs and metrics) *and* an
+  # observability agent for its own metrics, because there is one agent per
+  # machine and this one has only itself. See the Observability section of
+  # CONTEXT.md and docs/adr/0006.
+  my.observabilityHost = true;
+  my.observabilityAgent = true;
+
+  # Ingest is the one listener opened beyond loopback: other machines' agents
+  # remote-write their metrics here. The port is VictoriaMetrics' default.
+  my.observabilityIngestPort = 8428;
+
+  # PLACEHOLDER — the agent hosts allowed to reach the ingest port.
+  #
+  # lumquat is the only such host, and **its real LAN address is not recorded
+  # anywhere in this repo**: `docs/lumquat-hardware.md` has the hardware, not
+  # the network, and git history shows only the 10.40.60.0/24 subnet the house
+  # LAN uses (bergamot 10.40.60.74, miracle_max 10.40.60.97, the printer
+  # 10.40.60.111, gateway 10.40.60.1) — never lumquat itself. So this is a
+  # placeholder on that subnet, not a claim about the machine.
+  #
+  # BOX-324 sets the real address at install (either "/32" here, or
+  # "10.40.60.0/24" if calamansi's own DHCP lease should simply be pinned
+  # instead). Until then the rule below matches nothing useful, which is the
+  # safe direction: an ingest port that nobody can reach is a bug, an ingest
+  # port the whole LAN can reach is a hole.
+  my.observabilityHostAllowedSources = [ "10.40.60.20" ];
+
+  # Nothing else is decided yet. my.cockpit only if the observability work
+  # wants it (BOX-325 renamed my.monitoring to my.cockpit; lumquat keeps it).
   #
   # Deliberately not carried over from lumquat either, because each is specific
   # to what lumquat does rather than to being a server: my.llm* and
