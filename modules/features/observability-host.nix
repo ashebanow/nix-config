@@ -3,11 +3,11 @@
 # section for the vocabulary and docs/adr/0006 for why every service here is
 # native rather than a container.
 #
-# v1 of this module is metrics and dashboards: VictoriaMetrics and Grafana.
-# VictoriaLogs (BOX-330), vmalert + Alertmanager (BOX-329) and the archive jobs
-# (BOX-336/337) land in this module too — same flag, same machine, one host.
-# They are absent here because they are not this ticket, not because the shape
-# does not allow them.
+# v1 of this module is metrics, logs and dashboards: VictoriaMetrics,
+# VictoriaLogs and Grafana. vmalert + Alertmanager (BOX-329) and the archive
+# jobs (BOX-336/337) land in this module too — same flag, same machine, one
+# host. They are absent here because they are not this ticket, not because the
+# shape does not allow them.
 #
 # ## Publishing
 #
@@ -151,9 +151,60 @@
         networking.firewall.extraCommands = lib.mkAfter (
           lib.concatMapStringsSep "\n" (
             source:
-            "iptables -w -A nixos-fw -p tcp -s ${source} --dport ${toString config.my.observabilityIngestPort} -j nixos-fw-accept"
+            "iptables -w -A nixos-fw -p tcp -s ${source} --dport ${toString config.my.observabilityIngestPort} -j nixos-fw-accept\n"
+            + "iptables -w -A nixos-fw -p tcp -s ${source} --dport ${toString config.my.observabilityLogsPort} -j nixos-fw-accept"
           ) config.my.observabilityHostAllowedSources
         );
+
+        # ── VictoriaLogs: store and query logs ────────────────────────
+        #
+        # nixpkgs has a real module (single-node), so it is used directly rather
+        # than a hand-written unit — the same choice as VictoriaMetrics. It does
+        # not expose retention as an option, so retention goes through
+        # `extraOptions`, which the module passes straight to the binary.
+        #
+        # Two flags, and both need explaining because each has a trap:
+        #
+        #   -retentionPeriod=90d   BOX-319's 90 days. The **suffix matters**:
+        #       VictoriaLogs parses a bare number as *months*, so `90` would be
+        #       90 months. Same trap VictoriaMetrics' `-retentionPeriod` has,
+        #       which is why BOX-326 writes `400d` there.
+        #
+        #   -retention.maxDiskUsagePercent=80   BOX-319's "80% disk-usage cap as
+        #       a safety net". Percentage rather than the sibling
+        #       `-retention.maxDiskSpaceUsageBytes` for two reasons: the decision
+        #       is phrased as a percentage, and an absolute cap would need the
+        #       disk size, which nothing here can know. VictoriaLogs refuses to
+        #       start if both are given, so only one is set.
+        #
+        # They are **independent** — the time bound still applies while the cap
+        # is set — which is exactly the intended layering: 90 days normally, the
+        # cap only when 90 days would fill the disk. Two documented caveats are
+        # recorded in the `my.observabilityLog*` options rather than here: the
+        # cap measures the *filesystem*, and VictoriaLogs always keeps the last
+        # two days regardless.
+        #
+        # The listener is `:9428` (upstream's default). It is the one
+        # VictoriaLogs listener other machines reach — agent hosts upload their
+        # journals to it — and Grafana queries it over loopback on the same
+        # port. The firewall above restricts who may reach it.
+        services.victorialogs = {
+          enable = true;
+          listenAddress = ":${toString config.my.observabilityLogsPort}";
+          extraOptions = [
+            "-retentionPeriod=${config.my.observabilityLogRetention}"
+            "-retention.maxDiskUsagePercent=${toString config.my.observabilityLogDiskUsagePercent}"
+          ];
+        };
+
+        # Self-scrape: VictoriaLogs exposes its own metrics on the same port, so
+        # this host's vmagent watches the log store the way it watches
+        # VictoriaMetrics. Added here rather than as a
+        # `my.observability.scrapeTargets` entry because that collection is for
+        # *features'* sources; the stack watching itself belongs with the stack.
+        my.observability.scrapeTargets.victorialogs = {
+          address = "127.0.0.1:${toString config.my.observabilityLogsPort}";
+        };
 
         # ── Grafana: query and display ────────────────────────────────
         services.grafana = {
@@ -247,11 +298,41 @@
           # ── Provisioning ──────────────────────────────────────────
           provision.enable = true;
 
+          # ── Plugins ─────────────────────────────────────────────────
+          #
+          # VictoriaLogs' Grafana datasource is a **plugin**, not a datasource
+          # type built into Grafana, so it has to be installed for the
+          # `victorialogs` datasource below to load at all. (A datasource whose
+          # plugin is missing is not an error Grafana shows at startup; it
+          # appears as a broken datasource in the UI, or worse as an empty
+          # Explore pane.)
+          #
+          # THE TRAP: `declarativePlugins` **replaces** Grafana's preinstalled
+          # plugins rather than adding to them. nixpkgs' own description: "Keep
+          # in mind that this overrides any app that Grafana might preinstall.
+          # This affects for instance Grafana Drilldown (...), but also
+          # data-sources like `prometheus`, `loki`, `tempo` and `jaeger`." So
+          # listing only the log plugin would silently remove the **core
+          # `prometheus` datasource** that the VictoriaMetrics datasource below
+          # depends on — a metrics outage caused by adding logging. `prometheus`
+          # is therefore listed explicitly, and anything else preinstalled we
+          # later rely on must be added here too.
+          #
+          # Version coherence is checked, not assumed. nixpkgs pins plugin
+          # 0.33.1 and VictoriaLogs 1.53.0. The plugin's docs page claims a
+          # "v1.54.0 or newer" requirement, but the plugin's own CHANGELOG
+          # places that in `tip` — i.e. it lands *after* 0.33.1, for a
+          # `sort_direction` query arg. 0.33.1 + 1.53.0 is a coherent pair. A
+          # future `grafanaPlugins` bump WILL need a VictoriaLogs bump with it.
+          declarativePlugins = with pkgs.grafanaPlugins; [
+            prometheus
+            victoriametrics-logs-datasource
+          ];
+
           # Fixed UIDs, because dashboards reference a datasource by UID. The
-          # Alertmanager entry is declared now, pointing at nothing yet, so
-          # BOX-329 fills it in rather than inserting a datasource and leaving
-          # every dashboard that links to it broken. VictoriaLogs' UID is
-          # reserved in lib/observability.nix for the same reason (BOX-330).
+          # Alertmanager entry is reserved in lib/observability.nix and not
+          # provisioned yet, so BOX-329 fills it in rather than inserting a
+          # datasource and leaving every dashboard that links to it broken.
           provision.datasources.settings = {
             apiVersion = 1;
             datasources = [
@@ -272,6 +353,25 @@
                   prometheusType = "VictoriaMetrics";
                   timeInterval = "15s";
                 };
+              }
+              {
+                # BOX-330. The UID was reserved by BOX-326, so any dashboard
+                # that came to reference it in between is already correct.
+                #
+                # Not `isDefault`: VictoriaMetrics stays the default because
+                # every provisioned dashboard is a metrics dashboard and the
+                # Explore view should open on those. Logs are reached by
+                # picking this datasource (or the VictoriaLogs UI, which is the
+                # log-exploration view — there is deliberately no log
+                # dashboard, per BOX-322).
+                name = "VictoriaLogs";
+                uid = obs.datasourceUids.victoriaLogs;
+                type = "victoriametrics-logs-datasource";
+                access = "proxy";
+                # Loopback, for the same reason as the metrics one: the store
+                # is local and the query path never needs to leave the machine.
+                url = "http://127.0.0.1:${toString config.my.observabilityLogsPort}";
+                jsonData = { };
               }
             ];
           };
