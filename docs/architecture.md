@@ -342,6 +342,22 @@ and the open IOMMU question. This section summarises it rather than duplicating 
 
 ---
 
+## Network Addresses
+
+The LAN addresses the hosts and devices actually use live in
+[`docs/network.md`](./network.md). Start there before writing any address into a
+firewall rule or a remote-write URL.
+
+The house runs **two** `/24`s — `10.40.0.0/24` for the servers and storage
+(lumquat `10.40.0.87`, storage2 `10.40.0.59`) and `10.40.60.0/24` for the
+workstations and devices (gateway `10.40.60.1`, bergamot `.74`, miracle_max
+`.97`, printer `.111`). Git history mentions only the `.60` side, which is
+exactly why several tickets guessed wrong and wrote firewall rules for a subnet
+lumquat is not on. A rule for the wrong subnet matches nothing and looks like a
+firewall bug.
+
+---
+
 ## Tailscale Configuration
 
 ### NixOS Server (lumquat)
