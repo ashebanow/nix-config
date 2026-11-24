@@ -73,7 +73,34 @@
       # that is the trigger for vendoring, not a preference.)
       vmRelease = "v1.157.0";
 
+      # Node Exporter Full (grafana.com dashboard 1860) — the Host detail
+      # dashboard of BOX-322's list, and the one dashboard that has to be a
+      # prebuilt: it is 28 panels of expressions over node_exporter's own
+      # metric names, maintained upstream against every node_exporter release,
+      # and nothing we could write would be less work to keep correct.
+      #
+      # Pinned to revision 46, explicitly, rather than to `latest`: grafana.com
+      # serves `revisions/latest/download` today and a new revision would
+      # change the bytes under a fixed hash and break the fetch. The URL is the
+      # revision-specific one for the same reason.
+      #
+      # Hash source: `nix store prefetch-file --json <url>` on 2026-11-24, at
+      # revision 46 (the revision grafana.com reports as current, so the pin
+      # is both stable and up to date). 470,325 bytes of JSON.
+      #
+      # It has the same `ds_prometheus` variable-of-type-`prometheus` shape as
+      # the VictoriaMetrics dashboards below, so it needs no UID rewrite
+      # either. Its README asks for `--collector.systemd` and
+      # `--collector.processes`, which the agent module already enables — the
+      # Systemd and Processes panels are not empty by construction.
+      nodeExporterFullRev = "46";
+
       prebuiltDashboards = {
+        node-exporter-full = pkgs.fetchurl {
+          name = "node-exporter-full.json";
+          url = "https://grafana.com/api/dashboards/1860/revisions/${nodeExporterFullRev}/download";
+          hash = "sha256-5Y3cXcU11MkB+U2pZIvD49Wue2946Y4YW86LKJlhzqM=";
+        };
         victoriametrics = pkgs.fetchurl {
           url = "https://raw.githubusercontent.com/VictoriaMetrics/VictoriaMetrics/${vmRelease}/dashboards/victoriametrics.json";
           hash = "sha256-PaUtQtCqvYnZ2SkXz/nZZXc65RYjHHNT1ppWD1cvMVo=";
