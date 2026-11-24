@@ -32,6 +32,11 @@ let
     # pi.nix's build, because nixpkgs' does not work in NixOS's read-only
     # store. Reaches a host via cli-ai-tools.nix.
     (import ../../lib/overlays/pi.nix { inherit (inputs) pi-nix; })
+    # Rex's release archive has no enclosing directory, so its flake sets
+    # sourceRoot = "." and stdenv's chmod then walks into Nix's read-only
+    # builder metadata (BOX-339). Provides `rex-patched`, consumed by
+    # modules/features/rex.nix.
+    (import ../../lib/overlays/rex.nix { inherit (inputs) rex; })
   ];
 
   # mkNixosHost — build one NixOS host from hosts/<hostName>/.
