@@ -58,8 +58,10 @@ _: {
         #   processes per-unit counts rather than none
         #   hwmon     temperatures and fans, which is how "hot hardware"
         #             becomes alertable
-        # `drm` (lumquat's AMD GPU) is BOX-327's business: it is meaningless on
-        # a host without a GPU, and enabling it there costs a futile sysfs scan.
+        # `drm` is per-host rather than universal: `my.observabilityGpuMetrics`
+        # (lib/my-options-module.nix) is set by a host that has a GPU whose
+        # telemetry node_exporter reads. Enabling it everywhere is meaningless
+        # on a host without a GPU and costs a futile sysfs scan per scrape.
         services.prometheus.exporters.node = {
           enable = true;
           listenAddress = "127.0.0.1";
@@ -67,7 +69,7 @@ _: {
             "systemd"
             "processes"
             "hwmon"
-          ];
+          ] ++ lib.optional config.my.observabilityGpuMetrics "drm";
           # textfile: the directory BOX-332's checks write `<name>.prom` into.
           # Enabled with the directory created and empty, so the collector is
           # not switched on later as a second change to the same unit.
@@ -79,6 +81,14 @@ _: {
         systemd.tmpfiles.rules = [
           "d /var/lib/node_exporter/textfile 0755 root root -"
         ];
+
+        # A GPU host needs no extra device access for this: the drm and hwmon
+        # collectors read `/sys/class/drm` and `/sys/class/hwmon`, which are
+        # world-readable, so the exporter keeps its default hardening
+        # (`DeviceAllow = [ "" ]`, `PrivateDevices = true`). Nothing here opens
+        # `/dev/dri/cardN`; that would only be needed to talk to the GPU, which
+        # a metrics scrape never does. See docs/lumquat-hardware.md for which
+        # metrics the Strix Halo APU actually populates.
 
         # ── Shipping ────────────────────────────────────────────────────
         #

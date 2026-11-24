@@ -207,6 +207,29 @@
         in the wrong direction.
       '';
     };
+    observabilityGpuMetrics = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        This agent host has a GPU whose telemetry node_exporter can read, so
+        the machine's node_exporter enables its `drm` collector — busy
+        percentage and VRAM / visible-VRAM / GTT usage — on top of the
+        `hwmon` collector every agent already runs for temperatures and
+        power.
+
+        Off by default because `drm` is AMD-specific and scans
+        `/sys/class/drm` on every scrape: on a host without an AMD GPU that is
+        a wasted sysfs walk, and on one with no GPU at all it is noise. It is
+        a flag rather than "enable drm everywhere" for the same reason the
+        other capability flags exist at all — the host knows its own hardware,
+        the shared agent module does not.
+
+        Per BOX-315 this is the whole GPU story: no ROCm, no amd-smi, no
+        amdgpu_top. Which of these metrics an APU actually populates is a
+        hardware question, recorded per host — for lumquat, in
+        `docs/lumquat-hardware.md`.
+      '';
+    };
     observabilityIngestPort = lib.mkOption {
       type = lib.types.port;
       default = 8428;
