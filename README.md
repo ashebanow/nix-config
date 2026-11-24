@@ -92,7 +92,10 @@ ssh root@lumquat 'install -d -m 0700 /var/lib/secrets && \
 ```
 
 The token is created in the BW web console: **Secrets Manager → Homelab →
-Machine Accounts → chezmoi → Access Tokens**.
+Machine Accounts → chezmoi → Access Tokens**. Accounts that no machine can
+create for you (Pushover, healthchecks.io) are set up from
+[`docs/runbooks/`](docs/runbooks/) — currently
+[`alerting-accounts.md`](docs/runbooks/alerting-accounts.md).
 
 ### 5. Verify Secret Resolution
 
