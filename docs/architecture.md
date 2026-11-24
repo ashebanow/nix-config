@@ -13,7 +13,7 @@ This document describes the architectural decisions and patterns for the lumquat
 | Container Runtime | Podman with Quadlets |
 | LLM Containers | Separate containers per model (from Strix Halo toolboxes) |
 | GPU | AMD RDNA 3.5 with GPU passthrough |
-| Monitoring | Cockpit web UI |
+| Cockpit | Cockpit web UI (system administration) |
 | Remote Access | Tailscale (LLMs routed through Aperture only) |
 | Secrets | Bitwarden Secrets Manager + SecretSpec (single root `secretspec.toml`) |
 | Extensibility | Designed for future servers |
@@ -135,7 +135,7 @@ inputs = {
   # Bitwarden Secrets Manager at runtime (see SECRET_SYNC.md) — no flake input
   # needed.
 
-  # Monitoring
+  # Cockpit
   # Cockpit is available in nixpkgs
 
   # Hardware quirks
@@ -205,7 +205,7 @@ _: {
   my.bifrostServe = true; # Bifrost LLM gateway (modules/features/bifrost.nix)
   my.llmModelStorage = "/var/lib/llm-models";
   my.access = true;     # Tailscale + SSH
-  my.monitoring = true; # Cockpit
+  my.cockpit = true;    # Cockpit web UI (system administration)
   my.secrets = true;    # BWS + SecretSpec host secrets
   my.memory = true;     # Mnemosyne memory layer
 }
@@ -395,12 +395,12 @@ _: {
   my.modules.nixos.cockpit = _: {
     services.cockpit = {
       enable = true;
-      port = 9090;
+      port = config.my.cockpitPort;   # my.cockpitPort, default 9090
       # Optional: restrict to Tailscale
       # listenAddresses = [{ addr = "127.0.0.1"; port = 9090; }];
     };
 
-    networking.firewall.allowedTCPPorts = [ 9090 ];
+    networking.firewall.allowedTCPPorts = [ config.my.cockpitPort ];
 
     environment.systemPackages = with pkgs; [
       cockpit-podman  # Podman UI in Cockpit
