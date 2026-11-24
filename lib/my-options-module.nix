@@ -114,13 +114,14 @@
       description = "Fallback SSH port.";
     };
 
-    # Monitoring feature
-    monitoring = lib.mkOption {
+    # Cockpit feature (web UI for system administration). Named for the tool,
+    # not for "monitoring": that word belongs to observability (see CONTEXT.md).
+    cockpit = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable Cockpit web UI for system monitoring.";
+      description = "Enable Cockpit web UI for system administration.";
     };
-    monitoringPort = lib.mkOption {
+    cockpitPort = lib.mkOption {
       type = lib.types.port;
       default = 9090;
       description = "Cockpit web interface port.";

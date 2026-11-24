@@ -61,20 +61,19 @@ _: {
 }
 ```
 
-## Monitoring (Prometheus)
+## Cockpit
 
 ```nix
-# modules/features/monitoring.nix
+# modules/features/cockpit.nix
 _: {
-  my.modules.nixos.monitoring = lib.mkIf config.my.hasMonitoring _: {
-    services.prometheus = {
-      enable = true;
-      port = 9090;
-    };
+  my.modules.nixos.cockpit = _: {
+    config = lib.mkIf config.my.cockpit {
+      services.cockpit = {
+        enable = true;
+        port = config.my.cockpitPort;
+      };
 
-    services.prometheus.exporters.node = {
-      enable = true;
-      port = 9100;
+      networking.firewall.allowedTCPPorts = [ config.my.cockpitPort ];
     };
   };
 }
@@ -95,10 +94,10 @@ flags are what turn feature modules on, through their `mkIf` guards.
   my.baseUsername = "podman";
   my.llm = true;
   my.llmServe = true;
-  my.monitoring = true;
+  my.cockpit = true;
 
   my.llmModelStorage = "/var/lib/llm-models";
-  my.monitoringPort = 9090;
+  my.cockpitPort = 9090;
 
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;

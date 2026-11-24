@@ -117,7 +117,7 @@ _: {
 
 # RIGHT: Capability flag
 _: {
-  my.modules.nixos.example = lib.mkIf config.my.hasMonitoring _: {
+  my.modules.nixos.example = lib.mkIf config.my.cockpit _: {
     # ...
   };
 }

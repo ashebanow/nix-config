@@ -1,5 +1,11 @@
 # Lumquat Implementation Plan
 
+> **Historical document.** This is the plan as first drafted. The Cockpit
+> capability flag it calls `my.monitoring` / `my.monitoringPort` was renamed
+> `my.cockpit` / `my.cockpitPort` in BOX-325, and the feature module it calls
+> `modules/features/monitoring.nix` is now `modules/features/cockpit.nix`.
+> Read the rest of this plan as the original design, not as current state.
+
 ## Overview
 
 This plan details the implementation of the lumquat NixOS configuration following the dendritic pattern. Modules are organized around user goals rather than technical components.
@@ -12,7 +18,7 @@ This plan details the implementation of the lumquat NixOS configuration followin
 | `llm`        | NixOS | LLM containers, Aperture config generation |
 | `access`     | NixOS | Tailscale, firewall, SSH fallback          |
 | `secrets`    | NixOS | SOPS-nix, secret declarations              |
-| `monitoring` | NixOS | Cockpit web UI                             |
+| `cockpit`    | NixOS | Cockpit web UI                             |
 | `cli-tools`  | HM    | CLI tools (eza, bat, aliases)              |
 
 ---
@@ -190,18 +196,15 @@ secrets/
 
 ---
 
-### 5. monitoring Module
+### 5. cockpit Module
 
-**Purpose**: Web-based system monitoring.
+**Purpose**: Cockpit web UI for system administration.
 
 **Options**:
 
 ```nix
-my.monitoring = {
-  enable = true;
-  port = 9090;
-  # Cockpit accessible via Tailscale only
-}
+my.cockpit = true;      # flag (was `my.monitoring` before BOX-325)
+my.cockpitPort = 9090;  # was `my.monitoringPort`
 ```
 
 **Implementation Notes**:
@@ -277,7 +280,7 @@ lumquat/
 │       ├── llm.nix              # LLM serving
 │       ├── access.nix            # Remote access
 │       ├── secrets.nix           # Secrets management
-│       ├── monitoring.nix        # Cockpit
+│       ├── cockpit.nix           # Cockpit
 │       └── cli-tools.nix         # CLI tools (HM)
 └── hosts/
     └── lumquat/
@@ -306,7 +309,7 @@ lumquat/
 ### Phase 3: Application Modules
 
 9. **modules/features/llm.nix** — LLM containers
-10. **modules/features/monitoring.nix** — Cockpit
+10. **modules/features/cockpit.nix** — Cockpit
 11. **modules/features/cli-tools.nix** — HM CLI tools
 
 ### Phase 4: Host Composition
@@ -344,9 +347,9 @@ options.my = {
   access.tailnetName = lib.mkOption { ... };
   access.enableFallbackSSH = lib.mkOption { ... };
 
-  # Monitoring options
-  monitoring.enable = lib.mkOption { ... };
-  monitoring.port = lib.mkOption { ... };
+  # Cockpit options
+  cockpit = lib.mkOption { ... };
+  cockpitPort = lib.mkOption { ... };
 
   # CLI tools
   cliTools.enable = lib.mkOption { ... };
@@ -371,7 +374,7 @@ options.my = {
       inputs.self.nixosModules.secrets
       inputs.self.nixosModules.access
       inputs.self.nixosModules.llm
-      inputs.self.nixosModules.monitoring
+      inputs.self.nixosModules.cockpit
       ./hardware-configuration.nix
     ];
   };
@@ -391,7 +394,7 @@ options.my = {
     access.tailnetName = "lumquat";
     access.enableFallbackSSH = true;
 
-    monitoring.enable = true;
+    cockpit = true;
 
     cliTools.enable = true;
   };
@@ -430,4 +433,4 @@ options.my = {
 1. **Colmena deployment**: `colmena-config.nix` ready but not active
 2. **Additional hosts**: Add to `modules/hosts/` and `colmena/` when ready
 3. **More LLM models**: Just add to `llm.containers` list
-4. **GPU monitoring**: Extend `monitoring` with GPU metrics
+4. **GPU monitoring**: Extend `cockpit` with GPU metrics

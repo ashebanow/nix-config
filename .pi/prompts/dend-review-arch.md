@@ -17,7 +17,7 @@ Before implementing a new feature or significant change, review the architecture
 ### 2. Capability Flags
 
 - Does this feature need a new capability flag?
-- Can it reuse an existing flag (`hasDesktop`, `hasMonitoring`, etc.)?
+- Can it reuse an existing flag (`my.base`, `my.cockpit`, etc.)?
 - Where should the flag be defined (`lib/my-options-module.nix`)?
 
 ### 3. Module Registration
