@@ -16,10 +16,40 @@ cd /Users/ashebanow/Development/nix/nix-config/wt-box338
 out to `feat/box-311-observability`, and actual `main` is not checked out
 anywhere. This caused confusion already.
 
-The branch carries `004f602` + `a04454d` (the Darwin NLB fix) which are **also
-on `main` now** via squash commit `cb04d37`. They will show as duplicates in a
-PR. Rebase onto `cb04d37` to clear it — that is a history rewrite on a pushed
-branch, so ask first.
+### What this branch is built on — read before rebasing or deleting
+
+This branch is **stacked on `feat/box-311-observability`**, not on `main`. Its
+merge base is `4826f75`. Of the 47 commits it carries over `origin/main`, only
+**four** are its own:
+
+| Commit | Contents | Exists elsewhere? |
+| --- | --- | --- |
+| `3e716ed` | BOX-338: Overview dashboard, `dashboardEntries`, host wiring, contract assertions | **No — this branch only** |
+| `ebc4be0` | these handoff notes | **No — this branch only** |
+| `004f602` | Darwin NLB fix | Yes, on `main` as `cb04d37` |
+| `a04454d` | determinate-nixd doc note | Yes, on `main` as `cb04d37` |
+
+The other 43 belong to `feat/box-311-observability` and are unmerged.
+
+**Consequence — do not rebase this branch onto `main`.** That is what a previous
+attempt did, with `git rebase --onto cb04d37 004f602 ...`, and it silently
+dropped 43 commits: `overview.dashboard.json` and `lib/observability.nix`
+vanished from the tree. It was caught only because the resulting diff showed
+9,271 deletions. A rebase onto `main` is only safe once
+`feat/box-311-observability` is itself merged to `main`.
+
+**Deleting the branch loses two commits that exist nowhere else** — BOX-338's
+implementation (verified, 120/120 assertions, ticket marked Done) and these
+notes. Nothing else is lost: the Darwin fix is already on `main`.
+
+The duplicates are cosmetic. The real dependency is that
+`feat/box-311-observability` (43 commits) is unmerged; BOX-338 rides on top of
+it, so there is no coherent PR for BOX-338 until that lands. Decide that first;
+the duplicate-commit question then resolves itself.
+
+If a cleanup is still wanted after that, prefer merging `origin/main` into this
+branch over rebasing — no history rewrite, no force-push, and git reconciles the
+already-applied commits itself.
 
 ## Build discipline — read this first
 
