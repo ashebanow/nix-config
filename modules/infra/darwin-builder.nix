@@ -8,6 +8,35 @@
 # home.file/xdg.configFile — chezmoi owns all actual dotfiles/config
 # files. determinateNix.enable = true keeps nix-darwin from touching
 # /etc/nix/nix.conf, which chezmoi's run_onchange hook already manages.
+#
+# ── The determinate-nixd binary is NOT managed by this flake ──────────
+#
+# The `determinate` flake input supplies only the *nix-darwin module* — the
+# option schema and the files under /etc. The daemon that actually runs is a
+# standalone native binary at /usr/local/bin/determinate-nixd, installed and
+# upgraded by Determinate's own installer, not by `darwin-rebuild`. That was
+# not obvious and had already drifted:
+#
+#   running daemon at /usr/local/bin              3.24.3
+#   `determinate` flake input                      3.24.1
+#   /nix/var/determinate/pkg-install.json         3.21.2
+#
+# Three versions in play, and the live one was ahead of the pin, so nothing
+# in this repo was holding it back. Bumping the flake input does **not**
+# upgrade the daemon, and upgrading the daemon does not show up in a diff.
+#
+# Consequences worth knowing:
+#   * `determinate-nixd version` reports what is actually running.
+#   * The daemon is upgraded by hand (§ `determinate-nixd upgrade`, or by
+#     re-running Determinate's installer), so it can silently outpace the
+#     module that configures it — and a module written for an older schema
+#     can then write settings the running daemon ignores.
+#   * After any daemon upgrade the NLB setting below is re-applied on
+#     restart, but restart the daemon deliberately rather than assuming a
+#     switch did it. See the launchctl note at the setting itself.
+#
+# If the two ever need to be kept in lockstep, the flake input and the
+# installer must be bumped together; there is no mechanism here that does it.
 {
   inputs,
   config,
