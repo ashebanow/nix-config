@@ -1,0 +1,1028 @@
+{
+  "uid": "overview",
+  "title": "Overview",
+  "description": "The one screen that answers \"is anything wrong?\". Every block is a source's own health signal — the same one its alert fires on — and every block links to the dashboard that explains it. BOX-322 decided this is Grafana's home.",
+  "tags": ["overview", "home"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "editable": false,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "ds_prometheus",
+        "label": "Prometheus",
+        "description": "Bound, not hardcoded. Every panel here goes through this variable exactly as Node Exporter Full does, so the VictoriaMetrics datasource's UID can change without rewriting this dashboard.",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "alertlist",
+      "title": "Firing now",
+      "description": "vmalert's alert state, read through the Alertmanager datasource. This is the top of the page because an alert is the only thing on this dashboard a human must act on. Empty means nothing is firing — including the Watchdog, which is deliberately never shown (severity \"none\", Alertmanager's recipient and alertname prefix exclusions).",
+      "datasource": { "type": "alertmanager", "uid": "alertmanager" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "options": {
+        "alertName": "",
+        "dashboardAlerts": false,
+        "alertInstanceLabelFilter": "",
+        "datasource": "Alertmanager",
+        "groupBy": [],
+        "groupMode": "default",
+        "maxItems": 20,
+        "sortOrder": 1,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "inactive": false,
+          "noData": false,
+          "error": false,
+          "ok": false
+        },
+        "viewMode": "list"
+      }
+    },
+
+    {
+      "id": 10,
+      "type": "text",
+      "title": "Hosts",
+      "description": "lumquat and calamansi: is each one reporting, how loaded is it, how much disk is left. The number each panel colours on is the number its alert fires on (node_exporter `up` for HostDown, 15m load for CPU, the worst real filesystem for DiskFilling).",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 8 },
+      "options": {
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**Hosts** — <a href=\"/d/rYdddlPWk\">Host detail (Node Exporter Full) →</a>"
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Reporting",
+      "description": "node_exporter's `up` for each host, averaged over the last 5 minutes: 1 = reporting throughout, 0 = down throughout, and anything between means it flapped. The 5-minute window is HostDown's threshold, so this panel and that alert cannot disagree. `or vector(-1)` makes \"no series at all\" visibly distinct from \"0\" — a host that has never reported is not the same failure as one that stopped.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 11 },
+      "repeat": "host",
+      "repeatDirection": "h",
+      "maxPerRow": 2,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "mappings": [
+            {
+              "type": "special",
+              "options": {
+                "match": "null",
+                "result": { "text": "NO DATA", "color": "orange", "index": 0 }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.2 },
+              { "color": "green", "value": 0.99 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "avg_over_time(up{job=\"node\",instance=~\"$host\"}[5m]) or vector(-1)",
+          "instant": true,
+          "legendFormat": "reporting",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(up{job=\"node\",instance=~\"$host\"}) or vector(-1)",
+          "instant": true,
+          "hidden": true,
+          "legendFormat": "series",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Load (15m)",
+      "description": "node_exporter's 15-minute load average, normalised per core so a 32-thread and a 16-thread box are comparable. Above 1.0 means the run queue is longer than the machine can run at once.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 11 },
+      "repeat": "host",
+      "repeatDirection": "h",
+      "maxPerRow": 2,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 2 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "n/a"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "node_load15{job=\"node\",instance=~\"$host\"} / on(instance) count by (instance) (node_cpu_seconds_total{job=\"node\",instance=~\"$host\",mode=\"idle\"})",
+          "instant": true,
+          "legendFormat": "load/core",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Disk free",
+      "description": "The worst real filesystem on the host, as a fraction free. `fstype!~` and `mountpoint!~` match DiskFilling's expression exactly, so this panel colours red at the point that alert fires (0.15) and ignores the same always-full tmpfs mounts.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 11 },
+      "repeat": "host",
+      "repeatDirection": "h",
+      "maxPerRow": 2,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.15 },
+              { "color": "green", "value": 0.3 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "n/a"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "min by (instance) (node_filesystem_avail_bytes{job=\"node\",instance=~\"$host\",fstype!~\"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs\",mountpoint!~\"/boot.*\"} / node_filesystem_size_bytes{job=\"node\",instance=~\"$host\",fstype!~\"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs\",mountpoint!~\"/boot.*\"})",
+          "instant": true,
+          "legendFormat": "{{ mountpoint }}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 20,
+      "type": "text",
+      "title": "Containers",
+      "description": "The services lumquat runs as containers. 'Running' of 'expected' catches the case nothing else does: a container that was removed rather than crashed produces no series to alert on, and this panel goes red.",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 15 },
+      "options": {
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**Containers** — <a href=\"/d/containers-v1\">Containers →</a>"
+      }
+    },
+    {
+      "id": 21,
+      "type": "stat",
+      "title": "Running",
+      "description": "podman container state == 2 is running (the exporter's own encoding: -1 unknown, 0 created, 1 initialized, 2 running, 3 stopped, 4 paused, 5 exited, 6 removing, 7 stopping). The hidden second query is how many the host expects to be running, so \"2 of 2\" and \"2 of 3\" are different answers to the same question.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 18 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "custom.hidden", "value": true }]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(podman_container_state{job=\"podman\"} == 2)",
+          "instant": true,
+          "legendFormat": "running",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(podman_container_state{job=\"podman\"})",
+          "instant": true,
+          "hidden": true,
+          "legendFormat": "expected",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "stat",
+      "title": "Unhealthy",
+      "description": "podman_container_health == 1. -1 (no health check declared) and 2 (still starting) do not count, the same equality ContainerUnhealthy uses.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 18 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(podman_container_health{job=\"podman\"} == 1) or vector(0)",
+          "instant": true,
+          "legendFormat": "unhealthy",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "stat",
+      "title": "Restarts (15m)",
+      "description": "The exporter has no restart counter, so changes() over podman_container_started_seconds is the restart count. The window is ContainerCrashLooping's 15 minutes, and the red step is that rule's threshold (>3), so this panel and the alert turn red together.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 18 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 4 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "sum(max by (instance, name) (changes(podman_container_started_seconds{job=\"podman\"}[15m])))",
+          "instant": true,
+          "legendFormat": "restarts",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 30,
+      "type": "text",
+      "title": "LLM",
+      "description": "The model servers themselves, as opposed to the containers holding them: is the endpoint answering, is the queue moving, is the GPU warm. Prompt and generated tokens/s live on the LLM dashboard, not here.",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 22 },
+      "options": {
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**LLM** — <a href=\"/d/llm-v1\">LLM →</a>"
+      }
+    },
+    {
+      "id": 31,
+      "type": "stat",
+      "title": "Models up",
+      "description": "vmagent's own `up` for the llama-* jobs. 0 means llama.cpp's /metrics is not answering; the hidden query is how many models the host declares, so \"1 of 1\" and \"1 of 2\" are distinguishable. This is the series SourceDown fires on.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 25 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "sum(up{job=~\"llama-.*\"})",
+          "instant": true,
+          "legendFormat": "up",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(up{job=~\"llama-.*\"})",
+          "instant": true,
+          "hidden": true,
+          "legendFormat": "total",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "type": "stat",
+      "title": "Queued now",
+      "description": "llama.cpp's requests_deferred: requests waiting for a slot. The alert watches it for 10 minutes (LlamaCppBackingUp); this is the same series, instantaneous. A single deferred request right now is normal.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 25 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "sum(llamacpp:requests_deferred{job=~\"llama-.*\"}) or vector(0)",
+          "instant": true,
+          "legendFormat": "deferred",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "type": "stat",
+      "title": "GPU temperature",
+      "description": "The hottest hwmon sensor that is a temperature reading, from the drm/amdgpu collector BOX-315 enabled. The red step is HotHardware's 90 °C. A host with no such sensor shows n/a rather than a false zero.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 25 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 80 },
+              { "color": "red", "value": 90 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "n/a"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "max(node_hwmon_temp_celsius{job=\"node\",sensor=~\"temp[0-9]+|.*(edge|junction|GPU).*\"})",
+          "instant": true,
+          "legendFormat": "hottest",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 40,
+      "type": "text",
+      "title": "bifrost",
+      "description": "bifrost's request log database — the thing BOX-207 was about. Growth is a rate, so this block is worth reading even when nothing is red.",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 29 },
+      "options": {
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**bifrost** — <a href=\"/d/bifrost-logs-db\">Bifrost — request log volume →</a>"
+      }
+    },
+    {
+      "id": 41,
+      "type": "stat",
+      "title": "logs.db size",
+      "description": "On-disk size, freelist included. The red step is BifrostLogGrowth's 1 GiB total, and the orange one is BOX-207's original 1.63 GB incident trimmed to a warning at 512 MiB.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 536870912 },
+              { "color": "red", "value": 1073741824 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "max(bifrost_logs_db_size_bytes)",
+          "instant": true,
+          "legendFormat": "size",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "type": "stat",
+      "title": "Growth",
+      "description": "The bifrost:logs_db_growth_mib_per_day recording rule. The red step is BifrostLogGrowth's 200 MB/day; at that rate the 1 GiB total is four days away.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 100 },
+              { "color": "red", "value": 200 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "max(bifrost:logs_db_growth_mib_per_day)",
+          "instant": true,
+          "legendFormat": "MiB/day",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "type": "stat",
+      "title": "Check read",
+      "description": "bifrost_logs_db_success: 1 when the sqlite check could read the database read-only, 0 when it could not. 0 is the state that used to look healthy forever, and it is what BifrostLogCheckFailing fires on after 30 minutes.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 32 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "FAILED", "color": "red", "index": 0 },
+                "1": { "text": "OK", "color": "green", "index": 1 }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "min(bifrost_logs_db_success)",
+          "instant": true,
+          "legendFormat": "check",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "id": 50,
+      "type": "text",
+      "title": "storage2",
+      "description": "The NAS. Capacity, SMART and pool state are not exposed over its SNMP agent (BOX-314 walked it), so this block covers what it does serve: reachability, temperatures and fans.",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 36 },
+      "options": {
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**storage2** — <a href=\"/d/storage2-nas\">storage2 (UNAS Pro) →</a>"
+      }
+    },
+    {
+      "id": 51,
+      "type": "stat",
+      "title": "SNMP poll",
+      "description": "min(up{job=\"storage2\"}) is Storage2Unreachable's series. The hidden second query reads snmp_exporter's own walk duration, whose *absence* while `up` is 1 is Storage2PollDead's signal — a device that answers but yields no metrics looks healthy on the first number alone.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 39 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "UNREACHABLE", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "NO DATA"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "min(up{job=\"storage2\"})",
+          "instant": true,
+          "legendFormat": "up",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "max(snmp_scrape_walk_duration_seconds{job=\"storage2\"})",
+          "instant": true,
+          "hidden": true,
+          "legendFormat": "walk",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "type": "stat",
+      "title": "Hottest sensor",
+      "description": "The hottest LM-SENSORS reading on the NAS. The red step is Storage2Hot's 70 °C. Unlike node_exporter's hwmon, LM-SENSORS exposes only real readings, so no filter is needed.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 39 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 60 },
+              { "color": "red", "value": 70 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "max(snmp_lm_temp_celsius{job=\"storage2\"})",
+          "instant": true,
+          "legendFormat": "hottest",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "type": "stat",
+      "title": "Fans spinning",
+      "description": "Fans reporting non-zero RPM, of the fans that have spun at some point. two of two is healthy; the self-calibrating comparison is Storage2FanStopped's, because the device's empty slots read 0 permanently and a plain count of non-zero fans would be a constant false alarm.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 39 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(snmp_lm_fan_rpm{job=\"storage2\"} > 0)",
+          "instant": true,
+          "legendFormat": "spinning",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(max_over_time(snmp_lm_fan_rpm{job=\"storage2\"}[7d]) > 0)",
+          "instant": true,
+          "hidden": true,
+          "legendFormat": "known",
+          "refId": "B"
+        }
+      ]
+    },
+
+    {
+      "id": 60,
+      "type": "text",
+      "title": "Monitoring itself",
+      "description": "The stack that measures everything else. VictoriaMetrics, vmagent and vmalert's own dashboards are prebuilts, fetched pinned by hash in observability-host.nix; the log stores are reached through Explore. If these are green and everything else is missing, the agent side is the problem, not the store.",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 43 },
+      "options": {
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**Monitoring itself** — <a href=\"/d/victoriametrics\">VictoriaMetrics →</a> · <a href=\"/d/vmagent\">vmagent →</a> · <a href=\"/d/vmalert\">vmalert →</a>"
+      }
+    },
+    {
+      "id": 61,
+      "type": "stat",
+      "title": "Scrape targets up",
+      "description": "Every scrape target across every agent host, from vmagent's own `up`. The hidden query is how many there are, so a target that silently disappeared (a job removed from a scrape config) shows as a smaller denominator rather than as nothing wrong.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 46 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "no data"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "sum(up == 1)",
+          "instant": true,
+          "legendFormat": "up",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "count(up)",
+          "instant": true,
+          "hidden": true,
+          "legendFormat": "total",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "type": "stat",
+      "title": "Metrics store",
+      "description": "VictoriaMetrics' own up series, scraped over loopback on calamansi. If this is not 1 nothing on this dashboard updates, including the alert list.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 46 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "NO DATA"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "min(up{job=\"victoriametrics\"})",
+          "instant": true,
+          "legendFormat": "store",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "type": "stat",
+      "title": "Log store",
+      "description": "VictoriaLogs' own up series, over loopback. A store that is down loses journal uploads silently — the agent's buffers fill and drop — so it belongs on the screen that answers \"is anything wrong?\" even though there is no log dashboard.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 46 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "DOWN", "color": "red", "index": 0 },
+                "1": { "text": "UP", "color": "green", "index": 1 }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "noValue": "NO DATA"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "editorMode": "code",
+          "expr": "min(up{job=\"victorialogs\"})",
+          "instant": true,
+          "legendFormat": "store",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

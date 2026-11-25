@@ -157,16 +157,55 @@
       # One directory for the dashboard provider to watch. Both sources are
       # link farms, so the provider sees a flat set of `<name>.json` files and
       # Grafana's name is the same on every rebuild.
+      #
+      # The gathered half goes through `obs.dashboardEntries`, the same shape
+      # the module header above describes: the collection key is the file name,
+      # so a dashboard's key is the thing its own links and other dashboards'
+      # `/d/<uid>` links are written against.
       dashboardDir = pkgs.linkFarm "grafana-dashboards" (
         lib.mapAttrsToList (name: path: {
           name = "prebuilt-${name}.json";
           inherit path;
         }) prebuiltDashboards
-        ++ lib.mapAttrsToList (name: dashboard: {
-          name = "${name}.json";
-          path = dashboard.path;
-        }) gatheredDashboards
+        ++ obs.dashboardEntries gatheredDashboards
+        # The stack's own dashboard, beside the prebuilts for the same reason:
+        # no owning feature to sit next to.
+        ++ [
+          {
+            name = "overview.json";
+            path = builtins.path {
+              path = ./overview.dashboard.json;
+              name = "overview.dashboard.json";
+            };
+          }
+        ]
       );
+
+      # ── The Overview dashboard (BOX-338) ─────────────────────────────
+      #
+      # The home dashboard, and the one screen that answers "is anything
+      # wrong?" for every v1 source. It is owned by the *stack* rather than by
+      # a feature, like the prebuilts above: it is the page that links to all
+      # of them, so it has no feature module to sit beside.
+      #
+      # It is an **extra entry in the link farm**, not a declaration in
+      # `my.observability.dashboards`. That collection is documented as "one
+      # per owning feature module, beside the module", gathered from *agent*
+      # hosts — and the Overview is neither a feature's nor gathered, so
+      # putting it there would make the option mean two different things and
+      # would leave the home page depending on which host happened to declare
+      # it. Declaring it here has the property that matters: it exists on the
+      # observability host whatever any feature flag says, which is what
+      # `grafana.homeDashboardId` below requires — a home dashboard that is not
+      # in the provider's directory makes Grafana fall back to its own home
+      # with no error anywhere.
+      #
+      # The UID is the literal `overview`, and every link from this page is a
+      # Grafana *relative* `/d/<uid>` path, so it survives the tailnet name
+      # changing. The reverse links (a detail dashboard's link back) are not
+      # offered yet: that means editing four dashboards other tickets own. See
+      # the ticket notes for the follow-up.
+      overviewDashboard = builtins.fromJSON (builtins.readFile ./overview.dashboard.json);
 
       # ── Alert rules gathered from every agent host (BOX-329) ──────────
       #
@@ -510,9 +549,34 @@
           settings.security.disable_initial_admin_creation = true;
           settings.security.admin_password = "$__file{/run/grafana/does-not-exist}";
 
+          # ── The home dashboard (BOX-338) ───────────────────────────
+          #
+          # The Overview is the page Grafana opens on, which is BOX-322's
+          # decision: the user opens Grafana to answer "is anything wrong?",
+          # not to browse a dashboard list.
+          #
+          # It is named by **path into the provider directory**, not by the
+          # numeric `homeDashboardId` a reader might expect. That id is the
+          # *database* row id, which Grafana assigns when it first loads the
+          # file and which therefore differs between a fresh install and any
+          # later one — it cannot be written down in a repo. The path is
+          # stable, and the uid inside the file (`overview`) is the same
+          # literal the dashboard's own links and the contract test use.
+          #
+          # Grafana reads `dashboards.json` as a flat key/value map into
+          # `[dashboards]`, so the key keeps Grafana's own snake_case name
+          # (`home_dashboard_path`) rather than Nix's usual camelCase.
+          settings.dashboards.home_dashboard_path = "/var/lib/grafana/dashboards/overview.json";
+
           # Grafana's own alerting is off: vmalert is the alert engine here
           # (BOX-329), and two alert engines evaluating different rule sets is
           # how an alert gets missed.
+          #
+          # `unified_alerting.enabled = false` does **not** remove the
+          # Alerting page, and that is wanted here: the Overview's "Firing now"
+          # panel reads vmalert's state through Grafana's Alertmanager
+          # datasource, and that panel is the first thing a reader sees. The
+          # flag keeps Grafana from *evaluating* rules of its own.
           settings.unified_alerting.enabled = false;
           settings.alerting.enabled = false;
 
