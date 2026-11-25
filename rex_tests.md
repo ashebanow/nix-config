@@ -55,6 +55,19 @@ lumquat runs the **login server**, not the shared server: no tsnet node, no
 - `journalctl -u rex-login-server` — `login server starting`, then
   `Account policy reloaded` after a change so the `SIGHUP` path is exercised.
 - `journalctl -u rex-tailscale-serve` — no certificate or 443 conflict errors.
+- The principal matches a real caller. `.Self` describes lumquat's own
+  (tagged) node and is the right answer to the wrong question; the callers are
+  under `.User`:
+
+  ```
+  tailscale status --json | jq -r '.User | .[] | [.LoginName, .DisplayName] | @tsv'
+  ```
+
+  expect `ashebanow@gmail.com  Andrew Shebanow`. Note `.Self.LoginName` is
+  `null` and `.Self.Tags` is `["tag:prod"]` — checked 2026-11-25 — because the
+  node is tagged, which is why the accounts file names a login and not a tag.
+- No `ashebanow` account exists on lumquat (`getent passwd ashebanow` returns
+  nothing), so `defaults` must resolve to `podman` or to `*`.
 
 ## From a Mac
 

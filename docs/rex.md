@@ -107,10 +107,10 @@ rejected, so only `version`, `accounts`, and `defaults` exist, and only
 {
   "version": 1,
   "accounts": {
-    "podman": { "principals": ["tailscale:ashebanow@example.com"] },
-    "*":      { "principals": ["tailscale:ashebanow@example.com"] }
+    "podman": { "principals": ["tailscale:ashebanow@gmail.com"] },
+    "*":      { "principals": ["tailscale:ashebanow@gmail.com"] }
   },
-  "defaults": { "tailscale:ashebanow@example.com": "podman" }
+  "defaults": { "tailscale:ashebanow@gmail.com": "podman" }
 }
 ```
 
@@ -118,10 +118,24 @@ What the shipped file grants:
 
 | entry | why |
 | --- | --- |
-| `ashebanow`, `podman`, `root` | named explicitly, so the grant survives a rename only by editing the file |
-| `*` | any regular account (UID ≥ 1000) the caller names — systemd/podman dynamic users come and go and cannot be listed statically |
-| `tailscale:<login>` | the tailnet owner, by login |
-| `tailscale:tag:*` | the same person's nodes, by node identity: a tag is stable across an SSO login change, which a login is not |
+| `podman` | the only account lumquat has (there is no `ashebanow` account there), named explicitly |
+| `*` | any regular account (UID ≥ 1000) the caller names — systemd/podman dynamic users come and go and cannot be listed statically. The same single principal, so it adds reach without widening *who* may act |
+| `tailscale:<login>` | the owner, asserted by Tailscale login: `ashebanow@gmail.com` (check it with `.User` in `tailscale status --json`, not `.Self` — see below) |
+
+**The principal is a login, not a tag.** lumquat's own node is tagged
+(`tag:prod`), so `.Self.LoginName` is `null` and `.Self.Tags` is
+`["tag:prod"]`. That describes the *server*; the principals in this file
+describe the *callers*, and the owner's clients authenticate as
+`ashebanow@gmail.com`. Reading `.Self` and concluding the login is unavailable
+is the easy mistake here.
+
+Deliberately absent:
+
+| key | why not |
+| --- | --- |
+| `tailscale:tag:*` | matches any tag on any node — including lumquat's own `tag:prod` — so it is wider than one operator needs. Use `tailscale:tag:prod` (verified to parse; bare `tag:prod` and `tag:tag:prod` are rejected) if a tagged machine should attach |
+| `root` | Rex maps UID 0 warily and nothing here needs it: account servers run as the account they serve |
+| `anonymous` | valid, but it matches nobody while the only listener is Serve, and would match the moment a plain TCP listener were added. It is also rejected outright under the wildcard account `*` |
 
 Principal keys are validated at startup; anything Rex cannot parse is a load
 error, not a silent never-match. `anonymous` is a valid principal, so **never

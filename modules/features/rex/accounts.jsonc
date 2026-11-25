@@ -11,47 +11,55 @@
 // and at exactly the mode set there (on a plain file, because
 // `environment.etc` silently ignores `mode` for symlinked (source-less) entries).
 //
-// What it grants today:
+// What it grants today.
 //
-//   ashebanow, podman, root   the tailnet owner, by login, plus by node
-//                             identity (tags are unaffected by a login change)
-//   *                         every wildcard match, i.e. any regular account
-//                             (UID >= 1000) that the caller names explicitly —
-//                             systemd/podman dynamic users come and go, so they
-//                             cannot be named statically
+//   podman   the operator account, by the owner's Tailscale *login*
+//   *        any regular account (UID >= 1000) that the caller names —
+//            systemd/podman dynamic users come and go, so they cannot be
+//            listed statically. Same single principal, so the wildcard adds
+//            reach without widening who may act.
+//
+// The principal is a LOGIN, not a tag. lumquat's own node is tagged
+// (`tag:prod`), so it has no login and reports `LoginName: null` — but the node
+// is the *server*; the principals here describe the callers. The owner attaches
+// as `ashebanow@gmail.com` (verified: `tailscale status --json | .User | .[] |
+// select(.DisplayName|test("Andrew"))`), and that is the only principal listed.
+//
+// Not used deliberately:
+//
+//   tailscale:tag:*    matches ANY tag on ANY node, and would admit lumquat's
+//                      own `tag:prod` node too. The login above is stricter and
+//                      is what actually identifies the owner. Replace with
+//                      `tailscale:tag:prod` (verified to parse) if a second
+//                      tagged machine should ever attach.
+//   root               Rex maps UID 0 warily, and nothing here needs root: the
+//                      account servers run as the account they serve.
+//   anonymous          a valid principal, but it matches nobody while the only
+//                      listener is Tailscale Serve — and it would match the
+//                      moment a plain TCP listener were added. Never add it
+//                      unless the tailnet ACLs are the only door.
+//
+// `defaults` must name an account that exists. lumquat has no `ashebanow`
+// account (`getent passwd ashebanow` — nothing), only `podman`, so podman is
+// what a bare https://lumquat.<tailnet>.ts.net lands on.
 //
 // A principal key is a JSON key string, so a literal wildcard account in
 // `defaults` reads awkwardly ("*") but is the same value either way.
 {
   "version": 1,
   "accounts": {
-    "ashebanow": {
-      "principals": [
-        "tailscale:ashebanow@example.com",
-        "tailscale:tag:*"
-      ]
-    },
     "podman": {
       "principals": [
-        "tailscale:ashebanow@example.com",
-        "tailscale:tag:*"
-      ]
-    },
-    "root": {
-      "principals": [
-        "tailscale:ashebanow@example.com",
-        "tailscale:tag:*"
+        "tailscale:ashebanow@gmail.com"
       ]
     },
     "*": {
       "principals": [
-        "tailscale:ashebanow@example.com",
-        "tailscale:tag:*"
+        "tailscale:ashebanow@gmail.com"
       ]
     }
   },
   "defaults": {
-    "tailscale:ashebanow@example.com": "ashebanow",
-    "tailscale:tag:*": "ashebanow"
+    "tailscale:ashebanow@gmail.com": "podman"
   }
 }
