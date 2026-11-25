@@ -103,6 +103,80 @@ _: {
         }
         ++ obs.renderScrapeConfigs config.my.observability.scrapeTargets;
       };
+
+      # ── Textfile checks (BOX-332) ────────────────────────────────────
+      #
+      # One systemd service + timer pair per `my.observability.textfileChecks`
+      # entry. A check answers a question only a command can answer (a
+      # database's size, a certificate's remaining days), so the shape is
+      # timer → run → write `<name>.prom` into node_exporter's textfile
+      # directory; the next scrape exposes it as metrics with no exporter to
+      # write.
+      #
+      # Built outside the `mkIf` so they can be named in `in`, then attached
+      # under it. `lib.mkIf` cannot be applied to a bare attrset of units
+      # without naming each one, so the whole conditional fragment uses
+      # `mkIf` and merges these lists.
+      #
+      # Why a service unit per check instead of the timer's own ExecStart:
+      # systemd timers cannot run commands. The service is also what gives a
+      # check its own `User=`, its own failed state (visible as
+      # `node_systemd_unit_state{state="failed"}`, which the generic rules
+      # already alert on) and its own journal stream. One shared service would
+      # make "which check broke" unanswerable.
+      textfileCheckServices = lib.mapAttrs' (
+        name: check:
+        let
+          unitUser = obs.checkUnitUser check;
+        in
+        lib.nameValuePair "textfile-check-${name}" {
+          description = "Textfile check ${name} for node_exporter";
+          path = with pkgs; [
+            sqlite
+            coreutils
+            jq
+            util-linux
+          ];
+          serviceConfig = {
+            Type = "oneshot";
+            # The owning user of whatever the check reads. A check with an
+            # escape hatch (`unreadableAs`) must be able to become root, so its
+            # unit is root and the script drops to the owning user itself —
+            # see obs.checkUnitUser.
+            User = unitUser;
+            # No `Group=`: systemd then derives the primary group from the user,
+            # which is right for both cases — `podman:podman` for a check that
+            # runs as the owning account, and `root:root` for one that may drop
+            # to it. Setting it explicitly here was wrong for the first case.
+            # The check must be able to write exactly one file, in the textfile
+            # directory, and nothing else anywhere.
+            ProtectSystem = "strict";
+            PrivateTmp = true;
+            NoNewPrivileges = true;
+            ReadWritePaths = [ obs.textfileDirectory ];
+          };
+          script = obs.checkPrelude check + "\n" + check.script;
+        }
+      ) config.my.observability.textfileChecks;
+
+      textfileCheckTimers = lib.mapAttrs' (
+        name: check:
+        lib.nameValuePair "textfile-check-${name}" {
+          description = "Periodic textfile check ${name}";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            # A check reads a file or queries a database, so it runs on a
+            # multi-minute clock, not a scrape interval.
+            OnBootSec = "2m";
+            OnUnitInactiveSec = check.interval;
+            # `Persistent` only means something with a calendar spec, so it is
+            # deliberately absent: `OnUnitInactiveSec` schedules from the last
+            # run, and systemd's monotonic timers fire once on return anyway.
+            RandomizedDelaySec = "30s";
+            Unit = "textfile-check-${name}.service";
+          };
+        }
+      ) config.my.observability.textfileChecks;
     in
     {
       config = lib.mkIf config.my.observabilityAgent {
@@ -134,15 +208,23 @@ _: {
           ++ lib.optional config.my.observabilityGpuMetrics "drm";
           # textfile: the directory BOX-332's checks write `<name>.prom` into.
           # Enabled with the directory created and empty, so the collector is
-          # not switched on later as a second change to the same unit.
+          # not switched on later as a second change to the same unit. The path
+          # comes from `obs.textfileDirectory` so the collector's flag and the
+          # checks' target cannot drift apart.
           extraFlags = [
-            "--collector.textfile.directory=/var/lib/node_exporter/textfile"
+            "--collector.textfile.directory=${obs.textfileDirectory}"
           ];
         };
 
+        # Root-owned and 0755 — deliberately NOT writable by the accounts the
+        # checks run as. A check that could create files here could also
+        # replace another check's output; a check writes into it because its
+        # unit is granted it (`ReadWritePaths`), not because the mode allows it.
         systemd.tmpfiles.rules = [
-          "d /var/lib/node_exporter/textfile 0755 root root -"
+          "d ${obs.textfileDirectory} 0755 root root -"
         ];
+
+        systemd.timers = textfileCheckTimers;
 
         # A GPU host needs no extra device access for this: the drm and hwmon
         # collectors read `/sys/class/drm` and `/sys/class/hwmon`, which are
@@ -152,92 +234,100 @@ _: {
         # a metrics scrape never does. See docs/lumquat-hardware.md for which
         # metrics the Strix Halo APU actually populates.
 
-        # ── Container metrics (BOX-331) ─────────────────────────────────
-        #
-        # prometheus-podman-exporter speaks podman's own REST API, so what it
-        # reports is labelled with the container names and pods this host
-        # already thinks in, and it needs no cgroup or /sys/fs/cgroup access.
-        # (`cadvisor` was the fallback and was not needed: our nixpkgs lacks the
-        # exporter, so BOX-331 packages it in
-        # lib/overlays/prometheus-podman-exporter.nix.)
-        #
-        # ## Why it runs as the podman user, not root, and why that is the hard part
-        #
-        # lumquat's containers are **rootless**: `my.baseUsername` owns them and
-        # the API socket is that user's
-        # `/run/user/<uid>/podman/podman.sock`. So the exporter must run as that
-        # user — a root exporter would see an empty container list and report
-        # nothing, which looks identical to "no containers are running". Two
-        # things follow:
-        #
-        #   * `CONTAINER_HOST` points at the user socket by explicit absolute
-        #     path when the podman API service unit is present, so the exporter
-        #     never has to guess the socket location from $XDG_RUNTIME_DIR.
-        #     `podman.socket` (system) and `podman-user-api.socket` are both
-        #     candidates; the user one is what rootless podman creates.
-        #   * `XDG_RUNTIME_DIR` is set explicitly for the same reason — a system
-        #     unit does not get one, and podman's Go client uses it as a
-        #     fallback when CONTAINER_HOST is unset.
-        #
-        # The user must exist in the podman group's runtime dir *before* the
-        # user's session starts, so this unit binds after `podman.socket` and
-        # `linger-users` (which is what makes `/run/user/<uid>` exist for a user
-        # who is not logged in — the same ordering `podman-network-llm-internal`
-        # relies on in modules/features/llm.nix).
-        #
-        # ## Binding
-        #
-        # Loopback only, on `my.observabilityPodmanExporterPort`. Same argument
-        # as node_exporter: a metrics endpoint on the LAN leaks which containers
-        # exist on the machine for no benefit. `openFirewall` is deliberately not
-        # used — there is no nixpkgs module here, so there is no firewall to
-        # toggle; the bind address is the control.
-        #
-        # ## Collectors
-        #
-        # `--collector.enable-all` turns on container, pod, image, volume, network
-        # and system. That is more than v1's dashboards use (containers and pods),
-        # but the extras are cheap API reads against the same socket and they are
-        # what makes "is the model image still on disk" answerable later without
-        # another rebuild. `--collector.enhance-metrics` is NOT set: it puts every
-        # container label into every metric's label set, which multiplies series
-        # with no v1 consumer.
-        #
-        # `--collector.container-stats-timeout` is raised from upstream's 2 s: a
-        # rootless podman `stats` call for a container holding a 31 GB model can
-        # exceed 2 s under load, and a timed-out stats read makes the whole
-        # scrape fail rather than return stale numbers.
-        systemd.services.prometheus-podman-exporter = lib.mkIf config.my.observabilityContainerMetrics {
-          description = "Prometheus exporter for podman containers";
-          after = [
-            "network-online.target"
-            "podman.socket"
-            "linger-users.service"
-          ];
-          wants = [ "network-online.target" ];
-          wantedBy = [ "multi-user.target" ];
-          # The runtime bump argument from llm.nix's container units applies
-          # here too: the exporter was started against the old podman's API
-          # socket, and after a bump the new podman serves a different one.
-          restartTriggers = [ config.virtualisation.podman.package ];
-          serviceConfig = {
-            User = config.my.baseUsername;
-            Group = config.my.baseUsername;
-            # A system unit running as a user has no $HOME or $XDG_RUNTIME_DIR.
-            # podman's client needs both to find the rootless socket.
-            Environment = [
-              "HOME=/home/${config.my.baseUsername}"
-              "XDG_RUNTIME_DIR=/run/user/%U"
-              "CONTAINER_HOST=unix:/run/user/%U/podman/podman.sock"
+        # The checks themselves, if a feature declared any, plus BOX-331's
+        # container exporter. The exporter is nested inside this one attrset
+        # rather than declared as a second `systemd.services.<name>` in the same
+        # block: NixOS permits only one definition of an option path per module
+        # block, and the two spellings merged cleanly in git while failing to
+        # evaluate.
+        systemd.services = textfileCheckServices // {
+          prometheus-podman-exporter = lib.mkIf config.my.observabilityContainerMetrics {
+            # ── Container metrics (BOX-331) ───────────────────────────────
+            #
+            # prometheus-podman-exporter speaks podman's own REST API, so what it
+            # reports is labelled with the container names and pods this host
+            # already thinks in, and it needs no cgroup or /sys/fs/cgroup access.
+            # (`cadvisor` was the fallback and was not needed: our nixpkgs lacks the
+            # exporter, so BOX-331 packages it in
+            # lib/overlays/prometheus-podman-exporter.nix.)
+            #
+            # ## Why it runs as the podman user, not root, and why that is the hard part
+            #
+            # lumquat's containers are **rootless**: `my.baseUsername` owns them and
+            # the API socket is that user's
+            # `/run/user/<uid>/podman/podman.sock`. So the exporter must run as that
+            # user — a root exporter would see an empty container list and report
+            # nothing, which looks identical to "no containers are running". Two
+            # things follow:
+            #
+            #   * `CONTAINER_HOST` points at the user socket by explicit absolute
+            #     path when the podman API service unit is present, so the exporter
+            #     never has to guess the socket location from $XDG_RUNTIME_DIR.
+            #     `podman.socket` (system) and `podman-user-api.socket` are both
+            #     candidates; the user one is what rootless podman creates.
+            #   * `XDG_RUNTIME_DIR` is set explicitly for the same reason — a system
+            #     unit does not get one, and podman's Go client uses it as a
+            #     fallback when CONTAINER_HOST is unset.
+            #
+            # The user must exist in the podman group's runtime dir *before* the
+            # user's session starts, so this unit binds after `podman.socket` and
+            # `linger-users` (which is what makes `/run/user/<uid>` exist for a user
+            # who is not logged in — the same ordering `podman-network-llm-internal`
+            # relies on in modules/features/llm.nix).
+            #
+            # ## Binding
+            #
+            # Loopback only, on `my.observabilityPodmanExporterPort`. Same argument
+            # as node_exporter: a metrics endpoint on the LAN leaks which containers
+            # exist on the machine for no benefit. `openFirewall` is deliberately not
+            # used — there is no nixpkgs module here, so there is no firewall to
+            # toggle; the bind address is the control.
+            #
+            # ## Collectors
+            #
+            # `--collector.enable-all` turns on container, pod, image, volume, network
+            # and system. That is more than v1's dashboards use (containers and pods),
+            # but the extras are cheap API reads against the same socket and they are
+            # what makes "is the model image still on disk" answerable later without
+            # another rebuild. `--collector.enhance-metrics` is NOT set: it puts every
+            # container label into every metric's label set, which multiplies series
+            # with no v1 consumer.
+            #
+            # `--collector.container-stats-timeout` is raised from upstream's 2 s: a
+            # rootless podman `stats` call for a container holding a 31 GB model can
+            # exceed 2 s under load, and a timed-out stats read makes the whole
+            # scrape fail rather than return stale numbers.
+            description = "Prometheus exporter for podman containers";
+            after = [
+              "network-online.target"
+              "podman.socket"
+              "linger-users.service"
             ];
-            ExecStart = lib.concatStringsSep " " [
-              "${pkgs.prometheus-podman-exporter}/bin/prometheus-podman-exporter"
-              "--web.listen-address=127.0.0.1:${toString config.my.observabilityPodmanExporterPort}"
-              "--collector.enable-all"
-              "--collector.container-stats-timeout=10s"
-            ];
-            Restart = "always";
-            RestartSec = "10s";
+            wants = [ "network-online.target" ];
+            wantedBy = [ "multi-user.target" ];
+            # The runtime bump argument from llm.nix's container units applies
+            # here too: the exporter was started against the old podman's API
+            # socket, and after a bump the new podman serves a different one.
+            restartTriggers = [ config.virtualisation.podman.package ];
+            serviceConfig = {
+              User = config.my.baseUsername;
+              Group = config.my.baseUsername;
+              # A system unit running as a user has no $HOME or $XDG_RUNTIME_DIR.
+              # podman's client needs both to find the rootless socket.
+              Environment = [
+                "HOME=/home/${config.my.baseUsername}"
+                "XDG_RUNTIME_DIR=/run/user/%U"
+                "CONTAINER_HOST=unix:/run/user/%U/podman/podman.sock"
+              ];
+              ExecStart = lib.concatStringsSep " " [
+                "${pkgs.prometheus-podman-exporter}/bin/prometheus-podman-exporter"
+                "--web.listen-address=127.0.0.1:${toString config.my.observabilityPodmanExporterPort}"
+                "--collector.enable-all"
+                "--collector.container-stats-timeout=10s"
+              ];
+              Restart = "always";
+              RestartSec = "10s";
+            };
           };
         };
 

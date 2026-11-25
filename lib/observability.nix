@@ -7,9 +7,9 @@
 # shape — the agent renders what it scrapes, the host renders what it gathers
 # from everyone — and a single implementation cannot drift from itself.
 #
-# Deliberately NOT here yet: the textfile-check builder helpers (BOX-332's
-# `obs.sqliteCheck` and friends). This file gains them; nothing in it needs
-# reshaping for them.
+# The textfile-check builders (BOX-332's `sqliteCheck` and `textfileScript`) are
+# here for the same reason: the agent renders the runner, and the contract test
+# and a feature module both reason about the same rendered script.
 { lib }:
 rec {
   # ── Scrape targets ────────────────────────────────────────────────────
@@ -227,6 +227,256 @@ rec {
   # but the documented value is used here so a future reader comparing our
   # config to the upstream page sees the same string.
   journalUploadUrl = hostAddress: port: "http://${hostAddress}:${toString port}/insert/journald";
+
+  # ── Textfile checks (BOX-332) ─────────────────────────────────────────
+  #
+  # node_exporter's textfile collector reads `*.prom` out of one directory on
+  # every scrape (`--collector.textfile.directory`, set by the agent module). A
+  # *check* answers a question only a command can answer — a database's size, a
+  # certificate's remaining days — so the arrangement is a systemd timer that
+  # runs the command and drops its output into that directory as
+  # `<name>.prom`.
+  #
+  # Three properties this section exists to guarantee, each with its comment
+  # where it is implemented:
+  #
+  #   the file lands whole         `emitTextfile` below (temp file + rename(2))
+  #   the reader can read it       `install -m 0644`, not the writer's umask
+  #   the check cannot write       `sqliteCheck` opens `mode=ro&immutable=1`
+  #
+  # The directory is root-owned and NOT writable by a check's user: a check that
+  # could create files there could also replace another check's output.
+  textfileDirectory = "/var/lib/node_exporter/textfile";
+
+  # The shell prelude every generated check script is wrapped in.
+  #
+  # `emitTextfile` takes prom text on stdin, so a builder pipes its output
+  # straight in. The temp file is created in the *same* directory as the target
+  # so `mv` is a rename within one filesystem — atomic, so a scrape sees either
+  # the previous complete file or the new complete file, never a truncated one.
+  # (A half-written file is a parse error for that scrape, which looks exactly
+  # like the check having failed.) `$$` keeps two invocations from colliding.
+  #
+  # `chmod 0644` is explicit rather than inherited because the writer's umask is
+  # whatever systemd gives it and node_exporter reads as its own user.
+  emitTextfile = name: ''
+    emit_textfile() {
+      tmp="${textfileDirectory}/.${name}.prom.$$"
+      trap 'rm -f "$tmp"' EXIT
+      cat > "$tmp"
+      chmod 0644 "$tmp"
+      mv -f "$tmp" "${textfileDirectory}/${name}.prom"
+      trap - EXIT
+    }
+  '';
+
+  # A complete check script: the prelude, then the caller's body, which is
+  # expected to end by piping prom text into `emit_textfile`.
+  #
+  # `set -u` and `pipefail` but deliberately **not** `set -e`: a check that
+  # fails partway should still publish what it knows (`..._success 0`) rather
+  # than leaving the previous file in place looking healthy forever.
+  textfileScript =
+    name: body: ''
+      set -uo pipefail
+      umask 022
+      ${emitTextfile name}
+      ${body}
+    '';
+
+  # ── sqlite checks ─────────────────────────────────────────────────────
+  #
+  # A `sqliteCheck` reports one sqlite file's byte size, its row count and how
+  # old its newest row is — BOX-207's list, and the shape that closes "the file
+  # grew to 1.6 GB in eight days and nothing noticed".
+  #
+  # ## THE BOX-202 TRAP: this must never open the database for writing
+  #
+  # A sqlite connection that takes a write lock on a database another uid owns
+  # can leave `-wal`/`-shm` sidecars owned by *the reader's* uid. The owning
+  # service then crash-loops on "attempt to write a readonly database". That
+  # happened on lumquat while diagnosing BOX-149; it is why the vacuum script
+  # captures and restores ownership rather than hardcoding a uid.
+  #
+  # Every query here is therefore opened `mode=ro&immutable=1`:
+  #
+  #   mode=ro       the connection cannot write. A write is refused with
+  #                 SQLITE_READONLY instead of taking a lock.
+  #   immutable=1   sqlite treats the file as unchanging: it skips the whole
+  #                 lock protocol and reads no `-wal`. So it creates no `-shm`
+  #                 when one is missing, takes no lock, and cannot create or
+  #                 chown a sidecar. This is the flag that makes "read the file
+  #                 without touching the directory" literal rather than
+  #                 hopeful.
+  #
+  # `-readonly` is passed to the CLI as well, belt and braces: it is a *second*
+  # refusal at the sqlite3 layer, and it is what makes the query read-only even
+  # if a future edit drops the URI.
+  #
+  # **The cost of immutable=1, stated plainly**: uncommitted `-wal` content is
+  # invisible, so the row count can trail the live database by whatever the
+  # writer has not checkpointed, and `oldest_row_age_seconds` is the age of the
+  # newest *checkpointed* row. For a growth signal over hours that is a fine
+  # trade — and it is the only reading guaranteed to be side-effect-free, which
+  # is the property BOX-202 says must win.
+  #
+  # ## Other choices worth knowing
+  #
+  #   - **The database is opened by path, never copied.** A copy of a 1.6 GB
+  #     database is a second 1.6 GB write on the disk that just ran out of
+  #     space.
+  #   - **`size_bytes` is `stat`, not sqlite.** It is the number that grew, it
+  #     survives a failed query (so "size fine, rows unreadable" is
+  #     distinguishable from "size zero"), and it is the on-disk size including
+  #     the freelist — `page_count * page_size` is the *logical* size and misses
+  #     exactly the gap BOX-202 hit.
+  #   - **A failure is emitted, not swallowed.** The script writes
+  #     `<prefix>_success 0` and exits 1, so the series says "collected and
+  #     broken" (not "never collected") and the unit's failed state shows up in
+  #     `node_systemd_unit_state`. One silently dead check for a month is the
+  #     failure mode this whole ticket exists to remove.
+  #   - **No rows means NaN, not zero.** An empty database's "oldest row" has no
+  #     age; reporting 0 would read as "just wrote a row".
+  #
+  # ## Parameters
+  #
+  #   `name`        the collection key. Becomes `<name>.prom` and the metric
+  #                 prefix — `bifrost-logs-db` emits
+  #                 `bifrost_logs_db_size_bytes`, with `-`/`.` replaced by `_`
+  #                 because a Prometheus metric name may not contain them.
+  #   `database`    absolute path to the sqlite file on this host.
+  #   `table`       table to count. Required, not guessed: a wrapper's own
+  #                 bookkeeping tables are not a log.
+  #   `timeColumn`  column whose maximum is the newest row's timestamp.
+  #   `timeFormat`  `iso` (a SQLite text timestamp such as bifrost's
+  #                 `2026-09-16T20:36:21Z`, compared with `strftime('%s', …)`),
+  #                 `unix` (integer seconds) or `unixmilli`.
+  #   `user`        the account the check runs as — the database's **owning**
+  #                 user, so it needs read permission rather than privilege.
+  #   `unreadableAs`  see "the escape hatch" below. `null` by default.
+  #
+  # ## The escape hatch (`unreadableAs`), and why it is not the default
+  #
+  # A rootless container's volume is owned by a uid mapped into the owning
+  # user's *subuid* range. The owning user therefore cannot read its own
+  # container's data, while root can — so "run as the owning user" would
+  # produce a permanently failing unit on exactly the host this ticket targets.
+  #
+  # `unreadableAs` names the path the owning user is expected to read. Each run
+  # probes it **as that user** (`runuser -u <user> -- test -r <path>`); if the
+  # probe fails, the check re-execs itself as root. The unit is consequently
+  # `User=root` (a unit that started as the owning user could not become root
+  # for the fallback), and `sudo`/`runuser` is what drops to the owning account —
+  # the direction is root → user, so this can only ever *retain* privilege, not
+  # escalate it.
+  #
+  # Running it as root is safe here **only because the query cannot write**: the
+  # BOX-202 trap is a write-lock sidecar, and `mode=ro&immutable=1` takes no
+  # lock at all. A builder that writes to its data must not offer this option.
+  sqliteCheck =
+    {
+      name,
+      database,
+      table,
+      timeColumn ? "created_at",
+      timeFormat ? "iso",
+      user,
+      unreadableAs ? null,
+    }:
+    let
+      prefix = builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name;
+
+      # Epoch seconds of the newest row, per format. `iso` compares with
+      # `strftime` on the same call path that wrote the value, so nothing here
+      # assumes a timezone.
+      newestExpr =
+        {
+          iso = "CAST(strftime('%s', ${timeColumn}) AS INTEGER)";
+          unix = "CAST(${timeColumn} AS INTEGER)";
+          unixmilli = "CAST(${timeColumn} AS INTEGER) / 1000";
+        }
+        .${timeFormat}
+          or (throw "sqliteCheck: timeFormat must be iso, unix or unixmilli");
+
+      # One row, two columns, space-separated: `<count> <newest-epoch>`.
+      # `coalesce(…, 0)` so an empty table reports 0 rather than NULL, and the
+      # caller turns 0 into NaN.
+      query = "SELECT count(*) || ' ' || coalesce(max(${newestExpr}), 0) FROM ${table};";
+
+      header = ''
+        echo '# HELP ${prefix}_size_bytes On-disk size of the sqlite file in bytes (includes the freelist).'
+        echo '# TYPE ${prefix}_size_bytes gauge'
+        echo "${prefix}_size_bytes ''${size}"
+      '';
+
+      body = ''
+        db=${lib.escapeShellArg database}
+
+        # Always published, even if the query below fails: this is the series
+        # that would have caught BOX-202.
+        size=$(stat -c %s "$db" 2>/dev/null || echo 0)
+
+        if read -r rows newest < <(
+          sqlite3 "file:$db?mode=ro&immutable=1" -readonly -noheader ${lib.escapeShellArg query} 2>/dev/null
+        ); then
+          now=$(date +%s)
+          # No rows means no age to report. NaN rather than 0 so an empty
+          # database does not read as a freshly written one.
+          if [ "''${newest:-0}" -gt 0 ]; then
+            age=$(( now - newest ))
+          else
+            age=NaN
+          fi
+          {
+            ${header}
+            echo '# HELP ${prefix}_rows Rows in ${table}.'
+            echo '# TYPE ${prefix}_rows gauge'
+            echo "${prefix}_rows ''${rows}"
+            echo '# HELP ${prefix}_oldest_row_age_seconds Age of the newest persisted row in seconds.'
+            echo '# TYPE ${prefix}_oldest_row_age_seconds gauge'
+            echo "${prefix}_oldest_row_age_seconds ''${age}"
+            echo '# HELP ${prefix}_success 1 when the check could read the database.'
+            echo '# TYPE ${prefix}_success gauge'
+            echo "${prefix}_success 1"
+          } | emit_textfile
+        else
+          {
+            ${header}
+            echo '# HELP ${prefix}_success 1 when the check could read the database.'
+            echo '# TYPE ${prefix}_success gauge'
+            echo "${prefix}_success 0"
+          } | emit_textfile
+          echo "sqlite check failed: could not read $db" >&2
+          exit 1
+        fi
+      '';
+    in
+    {
+      script = textfileScript name body;
+      inherit user unreadableAs;
+    };
+
+  # The account a check's unit declares. A check with an escape hatch must be
+  # able to become root, so its unit is root and the script drops to the owning
+  # user itself; a check without one runs directly as the owning user.
+  checkUnitUser =
+    check: if check.unreadableAs == null then check.user else "root";
+
+  # The shell that runs just before a check's own body: without an escape hatch
+  # it is empty, with one it is the probe-and-maybe-re-exec.
+  checkPrelude =
+    check:
+    lib.optionalString (check.unreadableAs != null) ''
+      # The owning user may not be able to read this (a rootless volume is owned
+      # by a uid in its subuid range). Prefer the owning user; fall back to root
+      # when it cannot read the file, which is safe because the query is
+      # read-only by construction.
+      if runuser -u ${lib.escapeShellArg check.user} -- test -r ${lib.escapeShellArg check.unreadableAs} 2>/dev/null; then
+        exec runuser -u ${lib.escapeShellArg check.user} -- "$0" "$@"
+      fi
+      echo "textfile check: ${check.user} cannot read ${check.unreadableAs}, running as root (read-only query)" >&2
+    '';
+
 
   # ── Grafana datasource UIDs ───────────────────────────────────────────
   #

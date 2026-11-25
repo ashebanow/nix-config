@@ -1,0 +1,122 @@
+# bifrost's request log — is it growing again? (BOX-332, closing BOX-207)
+#
+# The metrics come from a textfile check (`my.observability.textfileChecks`
+# → `obs.sqliteCheck`), run on lumquat by a timer and exposed by that host's
+# node_exporter. This file only reads them, so nothing here touches the
+# database.
+#
+# Metric names (the check is named `bifrost-logs-db`, so `-` becomes `_`):
+#
+#   bifrost_logs_db_size_bytes          on-disk size, including the freelist
+#   bifrost_logs_db_rows                rows in the `logs` table
+#   bifrost_logs_db_oldest_row_age_seconds
+#                                       age of the newest persisted row — i.e.
+#                                       how far behind the retention window the
+#                                       data actually is
+#   bifrost_logs_db_success             1 when the check could read the database
+#
+# `node_exporter`'s textfile collector attaches no `job` label of its own —
+# these series inherit `job="node"` and `instance` from the scrape — so the
+# expressions below select on the metric name alone and let the labels flow
+# through. That is also why no rule here sets a `host` label: vmagent's
+# `instance` already carries it and vmalert copies it onto the alert.
+#
+# ## Why a recording rule rather than an inline expression in the alert
+#
+# "MB/day" is the number a reader wants and it is not a single Prometheus
+# function: `deriv()` gives bytes *per second*, so the conversion to MiB/day is
+# a multiplication by 86400/2^20. Written once as a recording rule it has a name
+# a dashboard can share with the alert, and one place to fix if the unit is
+# wrong. It also makes the growth curve queryable for history at a resolution
+# better than the alert's evaluation interval.
+groups:
+  - name: bifrost-log-growth
+    interval: 1m
+    rules:
+      # ── Growth, in MiB/day ─────────────────────────────────────────────
+      #
+      # `deriv` fits a straight line to the last 6 hours of the size gauge and
+      # returns bytes/second. Six hours is the same window `DiskFillingFast`
+      # uses, for the same reason: long enough that one large request or one
+      # VACUUM does not dominate, short enough to react inside a day.
+      #
+      # Deliberately **not `delta()`**: delta compares two points, and the
+      # weekly `bifrost-vacuum` timer makes the series a sawtooth. A linear fit
+      # over six hours smooths a single checkpoint or vacuum step, and when a
+      # vacuum lands inside the window the trend is briefly negative — which is
+      # correct and harmless, because the alert is a `>` comparison.
+      #
+      # Negative growth is clamped to 0: after a VACUUM the file is genuinely
+      # smaller, and a "−400 MiB/day" line on a dashboard reads as a bug rather
+      # than as the space being reclaimed.
+      - record: bifrost:logs_db_growth_mib_per_day
+        expr: |
+          clamp_min(
+            deriv(bifrost_logs_db_size_bytes[6h]) * 86400 / 1024^2,
+            0
+          )
+
+      # ── Log growth ─────────────────────────────────────────────────────
+      #
+      # BOX-320 decided this rule's thresholds: **"logs.db > 200 MB/day for 6 h,
+      # or > 1 GB total"**, severity warning. Both halves are here.
+      #
+      # The `for: 6h` is the "for 6 hours" half. It is long on purpose: this is a
+      # warning about a slow trend, not an outage, and six hours of a sustained
+      # rate is the point at which "this will be a problem this week" is a fact
+      # rather than a guess. A single large request pushing one interval over
+      # 200 MB/day does not fire it.
+      #
+      # The 1 GB branch has no `for:` — the file is over 1 GB *now*, and BOX-202
+      # is the record of what waiting costs. (It reached 1.63 GB in eight days
+      # while nothing watched it.)
+      #
+      # `unless ... _success 0` is load bearing: a broken check must not be
+      # reported as a healthy log. When the check cannot read the database the
+      # size series still exists (it comes from `stat`), so without this an
+      # unreadable file would look like a perfectly stable one and this alert
+      # would never fire — the exact failure mode where "no data" reads as "fine".
+      - alert: BifrostLogGrowth
+        expr: |
+          (
+            bifrost:logs_db_growth_mib_per_day > 200
+            or bifrost_logs_db_size_bytes > 1024^3
+          )
+          unless on(instance) bifrost_logs_db_success == 0
+        for: 6h
+        labels:
+          severity: warning
+        annotations:
+          summary: 'bifrost request log is growing again ({{ $value | printf "%.0f" }} on {{ $labels.instance }})'
+          description: |
+            bifrost's logs.db is {{ with printf "bifrost_logs_db_size_bytes{instance=%q}" $labels.instance | query }}{{ . | first | value | humanize1024 }}B{{ end }}
+            and growing at {{ with printf "bifrost:logs_db_growth_mib_per_day{instance=%q}" $labels.instance | query }}{{ . | first | value | printf "%.0f" }}{{ end }} MiB/day.
+            BOX-207 is the incident this rule exists for: 1.63 GB in 8 days, found by hand.
+            The FILE does not shrink by itself — the cleaner deletes rows but never VACUUMs
+            (BOX-202), so check `node_systemd_timer_last_trigger_seconds{name="bifrost-vacuum.timer"}`
+            as well as the growth rate, and confirm bifrost is still answering.
+
+      # ── The check itself has stopped working ───────────────────────────
+      #
+      # A textfile check that cannot read its database is a silently blind spot:
+      # the generic `SystemdUnitFailed` rule covers the unit failing, but it
+      # names the *unit*, not the file, and it is a warning alongside every other
+      # failed unit. This says what actually broke.
+      #
+      # `== 0` and `for: 30m` rather than an instant alert, because the file
+      # legitimately is unreadable for the duration of the weekly vacuum, which
+      # stops the stack and rewrites both databases.
+      - alert: BifrostLogCheckFailing
+        expr: bifrost_logs_db_success == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'the bifrost log check cannot read logs.db on {{ $labels.instance }}'
+          description: |
+            The textfile check behind bifrost's log metrics has been unable to read the
+            database for 30 minutes, so its size, row count and oldest-row age are missing
+            or stale. `systemctl status textfile-check-bifrost-logs-db` and
+            `journalctl -u textfile-check-bifrost-logs-db` on {{ $labels.instance }}.
+            If the file was renamed by a bifrost upgrade, this is what notices —
+            the schema it queries is bifrost's own, not ours.

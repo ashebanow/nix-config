@@ -49,6 +49,13 @@
   my.observabilityHost = true;
   my.observabilityAgent = true;
 
+  # storage2 (the UniFi UNAS Pro archive) health over SNMPv3 (BOX-334). Set
+  # here and nowhere else: the poller is a loopback service on this host, and
+  # the module asserts that only the observability host sets it. What this
+  # device does *not* expose (capacity, SMART, pool state) is recorded in
+  # modules/features/storage2.nix and is UniFi's own notification's job.
+  my.storage2 = true;
+
   # Ingest is the one listener opened beyond loopback: other machines' agents
   # remote-write their metrics here. The port is VictoriaMetrics' default.
   my.observabilityIngestPort = 8428;

@@ -128,6 +128,92 @@
       description = "Cockpit web interface port.";
     };
 
+    # ── storage2 (the UniFi UNAS Pro archive) ────────────────────────────
+    #
+    # storage2 cannot run services, so its health can only be observed from
+    # outside. These options are the SNMP poller the observability host runs
+    # for it (BOX-334).
+    #
+    # Set `storage2` on the **observability host** and nowhere else: the
+    # exporter it enables is a loopback service on that machine, and nothing
+    # else scrapes it. The module asserts this rather than silently starting a
+    # poller that produces no reachable series.
+    storage2 = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Poll storage2 (UniFi UNAS Pro) over SNMPv3 and ship its fans,
+        temperatures, per-drive I/O, load, memory and CPU as metrics.
+
+        Needs the `unifi-snmp` secretspec scope (`UNIFI_SNMP_USER`,
+        `UNIFI_SNMP_PASSWORD`) resolved from BWS; the values never enter the
+        Nix store. See `modules/features/storage2.nix` for what the device does
+        and does not expose — capacity, SMART and pool state are **not**
+        available over SNMP and stay with UniFi's own notifications (BOX-314).
+      '';
+    };
+    storage2Address = lib.mkOption {
+      type = lib.types.str;
+      default = "10.40.0.59";
+      example = "10.40.0.59";
+      description = ''
+        LAN address the SNMP exporter polls. From `docs/network.md`, which is
+        the source of truth for addresses: storage2 is on the servers/storage
+        subnet (`10.40.0.0/24`), not the workstation one.
+      '';
+    };
+    storage2ExporterPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9116;
+      description = ''
+        Loopback port `prometheus-snmp-exporter` serves on. Upstream's default,
+        kept so the exporter's own documentation and its `/snmp` query API match
+        without translation. Nothing is published: only this host's own vmagent
+        scrapes it.
+      '';
+    };
+    storage2AuthProtocol = lib.mkOption {
+      type = lib.types.enum [
+        "MD5"
+        "SHA"
+        "SHA224"
+        "SHA256"
+        "SHA384"
+        "SHA512"
+      ];
+      default = "SHA";
+      description = ''
+        SNMPv3 authentication protocol.
+
+        Default `SHA` because BOX-320 recorded the device answering
+        SNMPv3 `authPriv` with SHA authentication. **Unverified beyond that
+        single observation**: no one has confirmed which SHA variant the UNAS
+        Pro negotiates, and SHA-1 (plain `SHA`) is what UniFi documents as its
+        choice. If the poll fails with an authentication error on the host,
+        suspect this first — `Storage2PollDead` exists to make that visible.
+      '';
+    };
+    storage2PrivProtocol = lib.mkOption {
+      type = lib.types.enum [
+        "DES"
+        "AES"
+        "AES192"
+        "AES192C"
+        "AES256"
+        "AES256C"
+      ];
+      default = "AES";
+      description = ''
+        SNMPv3 privacy (encryption) protocol.
+
+        Default `AES` (AES-128) because BOX-320 recorded the device answering
+        SNMPv3 `authPriv` with AES privacy. **Unverified beyond that single
+        observation**: AES-128 is what UniFi documents, but AES-192/256 were
+        not distinguished on the wire. If the poll fails with a privacy or
+        decryption error, suspect this after the auth protocol.
+      '';
+    };
+
     # ── Observability ────────────────────────────────────────────────────
     #
     # Two roles, two flags. They are separate roles, not alternatives: the
@@ -657,16 +743,30 @@
               only a shell command knows" (a database size, a certificate's
               remaining days) without writing an exporter.
 
-              **Not implemented yet (BOX-332 adds the runner and the
-              `lib/observability.nix` builder helpers such as
-              `obs.sqliteCheck`).** Declared with its final type so BOX-332
-              adds a reader, not a reshape.
+              **Implemented by BOX-332.** The runner is in the agent module
+              (`modules/features/observability-agent.nix`), and the builders —
+              `obs.sqliteCheck`, `obs.textfileScript`, `obs.emitTextfile` — are
+              in `lib/observability.nix`. A feature normally declares a check by
+              calling a builder rather than writing the script itself:
+
+              ```nix
+              my.observability.textfileChecks.bifrost-logs-db =
+                obs.sqliteCheck {
+                  name = "bifrost-logs-db";
+                  database = "…/_data/logs.db";
+                  table = "request_logs";
+                  user = "podman";
+                  unreadableAs = "…/_data/logs.db";
+                };
+              ```
 
               The `user` option is the point of the shape, not an
               afterthought: a check that reads another service's file runs as
               that file's **owning** user, so it can be given read permission
               rather than being run as root (the BOX-202 trap — a check that
-              ran as the wrong user crash-looped bifrost).
+              ran as the wrong user crash-looped bifrost). `unreadableAs` is the
+              documented escape hatch for the one case where that is
+              impossible; see its description.
             '';
             type = lib.types.attrsOf (
               lib.types.submodule {
@@ -696,6 +796,28 @@
                       whatever the check reads — the service's own user
                       (`podman` for a container's data file) — so the check
                       needs read permission rather than privilege.
+                    '';
+                  };
+                  unreadableAs = lib.mkOption {
+                    type = lib.types.nullOr lib.types.str;
+                    default = null;
+                    example = "/home/podman/.local/share/containers/storage/volumes/bifrost_bifrost-data/_data/logs.db";
+                    description = ''
+                      Escape hatch for when `user` genuinely cannot read the
+                      path: the check probes this path **as that user** and,
+                      if unreadable, runs as root instead.
+
+                      This exists for one real case — a rootless container's
+                      volume, whose files are owned by a uid mapped into the
+                      owning user's subuid range. The owning user cannot read
+                      its own container's data while root can, so "run as the
+                      owning user" would produce a permanently failing unit.
+
+                      **Only safe for a read-only check.** Running as root does
+                      not reintroduce the BOX-202 trap when the check cannot
+                      write: `obs.sqliteCheck` opens `mode=ro&immutable=1`,
+                      which takes no lock and creates no `-wal`/`-shm` sidecar.
+                      A check that writes to its data must leave this `null`.
                     '';
                   };
                 };
