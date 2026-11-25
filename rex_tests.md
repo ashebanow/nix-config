@@ -52,8 +52,13 @@ lumquat runs the **login server**, not the shared server: no tsnet node, no
   systemctl cat rex-login-server | grep -- --accounts
   ```
 
-- `journalctl -u rex-login-server` — `login server starting`, then
-  `Account policy reloaded` after a change so the `SIGHUP` path is exercised.
+- `journalctl -u rex-login-server` — `login server starting`, and after a
+  switch that changed `modules/features/rex/accounts.jsonc`, a fresh
+  `login server starting` (the policy is read only at startup). Expect
+  `switch-to-configuration` to print
+  `restarting the following units: rex-login-server.service` — a switch that
+  says nothing about rex-login-server did not change the unit and therefore
+  did not re-read the policy.
 - `journalctl -u rex-tailscale-serve` — no certificate or 443 conflict errors.
 - The principal matches a real caller. `.Self` describes lumquat's own
   (tagged) node and is the right answer to the wrong question; the callers are
@@ -101,14 +106,15 @@ tailnet only while the Mac is awake with Rex running.
 
 Edit `modules/features/rex/accounts.jsonc` in this repo and switch — never
 `/etc/rex/accounts.jsonc` on the host, which is a symlink into the generation
-and will be replaced. A content change adds the derivation to
-`reloadTriggers`, so `rex-login-server` reloads the policy; account servers and
-their sessions keep running.
+and will be replaced. A content change updates `restartTriggers`, so
+`rex-login-server` restarts and re-reads the policy; its account servers and
+their sessions keep running (`KillMode=process`).
 
-To reload by hand after a manual edit (temporary, unsupported):
+`systemctl reload` does **not** re-read the file — Rex reads `--accounts` only
+at startup. To force a re-read in place (temporary, unsupported):
 
 ```
-sudo systemctl reload rex-login-server
+sudo systemctl kill -s HUP rex-login-server
 ```
 
 ## Local access on the server itself

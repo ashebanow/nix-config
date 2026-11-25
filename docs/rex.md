@@ -172,22 +172,46 @@ The mode is only honoured because the entry has `source`: NixOS installs a
 A `text`-only entry defaults to `mode = "symlink"` and inherits whatever the
 store file has, so setting `mode` there would be silently ignored.
 
-### Reloading
+### Restarting, and why not reloading
 
-Rex reads the file at startup and on SIGHUP. The module sets `reloadTriggers` to
-the file, which with `accountsFile` it cannot do itself (it only tracks the
-files it generates): the unit carries `X-Reload-Triggers=…`, and
-`Type=notify-reload` means a switch whose generation changes the trigger
-reloads the policy in place. Account servers and their sessions keep running;
-only connections whose account is no longer allowed are closed.
+Rex reads `--accounts` **once, at startup**. Nothing re-reads that path on its
+own, so a policy change has to arrive as a restart of `rex-login-server` (or a
+deliberate `kill -HUP` to its main PID, which also re-reads the file).
 
-An in-place edit of `/etc/rex/accounts.jsonc` does not trigger that, because the
-installed file is a store path and /etc points at a new one each generation —
-which is the reason the file lives in this repo. For a temporary manual edit:
+`reloadTriggers` — the Rex module's own mechanism, and what the first cut of
+this used — would not work here, and would fail silently:
 
+1. switch-to-configuration compares the old and new unit files. Between two
+   generations only `X-Reload-Triggers` and `ExecStart` /
+   `--accounts <store path>` differ, because both embed store paths that change
+   when the file does.
+2. With `X-Reload-Triggers` alone the unit is **reloaded**: `systemctl reload`
+   on a `Type=notify-reload` unit sends SIGHUP, but the switch reports success
+   and the running process keeps the old policy.
+3. With an `ExecStart` change alone the unit is **restarted**, which is the
+   right action — but the `--accounts` path also changed between generations, so
+   the restart has to happen after the generation switch.
+
+So the unit uses `restartTriggers` instead, which forces (3) on content change:
+
+```nix
+systemd.services.rex-login-server.restartTriggers = [ accountsFile ];
 ```
-sudo systemctl reload rex-login-server
-```
+
+That is safe specifically because it is the *login* server: its account servers
+and sessions are separate processes under `/run/rex/accounts`, and
+`KillMode=process` means restarting the login server leaves them running. It
+re-reads the newly installed file and the policy is live. yuzu's shared server
+keeps the opposite semantics — restarting it ends its sessions.
+
+Cost: every generation changes those store paths, so `rex-login-server`
+restarts on **every** switch, even when the accounts content is identical. That
+is cheap and changes nothing, and it is why you will see
+`restarting the following units: rex-login-server.service` in the switch output.
+
+Editing `/etc/rex/accounts.jsonc` on the host does nothing: the installed file is
+a store path, and /etc carries the current generation's. Change the file in this
+repo.
 
 ## Auth keys
 

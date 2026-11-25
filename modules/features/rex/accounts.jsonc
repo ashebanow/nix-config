@@ -8,8 +8,7 @@
 // This file is written by `environment.etc."rex/accounts.jsonc"` in
 // modules/features/rex.nix — the same /etc path Rex reads by default — so it is
 // managed like every other /etc file NixOS writes: atomic, generation-pinned,
-// and at exactly the mode set there (on a plain file, because
-// `environment.etc` silently ignores `mode` for symlinked (source-less) entries).
+// and at exactly the mode set there (0644 root:root).
 //
 // What it grants today.
 //

@@ -262,19 +262,15 @@
           # root, and a home-manager activation failure under home-manager.service
           # fails silently while the Rex service needs the file present at start.
           #
-          # `environment.etc` is the "exactly once per generation" mechanism:
-          # each switch atomically symlinks /etc/rex/accounts.jsonc to the
-          # current generation's copy, so editing the file in place — which is
-          # what "it isn't saved anywhere" meant — is a change that the next
-          # switch (or upgrade-rollback) discards rather than something nobody
-          # notices. Nothing is copied, so there is no "install if missing".
+          # `environment.etc` is the "exactly once per generation" mechanism: a
+          # switch installs the generation's copy at /etc/rex/accounts.jsonc, so
+          # editing the file in place — which is what "it isn't saved anywhere"
+          # meant — is a change the next switch (or upgrade-rollback) discards
+          # rather than something nobody notices. Nothing is copied, so there is
+          # no "install if missing".
           #
-          # Rex's default is the same path, and its loader is not run per
-          # generation, so an accounts change must reach the running process:
-          # rex-login-server has Type=notify-reload, and `reloadTriggers` below
-          # adds this derivation, so a changed file reloads the policy (existing
-          # account servers and sessions keep running; only revoked connections
-          # close).
+          # Reload on change is handled below, by putting this file in the unit's
+          # `restartTriggers` rather than `reloadTriggers`.
           environment.etc."rex/accounts.jsonc" = {
             # HuJSON: JSON plus //-comments, which Rex accepts and Nix does not.
             # Left unparsed here on purpose — Rex's own loader is the single
@@ -327,10 +323,40 @@
             };
           };
 
-          # Reload the policy when the file's content changes. The module does
-          # this itself for the files it generates; with `accountsFile` it cannot,
-          # so the trigger is stated here.
-          systemd.services.rex-login-server.reloadTriggers = [ accountsFile ];
+          # Replace the accounts file in place when its content changes.
+          #
+          # `restartTriggers`, not `reloadTriggers`, and not the module's own
+          # wiring. Three things have to line up for a policy change to reach
+          # the running process, and only this combination does:
+          #
+          # * switch-to-configuration compares the old and new unit files. The
+          #   only values that differ between two generations here are
+          #   X-Reload-Triggers and ExecStart/`--accounts <store path>` — both
+          #   because they embed store paths that change when the file does.
+          # * With `X-Reload-Triggers` alone it would RELOAD, which is wrong
+          #   here: Rex reads `--accounts` once at startup and never re-reads
+          #   that path, so a reload would leave the old policy in force while
+          #   looking like it worked. The documented way to re-read in place is
+          #   SIGHUP to the login server's main PID (it also watches its
+          #   accounts file for in-place edits, which this deployment never
+          #   makes — the file is a store path).
+          # * With an ExecStart change alone it would RESTART, which is right,
+          #   but the `--accounts` path also changes between generations, so
+          #   the restart could read a path the current generation no longer
+          #   ships.
+          #
+          # `restartTriggers` is safe here in a way it would not be for the
+          # shared server: the login server's account servers and their
+          # sessions are separate processes under /run/rex/accounts, and
+          # `KillMode=process` means a restart of the login server does not
+          # touch them. Restarting re-reads the installed file and reloads the
+          # policy; sessions survive. yuzu's `my.rexServer` keeps its own
+          # restart semantics — restarting it ends its sessions.
+          #
+          # Side effect worth knowing: every generation changes these store
+          # paths, so rex-login-server restarts on every switch, even when the
+          # accounts content is identical. That is cheap and idempotent.
+          systemd.services.rex-login-server.restartTriggers = [ accountsFile ];
 
           # The login server names Tailscale identities through the host's
           # tailscaled, so it needs the tailnet this config sets up.
