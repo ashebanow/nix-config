@@ -116,6 +116,13 @@ let
   # the two drifting apart without anything in between noticing.
   lumquat = flake.nixosConfigurations.lumquat.config;
 
+  # BOX-334's two jobs, read from calamansi's *rendered* agent config so a
+  # module that stops declaring them fails here rather than on the host.
+  storage2Job = jobNamed "storage2";
+  storage2ExporterJob = jobNamed "storage2-exporter";
+  storage2Address = flake.nixosConfigurations.calamansi.config.my.storage2Address;
+  snmpAuth = flake.nixosConfigurations.calamansi.config.services.prometheus.exporters.snmp.configuration.auths.storage2;
+
   lumquatJobNames = map (j: j.job_name) lumquat.services.vmagent.prometheusConfig.scrape_configs;
   lumquatNodeJob = builtins.head (
     builtins.filter (j: j.job_name == "node") lumquat.services.vmagent.prometheusConfig.scrape_configs
@@ -138,6 +145,17 @@ let
 
   declaredDashboardKeys = builtins.attrNames (
     flake.nixosConfigurations.calamansi.config.my.observability.dashboards
+  );
+
+  # The dashboard as Grafana will serve it. Read from the module's own source
+  # file rather than through the provider directory: the farm is a symlink farm
+  # (one symlink per declared dashboard, named `<key>.json`) and Nix will not
+  # follow a store symlink out of `readFile`. Delivery is asserted by name in
+  # `dashboardFiles`; contents are asserted from the file the farm links to, and
+  # the two cannot differ because the farm is a one-to-one map over the same
+  # declarations.
+  storage2DashboardJson = builtins.fromJSON (
+    builtins.readFile ../../modules/features/storage2.dashboard.json
   );
 
   # ── BOX-330: the agent's always-on collectors ──────────────────────
@@ -254,6 +272,31 @@ let
     )
   );
 
+  # BOX-334 makes calamansi declare a feature ruleset, so "a new agent host gets
+  # the generic defaults for free" can no longer be read off the committed host:
+  # it is asserted on the same host with the feature switched off.
+  genericOnlyFlake = {
+    calamansi = flake.nixosConfigurations.calamansi.extendModules {
+      modules = [
+        { config.my.storage2 = lib.mkForce false; }
+        { config.my.observabilityGatheredHosts = { }; }
+      ];
+    };
+    lumquat = flake.nixosConfigurations.lumquat;
+  };
+
+  genericOnlyRuleFiles = map (f: f.name) (obsHelper.mkRuleFiles (
+    obsHelper.rulesetsOfType "metrics" (
+      defaultRulesets
+      // lib.concatMapAttrs (
+        hostName: host:
+        lib.mapAttrs' (
+          name: ruleset: lib.nameValuePair "${hostName}-${name}" ruleset
+        ) host.config.my.observability.rules
+      ) (lib.filterAttrs (_: host: host.config.my.observabilityAgent or false) genericOnlyFlake)
+    )
+  ));
+
   committedRuleFiles = map (f: f.name) committedRuleEntries;
   gatheredRuleFiles = map (f: f.name) gatheredRuleEntries;
 
@@ -277,7 +320,13 @@ let
     in
     map builtins.head (builtins.filter (m: builtins.isList m && m != [ ]) matched);
 
-  defaultRuleNames = builtins.concatMap alertNamesIn committedRuleFiles;
+  # Only the generic files: `committedRuleFiles` now also contains BOX-334's
+  # storage2 ruleset, and this list is the *stack's* default alert set.
+  defaultRuleNames = builtins.concatMap alertNamesIn [
+    "generic.0.yaml"
+    "generic.1.yaml"
+  ];
+  storage2RuleNames = alertNamesIn "calamansi-storage2.0.yaml";
 
   alertmanagerConfig = hostCfg.services.prometheus.alertmanager.configuration;
   alertmanagerRoute = alertmanagerConfig.route;
@@ -316,11 +365,38 @@ let
       message = "Node Exporter Full has no `ds_prometheus` datasource variable, so it would need a datasource UID baked in and vendoring before it renders.";
     }
     {
-      # When the first feature dashboard is declared (BOX-331/BOX-338 shape),
-      # this test must start asserting that its key reached the provider
-      # directory. Failing here is the reminder, not a defect.
-      assertion = declaredDashboardKeys == [ ];
-      message = "An observation dashboard is now declared. Extend this test to assert its key reaches Grafana's provider directory, then remove this reminder assertion.";
+      # BOX-334 is the first feature to declare a dashboard, so this is also the
+      # first proof that the seam reaches Grafana and not only the option set.
+      # The file name is derived from the key by the provider renderer, so a
+      # declared-but-not-rendered dashboard passes the key check and fails here.
+      assertion = builtins.elem "storage2.json" dashboardFiles;
+      message = "my.observability.dashboards.storage2 did not reach Grafana's dashboard provider directory, so the storage2 dashboard is missing on calamansi.";
+    }
+    {
+      assertion = storage2DashboardJson.uid == "storage2-nas";
+      message = "The storage2 dashboard's uid is not `storage2-nas`. The uid is what a bookmark or a runbook link points at.";
+    }
+    {
+      # The panels must select the job the module declares, or every panel is
+      # empty against a successful scrape — the failure a file check misses.
+      assertion = lib.any (
+        p: builtins.any (t: lib.hasInfix "job=\"storage2\"" (t.expr or "")) (p.targets or [ ])
+      ) storage2DashboardJson.panels;
+      message = "No storage2 dashboard panel selects job=\"storage2\", so the dashboard would render empty while the scrape succeeds.";
+    }
+
+    # Seam 1 again, for the SNMP path (BOX-334): the device's metrics come
+    # through snmp_exporter's query API, and the exporter is scraped a second
+    # time for its own `snmp_scrape_*`. Losing the second job silently removes
+    # the only series that distinguishes "device unreachable" from "poll
+    # returning nothing", which is what Storage2PollDead is for.
+    {
+      assertion = storage2Job.metrics_path == "/snmp?target=${storage2Address}&module=storage2&auth=storage2";
+      message = "The storage2 scrape job does not poll my.storage2Address through snmp_exporter's query API with the storage2 module and auth, so it is either scraping nothing or the wrong device.";
+    }
+    {
+      assertion = storage2ExporterJob.metrics_path == "/metrics";
+      message = "The storage2 exporter's self-metrics job does not scrape /metrics, so snmp_scrape_* series are never collected and Storage2PollDead can never fire.";
     }
 
     # Seam 3 — a remote agent ships to the host, not to its own loopback.
@@ -425,6 +501,40 @@ let
       message = "hwmon is not on for a host without a GPU. Temperatures are host health, not GPU telemetry, and are needed everywhere.";
     }
 
+    # ── BOX-334: device credentials never reach the Nix store ────────
+    #
+    # The rendered `snmp.yml` carries the *variable names*; secretspec expands
+    # them into the exporter's environment at start-up. Anything else would put a
+    # NAS credential in the world-readable store and in every generation.
+    {
+      assertion = snmpAuth.username == "\${UNIFI_SNMP_USER}";
+      message = "The SNMPv3 username is not a \${UNIFI_SNMP_USER} reference. Anything else would put a device credential in the Nix store.";
+    }
+    {
+      assertion = snmpAuth.password == "\${UNIFI_SNMP_PASSWORD}";
+      message = "The SNMPv3 auth password is not a \${UNIFI_SNMP_PASSWORD} reference. Anything else would put a device credential in the Nix store.";
+    }
+    {
+      assertion = snmpAuth.priv_password == "\${UNIFI_SNMP_PASSWORD}";
+      message = "The SNMPv3 privacy password is not a \${UNIFI_SNMP_PASSWORD} reference. Anything else would put a device credential in the Nix store.";
+    }
+    {
+      assertion = lib.hasInfix "-S unifi-snmp" hostCfg.systemd.services.prometheus-snmp-exporter.serviceConfig.ExecStart;
+      message = "The snmp_exporter unit does not resolve the `unifi-snmp` scope, so the \${VAR} references in snmp.yml would never be substituted and every poll would fail authentication.";
+    }
+    {
+      # The exporter only expands ${VAR} when told to; without this flag the
+      # literal reference is sent to the device as the username.
+      assertion = lib.hasInfix "--config.expand-environment-variables" hostCfg.systemd.services.prometheus-snmp-exporter.serviceConfig.ExecStart;
+      message = "snmp_exporter runs without --config.expand-environment-variables, so \${UNIFI_SNMP_USER} would be sent to storage2 verbatim.";
+    }
+    {
+      # The poller is a native host service (ADR 0006), and it is only ever
+      # loopback: the device's internals have no business on the LAN.
+      assertion = hostCfg.services.prometheus.exporters.snmp.listenAddress == "127.0.0.1";
+      message = "The SNMP exporter is not loopback-bound. It re-serves a NAS's internals and only this host's own agent scrapes it.";
+    }
+
     # ── BOX-329: rules and the alerting path ──────────────────────────
 
     # The generic defaults are the stack's, not a feature's: they must be there
@@ -432,11 +542,11 @@ let
     # free" property.
     {
       assertion =
-        committedRuleFiles == [
+        genericOnlyRuleFiles == [
           "generic.0.yaml"
           "generic.1.yaml"
         ];
-      message = "The observability host's vmalert does not load exactly the two generic rule files. A new agent host is supposed to get the default rules with no declaration of its own.";
+      message = "A host with no feature rulesets of its own does not load exactly the two generic rule files. A new agent host is supposed to get the default rules with no declaration of its own.";
     }
     {
       assertion =
@@ -463,6 +573,18 @@ let
     {
       assertion = lib.hasInfix "vmalert-rules-metrics" gatheredRuleDir;
       message = "calamansi's vmalert unit does not load its rules from the rendered rule farm.";
+    }
+
+    # BOX-334's rules. `Storage2PollDead` is the whole point: the device cannot
+    # run an agent, so a dead SNMP poll is the only storage2 failure visible from
+    # outside it, and it is silent without this rule.
+    {
+      assertion = builtins.elem "calamansi-storage2.0.yaml" committedRuleFiles;
+      message = "The storage2 ruleset did not reach calamansi's vmalert rule directory, so a dead SNMP poll on storage2 raises nothing.";
+    }
+    {
+      assertion = builtins.elem "Storage2PollDead" storage2RuleNames;
+      message = "No Storage2PollDead rule exists. Nothing would notice storage2's SNMP agent going away.";
     }
 
     # The delivery path, as BOX-320 decided it.
@@ -542,6 +664,10 @@ let
     dashboardFiles = dashboardFiles;
     declaredDashboardKeys = declaredDashboardKeys;
     nodeExporterFullFacts = nodeExporterFullFacts;
+    storage2DashboardUid = storage2DashboardJson.uid;
+    storage2DashboardTitle = storage2DashboardJson.title;
+    storage2Job = storage2Job;
+    storage2ExporterJob = storage2ExporterJob;
 
     # ── Seam 3 output ──
     localRemoteWrite = cfg.services.vmagent.remoteWrite.url;
@@ -576,6 +702,11 @@ let
     gatheredRuleFiles = gatheredRuleFiles;
     gatheredRuleDir = gatheredRuleDir;
     defaultRuleNames = defaultRuleNames;
+    storage2RuleNames = storage2RuleNames;
+    snmpAuthIsReferences = {
+      inherit (snmpAuth) username password priv_password;
+    };
+    genericOnlyRuleFiles = genericOnlyRuleFiles;
 
     # ── Seam 9 output (BOX-329): the delivery path ──
     alertmanagerGroupBy = alertmanagerRoute.group_by;

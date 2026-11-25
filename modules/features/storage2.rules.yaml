@@ -1,0 +1,150 @@
+# storage2 (UniFi UNAS Pro) health rules (BOX-334).
+#
+# Native vmalert YAML, owned by the storage2 feature module that sits beside
+# this file and scoped by its capability flag. Thresholds are BOX-320's decided
+# v1 list, not invented here; tuning one means editing this file and recording
+# the decision in the ticket that changed it.
+#
+# ## What this device can and cannot tell us
+#
+# BOX-314 walked storage2's SNMP agent (UNAS Pro, UniFi OS 6.0.18) and recorded
+# exactly what it serves. Restating it here, because the rules below are shaped
+# by it and a reader will otherwise file a bug that the missing half was
+# "forgotten":
+#
+#   SERVED      UCD load / memory / systemStats (`1.3.6.1.4.1.2021.10`,
+#               `.4`, `.11`), UCD diskIO per device (`.2021.13.15`),
+#               LM-SENSORS temperatures and fans (`lmTempSensorsTable`,
+#               `lmFanSensorsTable`), and the standard MIB-II trees.
+#
+#   NOT SERVED  `hrStorageTable` (`1.3.6.1.2.1.25.2.3`) — no capacity;
+#               UCD `dskTable` (`.2021.9`) — no per-filesystem usage; SMART,
+#               pool or RAID state; and no Ubiquiti enterprise MIB
+#               (`.1.3.6.1.4.1.41112`, `.4413`) at all.
+#
+# So there is deliberately **no** disk-filling or drive-failure rule here.
+# Capacity, drive-health and pool alerts stay with UniFi's own notifications,
+# which are the only documented SMART-driven path for this device. That is a
+# boundary of the hardware, not a gap in this file.
+#
+# ## Metric names
+#
+# The `snmp_exporter` emits each metric under the `name:` its module config
+# gives it, with no prefix of its own. The names used below (`snmp_*`) are
+# therefore chosen in `storage2.defaults` in the storage2 module, and the two
+# must be changed together — the contract test asserts the exporter's rendered
+# config contains them.
+#
+# ## No `host` or `job` label in any expression
+#
+# vmagent attaches `instance` and `job` to every series it scrapes, and vmalert
+# copies the alerting series' labels onto the alert. Every expression below
+# already selects `job="storage2"`, so the labels arrive for free and a second,
+# hand-written spelling of them could only disagree.
+groups:
+  - name: storage2-availability
+    interval: 1m
+    rules:
+      # ── Unreachable ────────────────────────────────────────────────
+      #
+      # BOX-320: "no SNMP response 10 min", warning. `up` is what the *scrape*
+      # reports, so this covers the whole path — the device being off, SNMP
+      # being turned off on it, a credential that stopped working, and the
+      # exporter on calamansi having died — and it is honest about that: from
+      # here all four look the same, and all four mean the numbers stopped.
+      #
+      # The ten minutes are in the range selector, so there is no `for:` on top
+      # of them (the same reading `HostDown` uses: `for: 1m` would make it
+      # eleven). `min_over_time` rather than `== 0` alone so a single failed
+      # scrape in an otherwise healthy ten minutes does not fire it.
+      - alert: Storage2Unreachable
+        expr: min_over_time(up{job="storage2"}[10m]) == 0
+        labels:
+          severity: warning
+        annotations:
+          summary: 'storage2 (UNAS Pro) has not answered SNMP for 10 minutes'
+          description: 'The SNMP poll of {{ $labels.instance }} has failed for at least 10 minutes. The device is off, its SNMP agent is disabled, or the exporter on calamansi is not running.'
+
+      # ── Polling itself is broken ───────────────────────────────────
+      #
+      # Separate from the above on purpose. `up` is 1 whenever snmp_exporter
+      # answers Prometheus, even if every OID walk inside it failed — so a
+      # device that rejects our SNMPv3 credentials, or a module config naming
+      # OIDs the device does not serve, looks perfectly healthy to
+      # Storage2Unreachable while producing no storage2 metrics at all. That is
+      # exactly the failure the unverified assumptions in this feature make
+      # likely (see the module header), so it needs its own alert.
+      #
+      # `snmp_scrape_walk_duration_seconds` is emitted by the exporter itself on
+      # every scrape, whatever the device returns, so its *absence* is the
+      # signal: it means the exporter is up but returning nothing for this
+      # target.
+      - alert: Storage2PollDead
+        expr: |
+          up{job="storage2"} == 1
+          unless on(instance)
+          snmp_scrape_walk_duration_seconds{job="storage2"}
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'storage2 SNMP polling is up but returning nothing'
+          description: 'snmp_exporter reports storage2 as reachable but is producing no walk results for it. The SNMPv3 credentials, auth/priv protocol, or the module config most likely no longer match the device.'
+
+  - name: storage2-hardware
+    interval: 1m
+    rules:
+      # ── Fan stopped ────────────────────────────────────────────────
+      #
+      # BOX-320: "a fan with non-zero RPM in the last 7 days now at 0 for 5 min
+      # (self-calibrating; empty slots never fire)", critical.
+      #
+      # The self-calibration is the whole point and it is why there is no RPM
+      # number in this file. BOX-320's SNMP walk found `fan1` and `fan2` around
+      # 650 RPM and `fan3`/`fan4` reading 0 — almost certainly unpopulated slots
+      # rather than broken fans, but that was never confirmed on the device. A
+      # hardcoded "0 means broken" would alert permanently on the two empty
+      # slots; a hardcoded minimum RPM would alert on a healthy fan idling
+      # slowly. So the rule asks the device about itself: *this* fan has been
+      # above zero at some point in the last seven days (it is a real, spinning
+      # fan) and has now read zero for five straight minutes (it stopped).
+      #
+      # The seven-day window is BOX-320's. It is long on purpose: a fan that
+      # already stopped a week ago and has not moved since will not have a
+      # non-zero sample to compare against, so it will not fire — an accepted
+      # hole, because the alternative (alerting on any zero) is the permanent
+      # false alarm described above. A restart of the store also loses that
+      # history for the same seven days.
+      #
+      # `min_over_time(...[5m]) == 0` is "read zero continuously for five
+      # minutes", which is what BOX-320 asks for; `for:` would double the wait.
+      - alert: Storage2FanStopped
+        expr: |
+          min_over_time(snmp_lm_fan_rpm{job="storage2"}[5m]) == 0
+          and on(instance, fan)
+          max_over_time(snmp_lm_fan_rpm{job="storage2"}[7d]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: 'storage2 fan {{ $labels.fan }} has stopped'
+          description: 'Fan {{ $labels.fan }} on {{ $labels.instance }} reports 0 RPM and has spun in the last week, so it is a real fan that stopped rather than an empty slot. The NAS is now cooling on passive airflow only.'
+
+      # ── Hot ────────────────────────────────────────────────────────
+      #
+      # BOX-320: "any sensor >70 °C for 10 min", warning.
+      #
+      # The `sensor` label comes from LM-SENSORS' own descriptive name
+      # (`lmTempSensorsDevice`), which BOX-320's walk read as `temp1`,
+      # `Board Temp` and `temp3`. No filter is applied, deliberately: unlike
+      # node_exporter's hwmon (where `temp1_crit` is a *threshold* sitting at
+      # 90-105 °C and would fire forever), LM-SENSORS exposes only actual
+      # temperature readings, so every series under this name is safe to alert
+      # on.
+      - alert: Storage2Hot
+        expr: max by (instance, sensor) (snmp_lm_temp_celsius{job="storage2"}) > 70
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'storage2 {{ $labels.sensor }} is at {{ $value }}°C'
+          description: 'Sensor {{ $labels.sensor }} on {{ $labels.instance }} has been above 70 °C for 10 minutes. Check airflow, fan operation and the drives before it throttles or shuts down.'
