@@ -43,6 +43,9 @@ rec {
       flashAttn = true;
       ngl = 999;
       port = 8080;
+      # Host-side loopback port its llama-server `/metrics` is published on.
+      # Documented in full under "The `metricsPort` field" below.
+      metricsPort = 8081;
       primary = true; # target for the generic /llm serve path
       extraFlags = [
         "-np"
@@ -71,6 +74,27 @@ rec {
       ];
     };
   };
+
+  # ── The `metricsPort` field ─────────────────────────────────────────
+  #
+  # Every model entry may declare `metricsPort`: the **host** TCP port that
+  # model's llama-server `/metrics` endpoint is published on, bound to 127.0.0.1.
+  # `modules/features/llm.nix` publishes it (`127.0.0.1:<metricsPort>:8080`, note
+  # the container-internal side is always 8080 because that is `--port`), and the
+  # same module declares `my.observability.scrapeTargets.llama-<name>` from it, so
+  # adding a model to this catalog gets its metrics collected with no other edit.
+  #
+  # Why a *separate* published port rather than scraping the inference port: the
+  # inference port is deliberately not published on lumquat (models are reachable
+  # only through the bifrost gateway on the `llm-internal` bridge, BOX-138).
+  # Publishing 8080 to expose metrics would re-open that door; a dedicated
+  # loopback-only port exposes the metrics endpoint and nothing else. It is the
+  # same HTTP listener — llama.cpp serves `/metrics` next to `/v1/*` — so the door
+  # is loopback-bound and this host's vmagent is the only client.
+  #
+  # The field is optional. A model without it publishes no metrics port and gets
+  # no scrape target; that is the honest state for a model whose metrics nobody
+  # has decided to collect, not an error.
 
   # Fetch a model file via Nix (if promoted) or return null (use -hf fallback).
   # Adapted from qmx/dotfiles modules/home-manager/llama-swap/default.nix
