@@ -123,6 +123,53 @@ let
               "trusted-substituters" = darwinCaches.substituters;
               "trusted-public-keys" = darwinCaches.keys;
             };
+
+            # ── No cross-building for Linux (BOX-343) ──────────────────
+            #
+            # Determinate Nix's Native Linux Builder (NLB) is on by default
+            # on macOS and advertises aarch64-linux and x86_64-linux as
+            # buildable systems. Every `nix build` of a NixOS host from this
+            # workstation therefore cross-built it inside that VM, and the
+            # resulting x86_64-linux store paths landed on this Mac's
+            # case-insensitive /nix volume.
+            #
+            # That is the origin of the whole terminfo bug class: ncurses 6.6
+            # ships mixed-case directories (A-Z beside a-z) with relative
+            # symlinks pointing at the lowercase names, so Nix's case-hack
+            # renames the directories but not the links inside them. The
+            # result is ~350 dangling symlinks, which broke the initrd build
+            # (BOX-341) and the buildEnv merge for lumquat (BOX-342). Both are
+            # symptoms; the cross-build is the cause.
+            #
+            # Linux hosts are now built ON the Linux hosts — over SSH, or by
+            # `nixos-rebuild --target-host` — where the store is case-sensitive
+            # and the problem cannot occur. That is also upstream's own advice
+            # (NixOS/nix#10746: make the store case-sensitive rather than ask
+            # every derivation to handle the case hack).
+            #
+            # `determinateNixd.builder.state` is the supported switch, NOT
+            # `external-builders`: that setting is in the module's
+            # `disallowedOptions` because determinate-nixd owns it, and editing
+            # it by hand is undone on the next upgrade. This writes
+            # /etc/determinate/config.json, which nix-darwin already manages.
+            #
+            # It sits directly under `determinateNix`, not inside
+            # `customSettings`: `customSettings` becomes /etc/nix/nix.custom.conf
+            # (nix.conf options), while the NLB is a determinate-nixd setting and
+            # lives in config.json. Setting it in the wrong scope silently does
+            # nothing, which is how this was first written.
+            #
+            # A switch is NOT enough to apply it. `darwin-rebuild switch` writes
+            # the file, but determinate-nixd reads it only at start-up, so the
+            # running daemon keeps advertising x86_64-linux and keeps
+            # cross-building. Restart it once:
+            #
+            #   sudo launchctl kickstart -k system/systems.determinate.nix-daemon
+            #
+            # Verify with `nix config show | grep external-builders` — it must
+            # print `external-builders = []`. Checking the file instead passes
+            # while the machine is still broken.
+            determinateNixd.builder.state = "disabled";
           };
         }
         {
