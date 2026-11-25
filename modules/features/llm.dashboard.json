@@ -1,0 +1,244 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "11.0.0" },
+    { "type": "prometheus", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "timeseries", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "stat", "id": "stat", "name": "Stat", "version": "" }
+  ],
+  "annotations": { "list": [] },
+  "description": "llama.cpp inference endpoints on the agent hosts, scraped from each model's own /metrics (enabled by --metrics on the container, published loopback-only). Series are labelled with `model` by modules/features/llm.nix, so every panel groups by it. The full metric set is a labelled prediction in docs/lumquat-hardware.md; panels using a name this deployment does not emit will read No data rather than break.",
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Models up",
+      "description": "vmagent's own up series for the llama-* jobs. 0 means that model's metrics endpoint is not answering.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "color": { "mode": "thresholds" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "sum(up{job=~\"llama-.*\"})", "instant": true, "legendFormat": "up", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "count(up{job=~\"llama-.*\"})", "instant": true, "hidden": true, "legendFormat": "total", "refId": "B" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Requests queued now",
+      "description": "llamacpp:requests_deferred — llama-server's own queue depth: requests waiting for a parallel slot. LlamaCppBackingUp thresholds this at >0 for 10 minutes.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 4 }] }, "color": { "mode": "thresholds" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "sum(llamacpp:requests_deferred{job=~\"llama-.*\"}) or vector(0)", "instant": true, "legendFormat": "queued", "refId": "A" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Requests processing",
+      "description": "llamacpp:requests_processing — requests currently occupying a slot. With -np 4 on lumquat's qwen, a sustained 4 means all slots are busy.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "sum(llamacpp:requests_processing{job=~\"llama-.*\"}) or vector(0)", "instant": true, "legendFormat": "processing", "refId": "A" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Prompt tokens/s",
+      "description": "llamacpp:prompt_tokens_seconds is a gauge of the *last* evaluation's prompt throughput, so it is read directly (not rate()). It reads 0 until a request has been processed since the server started.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 1, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "max(llamacpp:prompt_tokens_seconds{job=~\"llama-.*\"}) or vector(0)", "instant": true, "legendFormat": "prompt t/s", "refId": "A" }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Generated tokens/s",
+      "description": "llamacpp:predicted_tokens_seconds — the gauge llama-server updates with each completed evaluation.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 1, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "max(llamacpp:predicted_tokens_seconds{job=~\"llama-.*\"}) or vector(0)", "instant": true, "legendFormat": "gen t/s", "refId": "A" }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "KV cache in use",
+      "description": "llamacpp:kv_cache_usage_ratio — 0..1. Sustained at 1.0 on a 1M-context qwen means new requests will be queued behind a full cache.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 0.85 }, { "color": "red", "value": 0.98 }] }, "color": { "mode": "thresholds" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "max(llamacpp:kv_cache_usage_ratio{job=~\"llama-.*\"}) or vector(0)", "instant": true, "legendFormat": "kv", "refId": "A" }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Queue depth",
+      "description": "Deferred requests per model over time. This is the series LlamaCppBackingUp watches: >0 for 10 minutes is the alert.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max", "mean"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "llamacpp:requests_deferred{job=~\"llama-.*\"}", "legendFormat": "{{ instance }} / {{ model }} queued", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "llamacpp:requests_processing{job=~\"llama-.*\"}", "legendFormat": "{{ instance }} / {{ model }} processing", "refId": "B" }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Throughput",
+      "description": "llama.cpp's throughput gauges as reported. These are per-evaluation values, not counters: llama-server overwrites them, so they are plotted directly rather than rate()-ed. They reset on every scrape of some builds — see the prediction note in docs/lumquat-hardware.md — which is why the scrape interval is 30s rather than 15s.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "llamacpp:prompt_tokens_seconds{job=~\"llama-.*\"}", "legendFormat": "{{ model }} prompt t/s", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "llamacpp:predicted_tokens_seconds{job=~\"llama-.*\"}", "legendFormat": "{{ model }} generated t/s", "refId": "B" }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "KV cache usage",
+      "description": "llamacpp:kv_cache_usage_ratio per model. A value pinned at 1.0 means the context pool is full and new requests will queue.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 20, "showPoints": "never" }, "color": { "mode": "palette-classic" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 0.85 }, { "color": "red", "value": 0.98 }] }, "custom.thresholdsStyle": { "mode": "dashed" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max", "mean"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "llamacpp:kv_cache_usage_ratio{job=~\"llama-.*\"}", "legendFormat": "{{ instance }} / {{ model }}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Scrape health",
+      "description": "vmagent's up series per model job. Anything at 0 means that model's metrics are stale and every other panel here is showing its last good value.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1, "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 15, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["min", "lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "up{job=~\"llama-.*\"}", "legendFormat": "{{ instance }} / {{ model }}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Container memory for the model containers",
+      "description": "The model containers' own memory, from the podman exporter (job=\"podman\") rather than from llama.cpp. On lumquat the GGUF is in unified memory so this is the number that competes with the KV cache for VRAM.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_mem_usage_bytes{job=\"podman\", name=~\"$container\"}", "legendFormat": "{{ instance }} / {{ name }}", "refId": "A" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["llm", "llama.cpp", "observability"],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_prometheus",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
+        "name": "instance",
+        "label": "Host",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+        "query": "label_values(up{job=~\"llama-.*\"}, instance)",
+        "definition": "label_values(up{job=~\"llama-.*\"}, instance)",
+        "current": {},
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      },
+      {
+        "name": "model",
+        "label": "Model",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+        "query": {
+          "query": "label_values(up{job=~\"llama-.*\"}, model)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(up{job=~\"llama-.*\"}, model)",
+        "current": {},
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      },
+      {
+        "name": "container",
+        "label": "Container",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+        "query": {
+          "query": "label_values(podman_container_state{job=\"podman\"}, name)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(podman_container_state{job=\"podman\"}, name)",
+        "current": {},
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "LLM",
+  "uid": "llm-v1",
+  "version": 1,
+  "weekStart": ""
+}
