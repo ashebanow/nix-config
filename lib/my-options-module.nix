@@ -194,23 +194,25 @@
       description = "Enable zmx session persistence tool.";
     };
 
-    # Rex — the terminal multiplexer, in two roles. A host picks the ones it
+    # Rex — the terminal multiplexer, in three roles. A host picks the ones it
     # plays; they are separate flags because they are separate layers, not
     # alternatives (see modules/features/rex.nix):
     #
-    #   my.rexClient  Home Manager. The `rex` command, the xterm-rex terminfo
-    #                 entry and the ssh guard for one account.
-    #   my.rexServer  NixOS. A server for this host's own account, reachable
-    #                 from other tailnet machines through Rex's own tsnet node.
+    #   my.rexClient       Home Manager. The `rex` command, the xterm-rex
+    #                      terminfo entry and the ssh guard for one account.
+    #   my.rexServer       NixOS. A server for this host's own account, reachable
+    #                      from other tailnet machines through Rex's own tsnet
+    #                      node.
+    #   my.rexLoginServer  NixOS. Root-run login server: one Rex server per
+    #                      account, caller identity from the host's tailscaled,
+    #                      allowlist in modules/features/rex/accounts.jsonc.
     #
-    # There is deliberately no login-server flag. The Rex login server exists to
-    # map *many* Tailscale identities onto *many* local accounts, and it has no
-    # tsnet support at all (`rex login-server` has no --tailscale; only
-    # `rex server run` does), so it cannot publish the native
-    # https://<host>-rex.<tailnet> endpoint that the Rex app requires. A
-    # single-account host — which is every host here, including lumquat — is
-    # served by my.rexServer with a tsnet node instead, and gets the account
-    # restriction from Tailscale's own ACLs rather than an accounts file.
+    # The two server flags are mutually exclusive (the Rex module asserts it):
+    # both own /run/rex and the Serve mapping. The login server has no tsnet
+    # support at all (`rex login-server` has no --tailscale; only
+    # `rex server run` does), so it publishes through the host's tailscaled plus
+    # Tailscale Serve, on 443 — the shape a caller reaching
+    # https://<host>.<tailnet>.ts.net with no port expects.
     rexClient = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -237,6 +239,30 @@
         Access is owner-only by default: just the Tailscale account that
         enrolled the node. Members of the `rex` group can also connect locally
         over the Unix socket.
+      '';
+    };
+    rexLoginServer = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Run the Rex login server on this host (NixOS only).
+
+        The login server runs as root, learns each caller's Tailscale identity
+        from the host's tailscaled, maps it to one operating system account
+        through modules/features/rex/accounts.jsonc, and starts one Rex server
+        per account as that account. That file is installed as
+        /etc/rex/accounts.jsonc — Rex's own default path — and is the whole
+        allowlist: a principal not named there reaches nothing.
+
+        The file is the only accounts configuration, deliberately: the Rex
+        module's `accounts`/`defaults` options would generate an equivalent
+        /etc/rex/accounts.jsonc and cannot express the wildcard account `*`,
+        and `accountsFile` is mutually exclusive with both.
+
+        Published through the host's tailscaled and Tailscale Serve (the login
+        server cannot use tsnet — `rex login-server` has no `--tailscale`), so
+        `my.access` must be on and the serving account must already exist.
+        Mutually exclusive with `my.rexServer`.
       '';
     };
     rexServerUser = lib.mkOption {

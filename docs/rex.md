@@ -1,33 +1,39 @@
 # Rex — the terminal multiplexer
 
-Two roles, in two scopes. They are layers, not alternatives: the client is a
-prerequisite for the server, and on macOS it is the whole story.
+Three roles across two scopes. They are layers, not alternatives: the client is
+a prerequisite for either server, and on macOS it is the whole story. The two
+server roles are the only mutually exclusive pair — the Rex module asserts it,
+because both own `/run/rex` and the Serve mapping.
 
 | Role | Scope | Flag | What it is |
 | --- | --- | --- | --- |
 | client | Home Manager | `my.rexClient` | `rex`, the `xterm-rex` terminfo entry, the ssh guard |
-| server | NixOS | `my.rexServer` | one server for this host's own account, published through Rex's own tailnet node |
+| login server | NixOS | `my.rexLoginServer` | root process; one Rex server per account, caller identity from the host's `tailscaled`, allowlist in `/etc/rex/accounts.jsonc` |
+| shared server | NixOS | `my.rexServer` | one server for this host's own account, published through Rex's own tailnet node |
 
-| Host | client | server | node |
+| Host | client | server | address |
 | --- | --- | --- | --- |
-| lumquat | via `installClient` | `my.rexServer` as `podman` | `lumquat-rex` |
+| lumquat | via `installClient` | `my.rexLoginServer` over Serve | `lumquat` (host tailnet name) |
 | yuzu | `my.rexClient` | `my.rexServer` as `ashebanow` | `yuzu-rex` |
 | bergamot, miraclemax | `my.rexClient` | none — the Rex **app** runs it | `<host>-rex` |
 
 ## Connecting
 
-Every server publishes over its own embedded Tailscale node, so a hostname is
-all a client needs — no port, no Serve mapping:
+The shared server publishes over its own embedded Tailscale node, so a hostname
+is all a client needs. The login server publishes through the host itself, so
+its address is the host's own tailnet name, and the account is chosen in the
+URL:
 
 ```sh
-rex --server lumquat-rex.fluffy-walleye.ts.net ls
 rex --server yuzu-rex.fluffy-walleye.ts.net ls
+rex --server lumquat.fluffy-walleye.ts.net ls                      # default account
+rex --server https://podman@lumquat.fluffy-walleye.ts.net ls       # explicit account
 ```
 
-That same `https://<host>-rex.<tailnet>.ts.net` address is what goes in the Rex
-app's "add remote host" dialog.
+In the Rex app, add `yuzu-rex.fluffy-walleye.ts.net` (shared) or
+`lumquat.fluffy-walleye.ts.net` (login server) as a remote host.
 
-## Why the servers use an embedded node
+## Why the shared server uses an embedded node
 
 Rex's native integration is tsnet: the server runs its own Tailscale node,
 obtains its own HTTPS certificate, and publishes natively. No Tailscale Serve,
@@ -45,31 +51,141 @@ they exposed the service **manually**:
 3. Adding Tailscale Serve on top gave the app its HTTPS, but reintroduced
    exactly the manual exposure tsnet exists to remove.
 
-So there is no `extraListen`, no `tailscaleServe`, and no address option.
+So the *shared* server has no `extraListen`, no `tailscaleServe`, and no address
+option. These are the lessons the login server's deployment inherits: it cannot
+use tsnet, so it does exactly what failed here — `tailscaled` plus Serve — and
+is accepted only because the caller's identity (which it needs and the shared
+server does not) arrives with it.
 
-## Why there is no login server
+## The login server on lumquat
 
-The Rex login server maps *many* Tailscale identities onto *many* local
-accounts. It cannot use tsnet — `rex login-server` has no `--tailscale` flag,
-only `rex server run` does — so it can only publish through the host's
-`tailscaled` plus Serve, i.e. the manual path above.
+lumquat runs `my.rexLoginServer`: root, serving `podman` as this host's
+operator account and, through the wildcard, any other regular account a caller
+names. yuzu runs the shared server instead, because it is the box other devices
+attach to as one person.
 
-On this tailnet each host serves one account, so the shared server is both
-sufficient and the only one that can publish natively. Restriction is
-Tailscale's job (the node is owner-only) rather than an accounts file.
+The login server cannot use tsnet — `rex login-server` has no `--tailscale`
+flag, only `rex server run` does — so it publishes through the host's
+`tailscaled` plus Tailscale Serve, on **443** (Serve owns that port for every
+tailnet connection, and the clients reach the host with no port). That is the
+manual path the shared server exists to avoid, and it is the reason each host
+picks one role rather than both.
 
-**Consequence to remember:** anyone admitted to a Rex node acts as that host's
-`my.rexServerUser` — `podman` on lumquat, `ashebanow` on yuzu. There is no
-per-account mapping.
+Tailnet ACLs stay the outer door: only tailnet members can connect at all. The
+accounts file is the inner one: it decides which local account each caller
+becomes.
+
+**Consequence to remember:** a caller who matches an account's principals acts
+as that account — `podman` on lumquat. There is no per-session privilege drop.
+
+## The accounts file
+
+`/etc/rex/accounts.jsonc` is the login server's entire allowlist. It is installed
+by `my.rexLoginServer` from `modules/features/rex/accounts.jsonc`, through
+`environment.etc` — Rex's own default path, written atomically per generation
+like every other `/etc` file NixOS manages, instead of being hand-edited on the
+host (a change made on the host is discarded by the next switch, which is the
+point).
+
+Three options existed and only one fits:
+
+- `services.rex.loginServer.accounts` / `defaults` generate the same file from
+  Nix, but cannot express the wildcard account `*` (an attribute name
+  `lib.mapAttrs`/`lib.mapAttrsToList` reject as an attribute path).
+- `services.rex.loginServer.accountsFile` lets Rex read a file we install
+  ourselves. That is what the module uses; it is mutually exclusive with the
+  generated form.
+- Editing the file on the host by hand — what it was before — is not
+  reproducible and not recoverable after a rebuild.
+
+The file is HuJSON (JSON plus `//` comments), because Rex parses it with
+`github.com/tailscale/hujson`, and its loader is **strict**: unknown fields are
+rejected, so only `version`, `accounts`, and `defaults` exist, and only
+`principals` inside an account.
+
+```json
+{
+  "version": 1,
+  "accounts": {
+    "podman": { "principals": ["tailscale:ashebanow@example.com"] },
+    "*":      { "principals": ["tailscale:ashebanow@example.com"] }
+  },
+  "defaults": { "tailscale:ashebanow@example.com": "podman" }
+}
+```
+
+What the shipped file grants:
+
+| entry | why |
+| --- | --- |
+| `ashebanow`, `podman`, `root` | named explicitly, so the grant survives a rename only by editing the file |
+| `*` | any regular account (UID ≥ 1000) the caller names — systemd/podman dynamic users come and go and cannot be listed statically |
+| `tailscale:<login>` | the tailnet owner, by login |
+| `tailscale:tag:*` | the same person's nodes, by node identity: a tag is stable across an SSO login change, which a login is not |
+
+Principal keys are validated at startup; anything Rex cannot parse is a load
+error, not a silent never-match. `anonymous` is a valid principal, so **never
+put it in a file the tailnet ACLs cannot protect**: with Serve only, callers are
+always identified by Tailscale and `anonymous` matches nobody, but it would
+match the moment a plain TCP listener were added.
+
+### Permissions
+
+`0644 root:root`, stated explicitly in the module. Verified by building the
+generation, not by reading `/etc` on the host:
+
+```
+$ grep accounts etc/systemd/system/rex-login-server.service
+ExecStart=… /bin/rex login-server … --accounts /nix/store/…-source/modules/features/rex/accounts.jsonc …
+$ cat etc/rex/accounts.jsonc.mode          # the metadata etc-activate applies
+0644
+$ cat etc/rex/accounts.jsonc.uid           # and its owner
++0
+```
+
+Why not `0600`: nothing in the file is a secret. Every value is a tailnet login,
+a tag wildcard, or an account name — all discoverable from `tailscale status` by
+any local user. The property that matters is that **only root can change it**,
+because a writable accounts file is privilege escalation to any account root can
+start a server as. `environment.etc` gives `root:root` from a read-only store
+source, and the service only ever reads. 0600 would also make it unreadable to
+`sudo -u` debugging and to anything that later needs a group read for no
+security gain, since the content names logins rather than carrying capabilities.
+
+The mode is only honoured because the entry has `source`: NixOS installs a
+`source` entry whose mode is not `symlink` as a metadata-tracked file
+(`accounts.jsonc.mode` / `.uid` / `.gid` beside it, applied by `etc-activate`).
+A `text`-only entry defaults to `mode = "symlink"` and inherits whatever the
+store file has, so setting `mode` there would be silently ignored.
+
+### Reloading
+
+Rex reads the file at startup and on SIGHUP. The module sets `reloadTriggers` to
+the file, which with `accountsFile` it cannot do itself (it only tracks the
+files it generates): the unit carries `X-Reload-Triggers=…`, and
+`Type=notify-reload` means a switch whose generation changes the trigger
+reloads the policy in place. Account servers and their sessions keep running;
+only connections whose account is no longer allowed are closed.
+
+An in-place edit of `/etc/rex/accounts.jsonc` does not trigger that, because the
+installed file is a store path and /etc points at a new one each generation —
+which is the reason the file lives in this repo. For a temporary manual edit:
+
+```
+sudo systemctl reload rex-login-server
+```
 
 ## Auth keys
 
-Each tsnet node needs a Tailscale auth key at first enrolment only. They are in
-BWS as:
+Only a host running the shared server (`my.rexServer`) has a tsnet node, and
+that node needs a Tailscale auth key at first enrolment only. lumquat no longer
+has one — its login server uses the host's `tailscaled`, enrolled by `my.access`
+with the host's own key — so its key was removed from `secretspec.toml` as well
+as from the docs. `secrets.nix` passes the variable only when `my.rexServer` is
+true, so only yuzu's remains:
 
 | BWS item | Variable | Scope |
 | --- | --- | --- |
-| `lumquat-rex-tailscale-auth-key` | `REX_LUMQUAT_TS_AUTHKEY` | `host-lumquat` |
 | `yuzu-rex-tailscale-auth-key` | `REX_YUZU_TS_AUTHKEY` | `host-yuzu` |
 
 `host-secrets-populate` writes the host's key to
@@ -115,7 +231,7 @@ key works — but the switch itself reports failure.
 
 ## Local access
 
-The server also listens on `/run/rex/server.sock`, mode `0660`, owned by
+The shared server also listens on `/run/rex/server.sock`, mode `0660`, owned by
 `my.rexServerUser` and the `rex` group. Members of `rex` (and the owning
 account) can attach locally. A consequence to expect: `rex` run as the account
 prefers its *personal* server socket and will report that this machine also has

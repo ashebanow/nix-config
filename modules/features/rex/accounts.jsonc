@@ -1,0 +1,57 @@
+// Rex login server accounts file for lumquat (embedded HuJSON).
+//
+// Format: `rex login-server --accounts`. HuJSON (JSON plus comments and
+// trailing commas) because Rex parses it with github.com/tailscale/hujson;
+// strict `decodeStrict` means the shape matters: only `version`, `accounts`,
+// and `defaults` at the top level, and only `principals` inside an account.
+//
+// This file is written by `environment.etc."rex/accounts.jsonc"` in
+// modules/features/rex.nix — the same /etc path Rex reads by default — so it is
+// managed like every other /etc file NixOS writes: atomic, generation-pinned,
+// and at exactly the mode set there (on a plain file, because
+// `environment.etc` silently ignores `mode` for symlinked (source-less) entries).
+//
+// What it grants today:
+//
+//   ashebanow, podman, root   the tailnet owner, by login, plus by node
+//                             identity (tags are unaffected by a login change)
+//   *                         every wildcard match, i.e. any regular account
+//                             (UID >= 1000) that the caller names explicitly —
+//                             systemd/podman dynamic users come and go, so they
+//                             cannot be named statically
+//
+// A principal key is a JSON key string, so a literal wildcard account in
+// `defaults` reads awkwardly ("*") but is the same value either way.
+{
+  "version": 1,
+  "accounts": {
+    "ashebanow": {
+      "principals": [
+        "tailscale:ashebanow@example.com",
+        "tailscale:tag:*"
+      ]
+    },
+    "podman": {
+      "principals": [
+        "tailscale:ashebanow@example.com",
+        "tailscale:tag:*"
+      ]
+    },
+    "root": {
+      "principals": [
+        "tailscale:ashebanow@example.com",
+        "tailscale:tag:*"
+      ]
+    },
+    "*": {
+      "principals": [
+        "tailscale:ashebanow@example.com",
+        "tailscale:tag:*"
+      ]
+    }
+  },
+  "defaults": {
+    "tailscale:ashebanow@example.com": "ashebanow",
+    "tailscale:tag:*": "ashebanow"
+  }
+}

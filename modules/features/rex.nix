@@ -1,22 +1,32 @@
 # Rex — "the multiplexer for all work", plus the servers that make sessions
 # reachable from other machines.
 #
-# Two roles, in two deferred modules. They are layers, not alternatives: the
-# client is a prerequisite for the server, and on macOS it is the whole story.
+# Two roles, in two deferred modules, plus a third fragment that installs the
+# login server's accounts file. They are layers, not alternatives: the client is
+# a prerequisite for the servers, and on macOS it is the whole story. The two
+# server roles are the only mutually exclusive pair.
 #
-#   rex-client   Home Manager. programs.rex: the `rex` command, the xterm-rex
-#                terminfo entry, and the ssh guard. On macOS the Rex app runs
-#                the server, so nothing else applies there.
+#   rex-client        Home Manager. programs.rex: the `rex` command, the
+#                     xterm-rex terminfo entry, and the ssh guard. On macOS the
+#                     Rex app runs the server, so nothing else applies there.
 #
-#   rex-server   NixOS. services.rex.enable: one server for this host's own
-#                account, published through Rex's OWN tailnet node (tsnet) as
-#                https://<host>-rex.<tailnet>.ts.net.
+#   rex-server        NixOS. services.rex.enable: one server for this host's
+#                     own account, published through Rex's OWN tailnet node
+#                     (tsnet) as https://<host>-rex.<tailnet>.ts.net.
 #
-# Both NixOS hosts run the same shape — lumquat serves `podman`, yuzu serves
-# `ashebanow` — because on a single-operator tailnet the useful distinction is
-# "which account does this box serve", not "which account may reach it".
+#   rex-login-server  NixOS. services.rex.loginServer.enable: root process that
+#                     names each caller through the host's tailscaled, maps it
+#                     to a local account with modules/features/rex/accounts.jsonc
+#                     (installed as /etc/rex/accounts.jsonc), and runs one Rex
+#                     server per account as that account. Published through
+#                     Tailscale Serve as https://<host>.<tailnet>.ts.net.
 #
-# ## Why tsnet, and not every other approach that was tried
+# Yuzu runs the shared server (it serves `ashebanow`, the account other devices
+# attach to); lumquat runs the login server (it has no interactive account of
+# its own, and a caller must be able to pick which account to be).
+#
+# ## Why the shared server uses tsnet, and not every other approach that was
+# ## tried
 #
 # Rex's native integration is the embedded node: `services.rex.tailscale`
 # makes the server run its own Tailscale node, obtain its own HTTPS
@@ -36,25 +46,32 @@
 #   3. Adding Tailscale Serve gave the app its HTTPS, but reintroduced manual
 #      exposure, which is the thing tsnet exists to remove.
 #
-# So: no extraListen, no tailscaleServe, no address option, no accounts file.
+# So the shared server has no extraListen, no tailscaleServe, no address option.
 #
-# ## Why there is no login server
+# ## Why the login server accepts exactly that manual path
 #
-# The Rex login server maps *many* Tailscale identities onto *many* local
-# accounts. It cannot use tsnet at all — `rex login-server` has no
-# `--tailscale` flag; only `rex server run` does — so it can only publish via
-# the host's tailscaled plus Serve, i.e. exactly the manual path above. On this
-# tailnet every host serves one account, so the shared server is both
-# sufficient and the only one that can publish natively. Account restriction
-# comes from Tailscale itself (owner-only on the node) rather than an accounts
-# file.
+# `rex login-server` has no `--tailscale` flag, so it cannot have a tsnet node:
+# it can only publish through the host's tailscaled plus Serve. It is the one
+# role that needs what Serve carries — the caller's Tailscale identity, which
+# is what it maps onto a local account — and Serve owns 443, so clients reach
+# it as https://<host>.<tailnet>.ts.net with no port and no `-rex` node. The
+# identity arrives over a root-owned 0600 socket; the accounts file is the
+# allowlist, and it is installed by this module (see rex-login-server below);
+# nothing is copied by hand onto the host.
+#
+# ## Why the shared server needs no accounts file
+#
+# The shared server maps no identities: it serves the one account it runs as,
+# so its restriction is Tailscale's own (the node is owner-only). Only the login
+# server needs an allowlist, which is why the accounts file below is gated by
+# `my.rexLoginServer` and absent on yuzu.
 #
 # ## Notes
 #
 # The flake's modules are imported unconditionally and gated with mkIf, the
 # same pattern as dank-material-shell.nix: a conditional import recurses,
 # because the module system collects `imports` before it can settle `config`,
-# and the Rex modules read `config` in turn. Both are inert until enabled.
+# and the Rex modules read `config` in turn. All are inert until enabled.
 #
 # Why lumquat sets no `my.rexClient`: it is a deliberately minimal headless
 # host whose Home Manager profile carries only the baseline CLI set (everything
@@ -220,4 +237,117 @@
   my.modules.nixos.rex-module = {
     imports = [ inputs.rex.nixosModules.default ];
   };
+
+  # The login server's accounts allowlist, as a file. One fragment for every
+  # host, gated below by `my.rexLoginServer` — there is only ever one accounts
+  # file per host, and it is the same shape everywhere.
+  my.modules.nixos.rex-login-server =
+    {
+      lib,
+      config,
+      ...
+    }:
+    {
+      # `local` rather than `config`: reading `config.environment.etc` while
+      # defining that same option (for accountsFile and reloadTriggers) is
+      # infinite recursion, because `environment.etc` is one option tree.
+      config =
+        let
+          accountsFile = ./rex/accounts.jsonc;
+        in
+        lib.mkIf config.my.rexLoginServer {
+          # Installed through `environment.etc` (the module's own target, see
+          # below), not `home.file`: Home Manager only exists for hosts with an
+          # interactive account (lumquat has none), it would still leave /etc to
+          # root, and a home-manager activation failure under home-manager.service
+          # fails silently while the Rex service needs the file present at start.
+          #
+          # `environment.etc` is the "exactly once per generation" mechanism:
+          # each switch atomically symlinks /etc/rex/accounts.jsonc to the
+          # current generation's copy, so editing the file in place — which is
+          # what "it isn't saved anywhere" meant — is a change that the next
+          # switch (or upgrade-rollback) discards rather than something nobody
+          # notices. Nothing is copied, so there is no "install if missing".
+          #
+          # Rex's default is the same path, and its loader is not run per
+          # generation, so an accounts change must reach the running process:
+          # rex-login-server has Type=notify-reload, and `reloadTriggers` below
+          # adds this derivation, so a changed file reloads the policy (existing
+          # account servers and sessions keep running; only revoked connections
+          # close).
+          environment.etc."rex/accounts.jsonc" = {
+            # HuJSON: JSON plus //-comments, which Rex accepts and Nix does not.
+            # Left unparsed here on purpose — Rex's own loader is the single
+            # validator, and the only pure-Nix check available (fromJSON) would
+            # reject the comments this file type exists for.
+            source = accountsFile;
+
+            # 0644, not 0600. The file is not a credential: every value in it is
+            # a tailnet login or a wildcard, readable from `tailscale status` by
+            # any local user. The protection that matters is that only root can
+            # change it — `environment.etc` gives root:root, and the Nix store
+            # source is root-owned and read-only — because a writable accounts
+            # file is privilege escalation to any account root can start a server
+            # as. Rex runs as root and reads it at startup and on SIGHUP only, so
+            # no account needs read access; 0644 is what a plain file needs for
+            # "not writable by anyone else" without making diagnosis harder.
+            #
+            # Honoured (as a metadata-tracked file, accounts.jsonc.mode) only
+            # because this entry has `source`; a `text`-only entry defaults to
+            # mode "symlink" and ignores this.
+            mode = "0644";
+          };
+
+          services.rex.loginServer = {
+            enable = true;
+
+            # `accountsFile` is how the file above is read: /etc/rex/accounts.jsonc
+            # is Rex's default, but the module only appends `--accounts` when this
+            # option is set (or generates its own file when it is not), and it
+            # asserts that `accounts` and `defaults` stay empty alongside it.
+            #
+            # The alternative — the module's `accounts`/`defaults` options — would
+            # generate /etc/rex/accounts.jsonc from Nix, but it cannot express the
+            # wildcard account `*` (an attr name that `lib.mapAttrs` rejects as an
+            # attribute path), and the wildcard is what lets a caller name a
+            # transient account such as a systemd dynamic user.
+            accountsFile = accountsFile;
+
+            # The only listener is Tailscale Serve, on 443 rather than the
+            # module's 7297 default: Serve owns its port for every tailnet
+            # connection to this host, and the clients (the Rex app included)
+            # reach the login server as https://<host>.<tailnet>.ts.net with no
+            # port, selecting an account with https://<account>@<host>. The
+            # caller's identity arrives over a root-owned 0600 socket, so the only
+            # door is the tailnet: no extraListen, no plain host:port, and
+            # allowAnonymous stays false.
+            tailscaleServe = {
+              enable = true;
+              httpsPort = 443;
+            };
+          };
+
+          # Reload the policy when the file's content changes. The module does
+          # this itself for the files it generates; with `accountsFile` it cannot,
+          # so the trigger is stated here.
+          systemd.services.rex-login-server.reloadTriggers = [ accountsFile ];
+
+          # The login server names Tailscale identities through the host's
+          # tailscaled, so it needs the tailnet this config sets up.
+          assertions = [
+            {
+              assertion = config.my.access;
+              message = "my.rexLoginServer is enabled but my.access is not — the login server identifies callers through this host's tailscaled.";
+            }
+            {
+              assertion = !config.my.rexServer;
+              message = "my.rexLoginServer and my.rexServer are mutually exclusive: both own /run/rex and the Tailscale Serve mapping. The login server serves every account in its accounts file; the shared server serves one.";
+            }
+            {
+              assertion = config.my.base;
+              message = "my.rexLoginServer is enabled but my.base is not — the accounts file names a local account, and base is what creates it.";
+            }
+          ];
+        };
+    };
 }

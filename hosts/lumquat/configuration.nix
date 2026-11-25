@@ -30,19 +30,27 @@
   my.zmx = true;
   my.memory = true;
 
-  # Rex — a server for the `podman` account, published through Rex's own
-  # tailnet node (BOX-292). modules/features/rex.nix explains the roles.
+  # Rex — the login server on this host (BOX-292). modules/features/rex.nix
+  # explains the three roles; /etc/rex/accounts.jsonc, installed from
+  # modules/features/rex/accounts.jsonc, is the whole allowlist.
   #
-  # This host runs no `my.rexClient`: the Rex NixOS module already installs the
-  # client into environment.systemPackages for every user (installClient),
-  # which is the same binary programs.rex would add.
+  # The login server rather than the shared server, because this is the box the
+  # operator attaches to for a specific account: it maps each Tailscale caller
+  # to an operating system account (named explicitly, or any regular UID >= 1000
+  # through the wildcard) instead of admitting every caller as one account.
   #
-  # Only `podman` is served, deliberately. The point of Rex on a headless host
-  # is attaching to persistent sessions for debugging, and `podman` is the
-  # operator account here; there is no /home/ashebanow on lumquat at all. The
-  # restriction is Tailscale's job now (owner-only on the node), not an
-  # accounts file, because the login server cannot use tsnet.
-  my.rexServer = true;
+  # It publishes through this host's tailscaled plus Tailscale Serve on 443 (the
+  # login server cannot use tsnet), so the address is lumquat's own tailnet name
+  # with no port and no `-rex` node:
+  #
+  #   rex --server lumquat.fluffy-walleye.ts.net ls
+  #   rex --server https://podman@lumquat.fluffy-walleye.ts.net ls
+  #
+  # Consequently this host runs no `my.rexServer` (the two are mutually
+  # exclusive). This host also runs no `my.rexClient`: the Rex NixOS module
+  # installs the client into environment.systemPackages for every user
+  # (installClient), which is the same binary programs.rex would add.
+  my.rexLoginServer = true;
   my.rexServerUser = "podman";
 
   # Non-hardware defaults
