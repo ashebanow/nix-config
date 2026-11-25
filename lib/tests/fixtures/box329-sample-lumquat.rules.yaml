@@ -1,0 +1,14 @@
+# A rule file standing in for a lumquat feature's rules (BOX-329 acceptance
+# proof: "A rule declared by a lumquat feature appears in calamansi's vmalert
+# config"). Not committed to the repo's config — it exists so the gather can be
+# demonstrated before BOX-331/332/334 write the real ones.
+groups:
+  - name: acceptance-proof-lumquat
+    interval: 1m
+    rules:
+      - alert: LumquatFeatureRuleReachedCalamansi
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: 'This rule was declared by a lumquat feature and gathered by calamansi'

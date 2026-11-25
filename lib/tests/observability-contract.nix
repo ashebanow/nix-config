@@ -1,6 +1,7 @@
 # Contract test for the `my.observability` option set (BOX-326), extended by
-# BOX-327 (a remote agent, GPU telemetry, the Host detail dashboard) and by
-# BOX-330 (journal shipping and the log store).
+# BOX-327 (a remote agent, GPU telemetry, the Host detail dashboard), BOX-330
+# (journal shipping and the log store) and BOX-329 (rules and the alerting
+# path).
 #
 # The seam this ticket establishes is "a feature module declares a source and
 # the machine's machinery picks it up". That is exactly what BOX-331
@@ -13,7 +14,7 @@
 # installed until BOX-324), and a broken contract shows up in rendered
 # configuration values long before it shows up as a running system.
 #
-# Seven seams are covered, because they gather differently:
+# Nine seams are covered, because they gather differently:
 #
 #   scrapeTargets -> this host's agent       extended in-process
 #   dashboards    -> the observability host  gathered from `inputs.self`
@@ -22,12 +23,20 @@
 #   retention/UID -> the observability host  extended in-process (BOX-330)
 #   the committed agent host                 read from `inputs.self`
 #   GPU telemetry -> per-host collector flag extended in-process
+#   rules         -> the observability host  gathered, via the documented
+#                                            `my.observabilityGatheredHosts` hook
+#   alerting      -> Alertmanager's config   rendered, asserted as data
 #
 # The dashboard seam reads the *committed* flake's host configurations, so it
 # cannot be exercised by `extendModules` (an extended config is not in
 # `inputs.self`). It is asserted on the committed hosts instead: whatever
 # dashboards calamansi declares must appear in the provider's directory
 # alongside the prebuilts.
+#
+# The rules seam has the same problem and a documented answer:
+# `my.observabilityGatheredHosts`, empty on every real host, lets a test supply
+# the set of hosts to gather. Without it there is no way to demonstrate "a rule
+# declared on lumquat reaches calamansi" before the rule itself is committed.
 #
 # ## How this fails
 #
@@ -139,7 +148,6 @@ let
   hostCfg = flake.nixosConfigurations.calamansi.config;
   hostJournal = hostCfg.services.journald.upload;
 
-
   nodeExporterFullJson = builtins.fromJSON (
     builtins.readFile (dashboardProvider.options.path + "/prebuilt-node-exporter-full.json")
   );
@@ -169,9 +177,114 @@ let
   # the contract, so a test that read it from the same place the implementation
   # does could not catch a typo in it.
   logDatasource = builtins.head (
-    builtins.filter (d: d.uid == "victorialogs")
-      hostCfg.services.grafana.provision.datasources.settings.datasources
+    builtins.filter (
+      d: d.uid == "victorialogs"
+    ) hostCfg.services.grafana.provision.datasources.settings.datasources
   );
+
+  # ── BOX-329: alert rules, gathered and rendered ─────────────────────
+  #
+  # The gather reads `inputs.self`, so the lumquat side of the acceptance
+  # criterion is simulated the one way it can be: an extended lumquat (carrying
+  # the fixture ruleset and the agent flag BOX-327 sets) handed to calamansi
+  # through `my.observabilityGatheredHosts`.
+  obsHelper = import ../../lib/observability.nix { inherit lib; };
+
+  lumquatWithRules = flake.nixosConfigurations.lumquat.extendModules {
+    modules = [
+      {
+        config.my.observability.rules.llama-queue.files = [
+          ./fixtures/box329-sample-lumquat.rules.yaml
+        ];
+      }
+    ];
+  };
+
+  gatherHosts = {
+    calamansi = flake.nixosConfigurations.calamansi;
+    lumquat = lumquatWithRules;
+  };
+
+  gatherCfg =
+    (flake.nixosConfigurations.calamansi.extendModules {
+      modules = [ { config.my.observabilityGatheredHosts = gatherHosts; } ];
+    }).config;
+
+  # The rule farm's file names, computed with the *same* helper the host module
+  # uses. Reading the rendered directory instead would make this eval depend on
+  # a build (the farm is a derivation), and the farm contains exactly one
+  # symlink per entry here, so the two cannot differ without this changing too.
+  defaultRulesets = {
+    generic = {
+      type = "metrics";
+      files = [
+        (builtins.path {
+          path = ../../modules/features/observability-default.rules.yaml;
+          name = "observability-default.rules.yaml";
+        })
+        (builtins.path {
+          path = ../../modules/features/observability-watchdog.rules.yaml;
+          name = "observability-watchdog.rules.yaml";
+        })
+      ];
+    };
+  };
+
+  committedRuleEntries = obsHelper.mkRuleFiles (
+    obsHelper.rulesetsOfType "metrics" (
+      defaultRulesets
+      // lib.concatMapAttrs (
+        hostName: host:
+        lib.mapAttrs' (
+          name: ruleset: lib.nameValuePair "${hostName}-${name}" ruleset
+        ) host.config.my.observability.rules
+      ) (lib.filterAttrs (_: host: host.config.my.observabilityAgent or false) flake.nixosConfigurations)
+    )
+  );
+
+  gatheredRuleEntries = obsHelper.mkRuleFiles (
+    obsHelper.rulesetsOfType "metrics" (
+      defaultRulesets
+      // lib.concatMapAttrs (
+        hostName: host:
+        lib.mapAttrs' (
+          name: ruleset: lib.nameValuePair "${hostName}-${name}" ruleset
+        ) host.config.my.observability.rules
+      ) (lib.filterAttrs (_: host: host.config.my.observabilityAgent or false) gatherHosts)
+    )
+  );
+
+  committedRuleFiles = map (f: f.name) committedRuleEntries;
+  gatheredRuleFiles = map (f: f.name) gatheredRuleEntries;
+
+  # The directory each vmalert unit actually loads, from its own `-rule=` flag.
+  ruleDirOf =
+    unit: builtins.head (builtins.match ".*-rule=(/[^ ']+)/\\*\\.yaml.*" unit.serviceConfig.ExecStart);
+
+  committedRuleDir = ruleDirOf hostCfg.systemd.services.vmalert;
+  gatheredRuleDir = ruleDirOf gatherCfg.systemd.services.vmalert;
+
+  # Every `alert:` name in a rule file, so a reader sees which rules ship
+  # without opening the YAML.
+  alertNamesIn =
+    file:
+    let
+      text =
+        builtins.readFile
+          (builtins.head (builtins.filter (f: f.name == file) committedRuleEntries)).path;
+      lines = builtins.filter builtins.isString (builtins.split "\n" text);
+      matched = map (line: builtins.match "[ ]*- alert: (.*)" line) lines;
+    in
+    map builtins.head (builtins.filter (m: builtins.isList m && m != [ ]) matched);
+
+  defaultRuleNames = builtins.concatMap alertNamesIn committedRuleFiles;
+
+  alertmanagerConfig = hostCfg.services.prometheus.alertmanager.configuration;
+  alertmanagerRoute = alertmanagerConfig.route;
+  alertmanagerReceivers = alertmanagerConfig.receivers;
+  receiverNamed = name: builtins.head (builtins.filter (r: r.name == name) alertmanagerReceivers);
+
+  pushoverConfig = builtins.head (receiverNamed "pushover").pushover_configs;
 
   # ── Assertions ──────────────────────────────────────────────────────
   #
@@ -194,7 +307,8 @@ let
       message = "Node Exporter Full is not in Grafana's dashboard provider directory, so the Host detail dashboard is missing on calamansi.";
     }
     {
-      assertion = nodeExporterFullFacts.uid == "rYdddlPWk" && nodeExporterFullFacts.title == "Node Exporter Full";
+      assertion =
+        nodeExporterFullFacts.uid == "rYdddlPWk" && nodeExporterFullFacts.title == "Node Exporter Full";
       message = "The pinned Node Exporter Full JSON is not dashboard 1860 (uid rYdddlPWk / title \"Node Exporter Full\"). The URL or the hash is wrong.";
     }
     {
@@ -230,13 +344,12 @@ let
       message = "A remote agent host does not upload its journal. Journal shipping must arrive from the agent flag alone, with no per-host wiring.";
     }
     {
-      assertion = hostJournal.settings.Upload.URL
-        == "http://127.0.0.1:9428/insert/journald";
+      assertion = hostJournal.settings.Upload.URL == "http://127.0.0.1:9428/insert/journald";
       message = "The observability host's journal upload does not target its local VictoriaLogs. It must go over loopback, and it must use VictoriaLogs' native journald endpoint (/insert/journald) rather than a JSON bridge.";
     }
     {
-      assertion = remoteCfg.services.journald.upload.settings.Upload.URL
-        != hostJournal.settings.Upload.URL;
+      assertion =
+        remoteCfg.services.journald.upload.settings.Upload.URL != hostJournal.settings.Upload.URL;
       message = "my.observabilityHostAddress did not change the journal upload URL. A remote agent would ship its journal to nothing.";
     }
 
@@ -311,6 +424,106 @@ let
       assertion = builtins.elem "hwmon" cfg.services.prometheus.exporters.node.enabledCollectors;
       message = "hwmon is not on for a host without a GPU. Temperatures are host health, not GPU telemetry, and are needed everywhere.";
     }
+
+    # ── BOX-329: rules and the alerting path ──────────────────────────
+
+    # The generic defaults are the stack's, not a feature's: they must be there
+    # with no feature declaring anything, which is the "a new host gets them for
+    # free" property.
+    {
+      assertion =
+        committedRuleFiles == [
+          "generic.0.yaml"
+          "generic.1.yaml"
+        ];
+      message = "The observability host's vmalert does not load exactly the two generic rule files. A new agent host is supposed to get the default rules with no declaration of its own.";
+    }
+    {
+      assertion =
+        defaultRuleNames == [
+          "HostDown"
+          "DiskFilling"
+          "DiskNearlyFull"
+          "DiskFillingFast"
+          "OutOfMemory"
+          "SystemdUnitFailed"
+          "SourceDown"
+          "HotHardware"
+          "Watchdog"
+        ];
+      message = "The generic rule set no longer matches BOX-320's decided v1 list (host down, disk filling, disk nearly full, OOM, unit failed, source down, hot hardware, watchdog).";
+    }
+
+    # The acceptance criterion: a rule declared by a lumquat feature appears in
+    # calamansi's vmalert rule directory.
+    {
+      assertion = builtins.elem "lumquat-llama-queue.0.yaml" gatheredRuleFiles;
+      message = "A ruleset declared on lumquat did not reach calamansi's vmalert rule directory. my.observability.rules is not being gathered across agent hosts.";
+    }
+    {
+      assertion = lib.hasInfix "vmalert-rules-metrics" gatheredRuleDir;
+      message = "calamansi's vmalert unit does not load its rules from the rendered rule farm.";
+    }
+
+    # The delivery path, as BOX-320 decided it.
+    {
+      assertion =
+        alertmanagerRoute.group_by == [
+          "alertname"
+          "host"
+        ];
+      message = "Alertmanager no longer groups by rule and host. BOX-320 decided grouping by (alertname, host).";
+    }
+    {
+      assertion = alertmanagerRoute.group_wait == "30s";
+      message = "Alertmanager's group_wait is not 30 s (BOX-320).";
+    }
+    {
+      assertion = alertmanagerRoute.repeat_interval == "1h";
+      message = "Alertmanager does not repeat a critical alert hourly (BOX-320).";
+    }
+    {
+      assertion = builtins.elem "pushover" (map (r: r.name) alertmanagerReceivers);
+      message = "Alertmanager has no Pushover receiver, so no alert reaches the phone.";
+    }
+    {
+      assertion = builtins.elem "healthchecks" (map (r: r.name) alertmanagerReceivers);
+      message = "Alertmanager has no healthchecks.io receiver, so the dead-man's switch is not wired.";
+    }
+    {
+      assertion =
+        (builtins.head alertmanagerRoute.routes).matchers == [ "severity=\"none\"" ]
+        && (builtins.head alertmanagerRoute.routes).receiver == "healthchecks";
+      message = "The Watchdog (severity=\"none\") is not routed to healthchecks.io. It must not reach the phone, and it must not go anywhere else.";
+    }
+    {
+      assertion = (builtins.head alertmanagerRoute.routes).repeat_interval == "1m";
+      message = "The Watchdog's route does not repeat every minute. healthchecks.io expects a ping a minute and alerts after its own grace period.";
+    }
+    {
+      assertion = lib.hasInfix "severity" pushoverConfig.priority;
+      message = "Pushover's priority is no longer a template over the alert's severity, so critical and warning cannot differ (BOX-320: critical = 1, warning = 0).";
+    }
+
+    # The Watchdog rule itself, which is what the bridge above pings for.
+    {
+      assertion = builtins.elem "Watchdog" defaultRuleNames;
+      message = "No always-firing Watchdog alert exists. Without it nothing pings healthchecks.io, and the house going dark is silent.";
+    }
+
+    # Secrets: the rendered config carries the *variable name*, never a value.
+    {
+      assertion = pushoverConfig.token == "\${PUSHOVER_APP_TOKEN}";
+      message = "Alertmanager's Pushover token is not a \${PUSHOVER_APP_TOKEN} reference. Anything else would put a credential in the Nix store.";
+    }
+    {
+      assertion = pushoverConfig.user_key == "\${PUSHOVER_USER_KEY}";
+      message = "Alertmanager's Pushover user key is not a \${PUSHOVER_USER_KEY} reference. Anything else would put a credential in the Nix store.";
+    }
+    {
+      assertion = lib.hasInfix "-S alerting" hostCfg.systemd.services.alertmanager.serviceConfig.ExecStart;
+      message = "Alertmanager's unit does not resolve the `alerting` scope, so the \${VAR} references in its config would never be substituted at start-up.";
+    }
   ];
 
   failures = map (a: a.message) (builtins.filter (a: !a.assertion) assertions);
@@ -356,6 +569,23 @@ let
     # ── Seam 6 output ──
     gpuHostCollectors = gpuCfg.services.prometheus.exporters.node.enabledCollectors;
     nonGpuHostCollectors = cfg.services.prometheus.exporters.node.enabledCollectors;
+
+    # ── Seam 8 output (BOX-329): rules ──
+    committedRuleFiles = committedRuleFiles;
+    committedRuleDir = committedRuleDir;
+    gatheredRuleFiles = gatheredRuleFiles;
+    gatheredRuleDir = gatheredRuleDir;
+    defaultRuleNames = defaultRuleNames;
+
+    # ── Seam 9 output (BOX-329): the delivery path ──
+    alertmanagerGroupBy = alertmanagerRoute.group_by;
+    alertmanagerGroupWait = alertmanagerRoute.group_wait;
+    alertmanagerRepeatInterval = alertmanagerRoute.repeat_interval;
+    alertmanagerReceiverNames = map (r: r.name) alertmanagerReceivers;
+    watchdogRoute = builtins.head alertmanagerRoute.routes;
+    pushoverPriority = pushoverConfig.priority;
+    pushoverTokenIsReference = pushoverConfig.token;
+    pushoverUserKeyIsReference = pushoverConfig.user_key;
 
     # ── The gate ──
     # Printed too, so a reader of the JSON sees the result without checking the

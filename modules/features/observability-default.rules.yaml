@@ -1,0 +1,188 @@
+# Generic alert rules every observability agent gets (BOX-329).
+#
+# Loaded on the observability host against every agent host's metrics — the
+# contributor is the *agent module*, not the host, so a new host gets these for
+# free and nobody has to remember to add them. Thresholds are BOX-320's decided
+# v1 list, not invented here; tuning them means editing this file and the
+# ticket that recorded the change.
+#
+# Severities map to Pushover priorities in Alertmanager's receiver:
+#   critical  priority 1 — sounds once, bypasses the phone's quiet hours
+#   warning   priority 0 — respects quiet hours
+#
+# No rule below sets a `host` label, deliberately: vmagent attaches `instance`
+# to every series it scrapes and vmalert copies the alerting series' labels onto
+# the alert, so the hostname is already there. Adding one by hand would be a
+# second, shorter spelling of the same fact, and it would be wrong on any rule
+# whose expression has no per-host series.
+#
+# ## What is deliberately NOT here
+#
+# The rest of BOX-320's v1 list belongs to the feature that owns the thing:
+# container crash-looping (BOX-331), llama.cpp queueing (BOX-331), bifrost
+# log growth (BOX-332), storage2 (BOX-333), archive freshness (BOX-337),
+# WAN failover (BOX-333). They land beside their own modules as
+# `my.observability.rules.<feature>` and are NOT written by this file:
+# a generic rule that guessed at another feature's metric names would be
+# permanently silent, which is worse than absent.
+groups:
+  - name: generic-availability
+    interval: 1m
+    rules:
+      # ── Host down ──────────────────────────────────────────────────
+      #
+      # 5 minutes of the agent's own `up` being 0 is BOX-320's threshold. It is
+      # evaluated on the observability host from the scraped series, so it is
+      # about the *shipping* path too: vmagent not delivering looks the same
+      # as the machine being off, which is the honest reading — either way the
+      # numbers stopped.
+      #
+      # "Unreachable for 5 minutes" is expressed by the range selector rather
+      # than `for:`, so the alert needs no extra hold-down on top of the five
+      # minutes already waited: 1m of `for` would make it six.
+      - alert: HostDown
+        expr: min_over_time(up{job="node"}[5m]) == 0
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.instance }} is not reporting metrics'
+          description: 'node_exporter has been unreachable for at least 5 minutes. The machine is off, or its observability agent is not shipping.'
+
+  - name: generic-disk
+    interval: 1m
+    rules:
+      # ── Disk filling ───────────────────────────────────────────────
+      #
+      # `fstype!~` is load bearing: tmpfs, overlay and the squashfs store
+      # mounts are either always full or never meaningful, and alerting on a
+      # full /run or a read-only /nix/store path is noise that trains the
+      # reader to ignore the alert. `mountpoint!~` drops /boot*, which on these
+      # hosts is a small ESP that sits at a low percentage by design.
+      - alert: DiskFilling
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs",mountpoint!~"/boot.*"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs",mountpoint!~"/boot.*"})
+            < 0.15
+          # 10 GiB floor: below that a percentage on its own is not the
+          # signal — see the DiskNearlyFull threshold for the absolute case.
+          and node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs",mountpoint!~"/boot.*"} < 10 * 1024^3
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.instance }} {{ $labels.mountpoint }} is filling up ({{ $value | humanizePercentage }} free)'
+          description: 'Filesystem {{ $labels.mountpoint }} has been below 15% free for 15 minutes. Look at what grew before it is full.'
+
+      # ── Disk nearly full ───────────────────────────────────────────
+      #
+      # BOX-320: ">95%, or projected full within 24 h". The projection is
+      # `DiskFillingFast` below: predict_linear over six hours of history —
+      # long enough that one large copy does not trip it, short enough to act
+      # inside a day.
+      - alert: DiskNearlyFull
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs",mountpoint!~"/boot.*"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs",mountpoint!~"/boot.*"})
+            < 0.05
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.instance }} {{ $labels.mountpoint }} is nearly full ({{ $value | humanizePercentage }} free)'
+          description: 'Filesystem {{ $labels.mountpoint }} has been below 5% free for 15 minutes.'
+
+      - alert: DiskFillingFast
+        expr: |
+          predict_linear(
+            node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs",mountpoint!~"/boot.*"}[6h],
+            24 * 3600
+          ) < 0
+          and node_filesystem_avail_bytes{fstype!~"tmpfs|devtmpfs|squashfs|overlay|ramfs|autofs",mountpoint!~"/boot.*"} < 50 * 1024^3
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.instance }} {{ $labels.mountpoint }} fills up within 24 h at the current rate'
+          description: 'Linear projection over 6 hours of history puts {{ $labels.mountpoint }} at zero free space inside 24 hours.'
+
+  - name: generic-memory
+    interval: 1m
+    rules:
+      # ── Out of memory ──────────────────────────────────────────────
+      #
+      # The OOM killer firing is the fact that matters; memory *pressure* on a
+      # server running a 128 GB model is normal and would alert constantly.
+      # `node_vmstat_oom_kill` is a monotonic counter, hence increase().
+      - alert: OutOfMemory
+        expr: increase(node_vmstat_oom_kill[15m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.instance }} killed a process for out of memory'
+          description: 'The kernel OOM killer fired {{ $value }} time(s) in the last 15 minutes. Something is larger than the machine expects.'
+
+  - name: generic-systemd
+    interval: 1m
+    rules:
+      # ── Unit failed ────────────────────────────────────────────────
+      #
+      # node_exporter's systemd collector renders one series per unit *state*
+      # (`node_systemd_unit_state{name,state,type}`), so `state="failed"` with a
+      # value of 1 is "this unit is in the failed state".
+      #
+      # Some units are noisy by design and are not worth a phone notification:
+      # they are listed here rather than filtered at the notifier, so the
+      # exclusion is visible next to the rule.
+      - alert: SystemdUnitFailed
+        expr: |
+          node_systemd_unit_state{state="failed"} == 1
+          unless on(instance, name) node_systemd_unit_state{state="failed",name=~"systemd-fsck.*|systemd-modules-load.service"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.instance }}: unit {{ $labels.name }} failed'
+          description: '{{ $labels.name }} has been in the failed state for 5 minutes. `systemctl status {{ $labels.name }}` on {{ $labels.instance }}.'
+
+  - name: generic-sources
+    interval: 1m
+    rules:
+      # ── Source down ────────────────────────────────────────────────
+      #
+      # BOX-320: "any non-host scrape target unreachable 10 min". Host-down is
+      # the `job="node"` rule above; this is everything a feature declared
+      # through `my.observability.scrapeTargets`, which is the honest split
+      # between "the machine is gone" and "the service on it is gone".
+      - alert: SourceDown
+        expr: min_over_time(up{job!="node"}[10m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.job }} on {{ $labels.instance }} is down'
+          description: 'The {{ $labels.job }} scrape target has been unreachable for 10 minutes. The service it watches is stopped, crashed, or moved.'
+
+  - name: generic-hardware
+    interval: 1m
+    rules:
+      # ── Hot hardware ───────────────────────────────────────────────
+      #
+      # hwmon, which the agent enables, does not distinguish CPU from GPU
+      # usefully — both appear as temperature sensors — so one rule covers
+      # "CPU or GPU too hot". The `sensor=~` filter is what keeps the
+      # threshold pseudo-sensors (`temp1_crit`, `_max`, `_emergency`) out: those
+      # sit at 90-105 °C on a healthy machine and would fire permanently. A
+      # machine with no matching sensor has no series and never alerts, which is
+      # the right default for a host with no thermal sensors at all.
+      - alert: HotHardware
+        expr: |
+          max by (instance, chip, sensor) (
+            node_hwmon_temp_celsius{sensor=~"temp[0-9]+|.*(CPU|Board|Composite|edge|junction|GPU).*"}
+          ) > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.instance }} {{ $labels.chip }}/{{ $labels.sensor }} is at {{ $value | printf "%.0f" }}°C'
+          description: 'A temperature sensor has been above 90 °C for 10 minutes. Check cooling before the machine throttles or shuts down.'
