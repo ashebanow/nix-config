@@ -1,7 +1,7 @@
 # Contract test for the `my.observability` option set (BOX-326), extended by
 # BOX-327 (a remote agent, GPU telemetry, the Host detail dashboard), BOX-330
-# (journal shipping and the log store) and BOX-329 (rules and the alerting
-# path).
+# (journal shipping and the log store), BOX-329 (rules and the alerting path)
+# and BOX-331 (container metrics, llama.cpp scrape targets, rules, dashboards).
 #
 # The seam this ticket establishes is "a feature module declares a source and
 # the machine's machinery picks it up". That is exactly what BOX-331
@@ -277,7 +277,12 @@ let
     in
     map builtins.head (builtins.filter (m: builtins.isList m && m != [ ]) matched);
 
-  defaultRuleNames = builtins.concatMap alertNamesIn committedRuleFiles;
+  # Only the stack's own files. Since BOX-331 a gathered feature ruleset is also
+  # in `committedRuleEntries`, so an unfiltered concat would fold lumquat's
+  # container alerts into "the generic rule set" and this assertion would stop
+  # meaning what it says.
+  genericRuleFiles = builtins.filter (n: lib.hasPrefix "generic." n) committedRuleFiles;
+  defaultRuleNames = builtins.concatMap alertNamesIn genericRuleFiles;
 
   alertmanagerConfig = hostCfg.services.prometheus.alertmanager.configuration;
   alertmanagerRoute = alertmanagerConfig.route;
@@ -285,6 +290,68 @@ let
   receiverNamed = name: builtins.head (builtins.filter (r: r.name == name) alertmanagerReceivers);
 
   pushoverConfig = builtins.head (receiverNamed "pushover").pushover_configs;
+
+  # ── BOX-331: containers and llama.cpp ───────────────────────────────
+  #
+  # lumquat is the host that owns the model containers and the podman exporter,
+  # so everything here is read from the committed lumquat config rather than an
+  # extended one: these are properties of the real deployment, and a test that
+  # extended a host could pass while the committed one stayed broken.
+
+  # The container unit's `ports` argument, as `virtualisation.oci-containers`
+  # renders it. That option is a passthrough list of `podman run -p` strings, so
+  # the port mapping *is* the string and loopback binding is readable only from
+  # its shape — hence the parse below rather than a substring search.
+  qwenContainer = lumquat.virtualisation.oci-containers.containers.qwen-35b-a3b;
+  qwenPorts = qwenContainer.ports;
+
+  # "[<bind>:]<hostPort>:<containerPort>" -> the bind, or null when unbound
+  # (which podman answers by listening on every interface — the thing this test
+  # exists to prevent).
+  bindOf =
+    spec:
+    let
+      parts = lib.splitString ":" spec;
+    in
+    if builtins.length parts >= 3 then builtins.head parts else null;
+
+  # Only the metrics publish: the inference port is a separate mapping whose
+  # host side is models.nix's `port`, not `metricsPort`.
+  metricsPorts = builtins.filter (spec: lib.hasInfix ":8080" spec) qwenPorts;
+
+  lumquatScrapeTargets = lumquat.my.observability.scrapeTargets;
+  llamaTargetNames = builtins.filter (n: lib.hasPrefix "llama-" n) (
+    builtins.attrNames lumquatScrapeTargets
+  );
+
+  # The agent's rendered scrape config, as the committed lumquat has it.
+  lumquatScrapeJobs = lumquat.services.vmagent.prometheusConfig.scrape_configs;
+  llamaJobs = builtins.filter (j: lib.hasPrefix "llama-" j.job_name) lumquatScrapeJobs;
+  podmanJobs = builtins.filter (j: j.job_name == "podman") lumquatScrapeJobs;
+
+  # The podman exporter unit, and where it listens.
+  podmanExporterUnit = lumquat.systemd.services.prometheus-podman-exporter;
+  podmanExporterExecStart = podmanExporterUnit.serviceConfig.ExecStart;
+  podmanExporterEnv = podmanExporterUnit.serviceConfig.Environment;
+
+  # The BOX-331 ruleset and dashboards, as committed.
+  lumquatRulesets = lumquat.my.observability.rules;
+  lumquatDashboards = lumquat.my.observability.dashboards;
+
+  # The rule file text, read from the committed YAML — not through vmalert's
+  # rendered farm, because this eval must not depend on a build. Alert names are
+  # extracted from the same `- alert: <name>` shape the generic rules use.
+  llmRulesText = builtins.readFile ../../modules/features/llm.rules.yaml;
+  llmRulesLines = builtins.filter builtins.isString (builtins.split "\n" llmRulesText);
+  llmAlertNames = map builtins.head (
+    builtins.filter (m: builtins.isList m && m != [ ]) (
+      map (line: builtins.match "[ ]*- alert: (.*)" line) llmRulesLines
+    )
+  );
+
+  # The ruleset name the host renders for lumquat's `llm` entry, in the
+  # `<host>-<ruleset>.<n>.yaml` scheme (obs.mkRuleFiles).
+  committedLlmRuleFiles = builtins.filter (n: lib.hasPrefix "lumquat-llm." n) committedRuleFiles;
 
   # ── Assertions ──────────────────────────────────────────────────────
   #
@@ -316,11 +383,11 @@ let
       message = "Node Exporter Full has no `ds_prometheus` datasource variable, so it would need a datasource UID baked in and vendoring before it renders.";
     }
     {
-      # When the first feature dashboard is declared (BOX-331/BOX-338 shape),
-      # this test must start asserting that its key reached the provider
-      # directory. Failing here is the reminder, not a defect.
-      assertion = declaredDashboardKeys == [ ];
-      message = "An observation dashboard is now declared. Extend this test to assert its key reaches Grafana's provider directory, then remove this reminder assertion.";
+      # Replaced by the real BOX-331 assertions below: a feature dashboard now
+      # exists, so this reminder has done its job and is gone.
+      assertion =
+        builtins.elem "containers.json" dashboardFiles && builtins.elem "llm.json" dashboardFiles;
+      message = "A feature dashboard (BOX-331's `containers` / `llm`) did not reach Grafana's provider directory on the observability host. As with rules, the gather is build-time from every agent host, so a declared dashboard that is missing means the gather broke.";
     }
 
     # Seam 3 — a remote agent ships to the host, not to its own loopback.
@@ -431,8 +498,12 @@ let
     # with no feature declaring anything, which is the "a new host gets them for
     # free" property.
     {
+      # BOX-331 added a gathered lumquat ruleset, so this asserts that exactly
+      # the two *generic* files are the stack's own. Reading the first two would
+      # be fragile; filtering by the `generic.` prefix is not, because the host
+      # prefix scheme (obs.mkRuleFiles) guarantees a gathered file never has it.
       assertion =
-        committedRuleFiles == [
+        builtins.filter (n: lib.hasPrefix "generic." n) committedRuleFiles == [
           "generic.0.yaml"
           "generic.1.yaml"
         ];
@@ -451,7 +522,7 @@ let
           "HotHardware"
           "Watchdog"
         ];
-      message = "The generic rule set no longer matches BOX-320's decided v1 list (host down, disk filling, disk nearly full, OOM, unit failed, source down, hot hardware, watchdog).";
+      message = "The generic rule set no longer matches BOX-320's decided v1 list (host down, disk filling, disk nearly full, OOM, unit failed, source down, hot hardware, watchdog). BOX-331's container and llama.cpp rules belong to lumquat's `llm` ruleset, not to this one.";
     }
 
     # The acceptance criterion: a rule declared by a lumquat feature appears in
@@ -524,6 +595,144 @@ let
       assertion = lib.hasInfix "-S alerting" hostCfg.systemd.services.alertmanager.serviceConfig.ExecStart;
       message = "Alertmanager's unit does not resolve the `alerting` scope, so the \${VAR} references in its config would never be substituted at start-up.";
     }
+
+    # ── BOX-331: containers and llama.cpp ───────────────────────────────
+
+    # The metrics port is published, and published **loopback-only**. A bare
+    # "8081:8080" is the failure this catches: podman would listen on every
+    # interface, including the LAN and the tailnet, and nothing else in the
+    # config would look wrong.
+    {
+      assertion = builtins.length metricsPorts == 1;
+      message = "The qwen container does not publish exactly one metrics port mapping (:8080). BOX-331 gives each model a loopback-only published port for llama.cpp's /metrics; without it neither the scrape target nor the LLM dashboard has a source.";
+    }
+    {
+      assertion = builtins.all (spec: bindOf spec == "127.0.0.1") metricsPorts;
+      message = "A model container publishes its llama.cpp metrics port on something other than 127.0.0.1. podman with no bind address listens on every interface, which would put the inference API's /metrics on the LAN and the tailnet for no benefit.";
+    }
+    {
+      assertion = lib.elem "--metrics" qwenContainer.cmd;
+      message = "The qwen container does not pass --metrics to llama-server, so /metrics is not served at all and every llama.cpp series (dashboard and LlamaCppBackingUp rule) is absent.";
+    }
+
+    # A scrape target per model, derived from the catalog rather than written
+    # out, and carrying the label the dashboards and the alert group by.
+    {
+      assertion = llamaTargetNames == [ "llama-qwen-35b-a3b" ];
+      message = "lumquat does not declare exactly one llama-* scrape target for its one catalog model. llm.nix derives these from lib/models.nix's `metricsPort`, so a mismatch means the derivation broke or a target was added by hand.";
+    }
+    {
+      assertion = builtins.all (n: lumquatScrapeTargets.${n}.labels ? model) llamaTargetNames;
+      message = "A llama-* scrape target has no `model` label. It is what the LLM dashboard groups by and what LlamaCppBackingUp names in its alert; without it every panel collapses to one series.";
+    }
+    {
+      assertion = builtins.all (
+        n: bindOf "${lumquatScrapeTargets.${n}.address}:x" == "127.0.0.1"
+      ) llamaTargetNames;
+      message = "A llama-* scrape target does not point at a loopback address. It must match the loopback-only publish above.";
+    }
+    {
+      assertion = builtins.length llamaJobs == builtins.length llamaTargetNames;
+      message = "The number of llama-* jobs in lumquat's rendered vmagent scrape config does not match the number of declared llama-* targets, so a target did not reach the agent.";
+    }
+
+    # The podman exporter itself.
+    {
+      assertion = lumquat.my.observabilityContainerMetrics;
+      message = "lumquat runs the model containers but does not set my.observabilityContainerMetrics, so no container metrics are collected and the Containers dashboard and ContainerCrashLooping rule have no source.";
+    }
+    {
+      assertion = podmanExporterUnit.serviceConfig.User == lumquat.my.baseUsername;
+      message = "The podman exporter does not run as my.baseUsername. lumquat's containers are rootless under that account, so an exporter running as root would report an empty container list — indistinguishable from 'nothing is running'.";
+    }
+    {
+      assertion = builtins.any (e: lib.hasInfix "CONTAINER_HOST=" e) podmanExporterEnv;
+      message = "The podman exporter unit sets no CONTAINER_HOST, so it would fall back to podman's own guess at the rootless socket from a system unit that has no $XDG_RUNTIME_DIR.";
+    }
+    {
+      assertion = lib.hasInfix "--web.listen-address=127.0.0.1:" podmanExporterExecStart;
+      message = "The podman exporter does not bind loopback. Its /metrics lists every container on the host, which is not something to publish on the LAN.";
+    }
+    {
+      assertion = builtins.length podmanJobs == 1;
+      message = "lumquat's rendered vmagent scrape config has no `podman` job. The exporter may be running but nothing scrapes it, which looks exactly like the exporter being down.";
+    }
+    {
+      assertion = builtins.any (
+        sc:
+        builtins.elem "127.0.0.1:${toString lumquat.my.observabilityPodmanExporterPort}" (sc.targets or [ ])
+      ) (builtins.head podmanJobs).static_configs;
+      message = "The `podman` job does not target the exporter's configured port (my.observabilityPodmanExporterPort). The unit's --web.listen-address and the scrape config must come from the same option.";
+    }
+
+    # Rules and dashboards declared by the committing feature, gathered by the
+    # observability host.
+    {
+      assertion = builtins.attrNames lumquatRulesets == [ "llm" ];
+      message = "lumquat does not declare exactly the `llm` ruleset. BOX-331's container and llama.cpp rules belong to modules/features/llm.nix, guarded by its own flag.";
+    }
+    {
+      assertion = lumquatRulesets.llm.type == "metrics";
+      message = "lumquat's `llm` ruleset is not a metrics ruleset. VictoriaLogs' vmalert instance does not exist (BOX-330 follow-up), so a logs ruleset here would be dead.";
+    }
+    {
+      assertion = committedLlmRuleFiles == [ "lumquat-llm.0.yaml" ];
+      message = "lumquat's `llm` ruleset did not reach the observability host's vmalert rule directory under the `<host>-<ruleset>.<n>.yaml` scheme.";
+    }
+    {
+      # Both BOX-320 thresholds, named. The expressions are asserted by
+      # substring because the *shape* (a range selector carrying the whole
+      # threshold) is the decision, and an exact-expression assertion would have
+      # to be rewritten for a whitespace change.
+      assertion = builtins.all (n: builtins.elem n llmAlertNames) [
+        "ContainerCrashLooping"
+        "LlamaCppBackingUp"
+      ];
+      message = "modules/features/llm.rules.yaml does not declare both of BOX-320's container/llama.cpp rules (ContainerCrashLooping, LlamaCppBackingUp).";
+    }
+    {
+      assertion =
+        lib.hasInfix "changes(podman_container_started_seconds" llmRulesText
+        && lib.hasInfix "[15m]" llmRulesText;
+      message = "ContainerCrashLooping no longer counts restarts from podman_container_started_seconds over 15m. The exporter has no restart counter, so that changes() is the only exact restart count available; BOX-320's threshold is '>3 in 15 min'.";
+    }
+    {
+      assertion = lib.hasInfix "for: 10m" llmRulesText && lib.hasInfix "requests_deferred" llmRulesText;
+      message = "LlamaCppBackingUp no longer holds llama.cpp's queue depth for 10 minutes. BOX-320's threshold is 'queued requests for 10 min'.";
+    }
+
+    # The dashboards, both committed and reaching the provider directory (the
+    # seam-2 assertion above covers the gather; these name the keys and check
+    # the JSON actually parses and carries no hardcoded datasource UID).
+    {
+      assertion =
+        builtins.attrNames lumquatDashboards == [
+          "containers"
+          "llm"
+        ];
+      message = "lumquat does not declare exactly the `containers` and `llm` dashboards (BOX-331).";
+    }
+    {
+      assertion = builtins.all (d: builtins.isAttrs (builtins.fromJSON (builtins.readFile d.path))) (
+        builtins.attrValues lumquatDashboards
+      );
+      message = "A declared dashboard is not valid JSON. Grafana's provider would refuse to load it and the dashboard would be absent with no error anywhere in Nix.";
+    }
+    {
+      # Never a hardcoded UID: the dashboards bind to `ds_prometheus`, exactly
+      # as Node Exporter Full does, so the VictoriaMetrics datasource UID can be
+      # changed without rewriting them.
+      assertion = builtins.all (
+        d:
+        let
+          body = builtins.fromJSON (builtins.readFile d.path);
+          vars = map (v: v.name) body.templating.list;
+          text = builtins.readFile d.path;
+        in
+        builtins.elem "ds_prometheus" vars && !lib.hasInfix "\"uid\": \"victoriametrics\"" text
+      ) (builtins.attrValues lumquatDashboards);
+      message = "A BOX-331 dashboard has no `ds_prometheus` templating variable, or hardcodes the VictoriaMetrics datasource UID. Either way it breaks when the datasource is renamed, which is precisely what the variable exists to prevent.";
+    }
   ];
 
   failures = map (a: a.message) (builtins.filter (a: !a.assertion) assertions);
@@ -586,6 +795,22 @@ let
     pushoverPriority = pushoverConfig.priority;
     pushoverTokenIsReference = pushoverConfig.token;
     pushoverUserKeyIsReference = pushoverConfig.user_key;
+
+    # ── BOX-331 output: containers and llama.cpp ──
+    qwenMetricsPorts = metricsPorts;
+    qwenMetricsPortBinds = map bindOf metricsPorts;
+    llamaScrapeTargets = builtins.listToAttrs (
+      map (n: lib.nameValuePair n lumquatScrapeTargets.${n}) llamaTargetNames
+    );
+    llamaJobs = llamaJobs;
+    podmanExporterUser = podmanExporterUnit.serviceConfig.User;
+    podmanExporterExecStart = podmanExporterExecStart;
+    podmanExporterEnvironment = podmanExporterEnv;
+    podmanJob = podmanJobs;
+    llmRulesetTypes = builtins.mapAttrs (_: r: r.type) lumquatRulesets;
+    llmAlertNames = llmAlertNames;
+    committedLlmRuleFiles = committedLlmRuleFiles;
+    lumquatDashboardKeys = builtins.attrNames lumquatDashboards;
 
     # ── The gate ──
     # Printed too, so a reader of the JSON sees the result without checking the

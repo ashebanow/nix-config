@@ -137,3 +137,90 @@ kernel version; the table above is the list of questions, not the answers.
 - `docs/architecture.md` — module layout (its kernel-parameter table is stale; see the drift note)
 - `docs/plan.md` — the original build plan
 - `docs/luks-unlock-strategy.md` — LUKS/TPM2 unlock
+
+## llama.cpp `/metrics`: a labelled prediction, and the command that settles it
+
+BOX-331 turns on llama-server's metrics endpoint on every model container
+(`--metrics` in `modules/features/llm.nix`, which was already there), publishes
+it on a **loopback-only** host port per model (`lib/models.nix`'s `metricsPort`),
+and declares one `my.observability.scrapeTargets.llama-<model>` entry per model
+with a `labels.model`. The rules in `modules/features/llm.rules.yaml` and the
+panels in `modules/features/llm-dashboard.json` read from those series.
+
+**None of the metric names below was observed on lumquat.** This section is a
+prediction from llama.cpp's own documentation and source, written on a
+workstation with no access to the box. It is recorded this way on purpose: the
+previous ticket in this series (BOX-315, GPU telemetry) established that guessing
+which sysfs/API fields a specific build actually populates is where the effort
+goes wrong, so the honest form is a named list of questions plus the one command
+that answers them all at once.
+
+### The metric set — prediction
+
+llama-server's `/metrics` is documented as Prometheus text format with a
+`llamacpp:` namespace. The gauges expected from the build lumquat runs
+(`kyuz0/amd-strix-halo-toolboxes:rocm-10.0`, llama.cpp mainline with MTP):
+
+| metric | expected meaning | used by |
+| --- | --- | --- |
+| `llamacpp:requests_processing` | requests currently occupying a slot | LLM dashboard |
+| `llamacpp:requests_deferred` | requests waiting for a free slot | **`LlamaCppBackingUp` rule**, LLM dashboard |
+| `llamacpp:prompt_tokens_seconds` | prompt-eval throughput of the **last** evaluation, tokens/s | LLM dashboard |
+| `llamacpp:predicted_tokens_seconds` | generation throughput of the **last** evaluation, tokens/s | LLM dashboard |
+| `llamacpp:kv_cache_usage_ratio` | 0..1, fraction of the context/KV pool in use | LLM dashboard |
+| `llamacpp:kv_cache_tokens` | tokens currently held in the cache | — |
+| `llamacpp:n_decode_total` | counter of decode iterations | — |
+| `llamacpp:tokens_predicted_total` | counter of generated tokens | — |
+| `llamacpp:tokens_predicted_seconds_total` | counter of decode time | — |
+| `llamacpp:prompt_tokens_total` | counter of prompt tokens evaluated | — |
+| `llamacpp:prompt_seconds_total` | counter of prompt-eval time | — |
+
+Three properties of that set drive how the config is written, and each is a
+prediction too:
+
+1. **The throughput metrics are gauges, not counters.** `prompt_tokens_seconds`
+   and `predicted_tokens_seconds` are overwritten by each evaluation, so
+   `rate()` on them is meaningless and the dashboard plots them directly. A
+   `_total` set also exists (rows above) if a rate is ever wanted.
+2. **A scrape may reset the throughput gauges to 0** on some builds, because they
+   are computed from the last-evaluation window. This is why BOX-331 sets
+   `interval = "30s"` rather than the agent's 15 s default, and it is the reason
+   the plan says to scrape with exactly one scraper. If it turns out not to
+   happen on this build, the interval can drop to 15 s — but that is a change to
+   make with the box's numbers in hand, not before.
+3. **The metric names may differ.** If a name is wrong the series is simply
+   absent, and a panel reads "No data" while a rule is silently silent. That
+   asymmetry — a wrong name fails quietly — is exactly why the check below is
+   mandatory before trusting either the dashboard or the alert.
+
+### The command that settles it
+
+On lumquat, once the qwen container is up (it publishes the endpoint on
+`127.0.0.1:8081` per `lib/models.nix`):
+
+```sh
+curl -s 127.0.0.1:8081/metrics | grep -E '^llamacpp:' | sort
+```
+
+For the **full** set including the `# HELP` text, which is what distinguishes
+"this build does not emit it" from "it is emitted under another name":
+
+```sh
+curl -s 127.0.0.1:8081/metrics | grep '^#' | grep llamacpp
+```
+
+And to confirm the port is genuinely loopback-only — the first command should
+answer and the second must be refused from any other machine on the LAN or
+tailnet:
+
+```sh
+# on lumquat
+ss -ltnp | grep 8081        # must show 127.0.0.1:8081, NOT 0.0.0.0:8081
+# from another host
+curl -s --max-time 3 http://lumquat:8081/metrics   # must fail
+```
+
+Record what comes back **verbatim** in the table above (replacing "expected
+meaning" with observed values where they differ) and note the date and the image
+digest. Until then this section is a set of predictions, which is why BOX-331's
+report lists it under "on-host checks deferred" rather than claiming it.
