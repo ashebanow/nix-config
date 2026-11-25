@@ -144,9 +144,21 @@ _: {
         }
         # The metrics publish is appended *after* the caller's overrides, so a
         # container that blanks `ports` to keep its inference port private still
-        # has its metrics port published. It can be extended by a caller, never
-        # replaced — which is the whole reason this is not a plain
-        # `// extraConfig`.
+        # has its metrics port published.
+        #
+        # `ports` is then *removed* from `extraConfig`, so the value computed
+        # here is authoritative: a caller can set the inference side via
+        # `extraConfig.ports` (it is the left operand) but cannot drop the
+        # metrics mapping afterwards. A reviewer flagged the earlier comment for
+        # saying the result "can be extended by a caller" — it cannot, and that
+        # is deliberate. `removeAttrs` is load-bearing: without it the right-hand
+        # `//` would re-apply the caller's `ports` and wipe the metrics mapping
+        # again, which is precisely the bug this replaced.
+        #
+        # Corollary worth knowing: a model with no `metricsPort` in
+        # `lib/models.nix` gets no mapping *and* no scrape target, silently. Both
+        # derive from the same `lib.optional`, so they cannot disagree — but
+        # there is nothing that warns you a model is unmonitored.
         // {
           ports = (extraConfig.ports or inferencePorts) ++ metricsPorts;
         }

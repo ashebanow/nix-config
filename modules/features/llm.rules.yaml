@@ -158,21 +158,18 @@ groups:
           summary: 'llama.cpp is queueing requests on {{ $labels.instance }}'
           description: 'Model {{ $labels.model }} has had requests waiting in the queue for 10 minutes. The server is saturated: check slot count (-np) and GPU memory pressure.'
 
-      # ── The model server is down ────────────────────────────────────
+      # ── Deliberately not here: a "llama.cpp metrics endpoint is down" rule ──
       #
-      # Not "the container is down" — that is what ContainerCrashLooping and the
-      # generic SourceDown cover. This is the narrower, more useful case: the
-      # *metrics endpoint* stopped answering while the scrape job existed. It
-      # fires if the container is up but llama-server has stopped serving, which
-      # is exactly the failure the container's health check may take 10 minutes
-      # (60 retries x 30 s) to notice.
+      # An earlier version of this file had `LlamaCppDown` as
+      # `min_over_time(up{job=~"llama-.*"}[10m]) == 0`, described as the
+      # "narrower, more useful" case. It is neither: the generic `SourceDown` is
+      # `min_over_time(up{job!="node"}[10m]) == 0`, and `job=~"llama-.*"` is a
+      # strict subset of `job!="node"`. Same series, same ten minutes, same
+      # warning severity — so it fired a second Pushover notification for one
+      # event and made the alert list look richer than it was.
       #
-      # `up{job=~"llama-.*"}` is vmagent's own series, so this needs no
-      # cooperation from llama.cpp at all.
-      - alert: LlamaCppDown
-        expr: min_over_time(up{job=~"llama-.*"}[10m]) == 0
-        labels:
-          severity: warning
-        annotations:
-          summary: 'llama.cpp metrics are not answering on {{ $labels.instance }}'
-          description: 'The llama-server metrics endpoint {{ $labels.job }} has been unreachable for 10 minutes. The model may be loaded but not serving.'
+      # A reviewer caught it. If a llama-specific down signal is ever wanted, it
+      # has to be *narrower in what it detects*, not narrower in what it selects:
+      # e.g. the container is up and healthy but the endpoint still 404s. That
+      # needs `podman_container_health` alongside `up`, not another subset of
+      # `up`.
