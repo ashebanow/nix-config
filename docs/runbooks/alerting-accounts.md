@@ -143,19 +143,24 @@ parse/validation error; a provider problem names the missing credential).
 
 ## What consumes this scope
 
-Nothing yet — the declarations land first, wiring lands with BOX-329, *Alerting:
-Pushover delivery, watchdog and generic rules*:
+Wired by BOX-329, in `modules/features/observability-host.nix` and the
+rendering helper in `lib/observability.nix`:
 
 - **Alertmanager** (on calamansi) receives `PUSHOVER_APP_TOKEN` and
-  `PUSHOVER_USER_KEY` as systemd credentials, resolved with
-  `secretspec run -P production -S alerting`.
-- **vmalert's always-firing Watchdog alert** pings `HEALTHCHECKS_PING_URL` via
-  `webhook_configs` through Alertmanager, every minute.
+  `PUSHOVER_USER_KEY` through `secretspec run -P production -S alerting`, whose
+  `envsubst` step expands the store's `${VAR}` template into a 0400 file in the
+  unit's RuntimeDirectory. The store never contains a value.
+- **The healthchecks.io bridge** (`scripts/healthchecks-webhook.sh`, unit
+  `healthchecks-webhook@.service`) receives `HEALTHCHECKS_PING_URL` the same way,
+  and pings it once a minute for every firing `Watchdog` notification
+  Alertmanager routes to it. Alertmanager's `webhook_configs` can only POST
+  JSON; healthchecks.io wants a GET to a capability URL, hence the bridge.
 
-So a green step 6 is a prerequisite for BOX-329, not a substitute for it: until
-that module exists, no alert actually reaches the phone. To prove the accounts
-work end-to-end before then, use the *Send test notification* button in
-healthchecks.io (step 4) and the Pushover app's own *Send test notification*.
+So a green step 6 is still a prerequisite: without the values the units fail to
+start, and the Watchdog goes silent — which is the intended loud failure, but a
+slower one than failing here first. To prove the accounts work end-to-end without
+sending a real alert, use the *Send test notification* button in healthchecks.io
+(step 4) and the Pushover app's own *Send test notification*.
 
 ## Why these are a separate scope
 

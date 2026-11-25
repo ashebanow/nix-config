@@ -3,11 +3,34 @@
 # section for the vocabulary and docs/adr/0006 for why every service here is
 # native rather than a container.
 #
-# v1 of this module is metrics and dashboards: VictoriaMetrics and Grafana.
-# VictoriaLogs (BOX-330), vmalert + Alertmanager (BOX-329) and the archive jobs
-# (BOX-336/337) land in this module too — same flag, same machine, one host.
-# They are absent here because they are not this ticket, not because the shape
-# does not allow them.
+# What runs here, all under `my.observabilityHost`:
+#
+#   VictoriaMetrics   store and query (BOX-326)
+#   Grafana           display, provisioned from the repo (BOX-326)
+#   vmalert           evaluate every agent host's rules (BOX-329)
+#   Alertmanager      route and deliver, Pushover + healthchecks.io (BOX-329)
+#
+# VictoriaLogs (BOX-330) and the archive jobs (BOX-336/337) land here too — same
+# flag, same machine, one host. They are absent because they are not written
+# yet, not because the shape does not allow them.
+#
+# ## Alerting, and why nothing here is a store secret
+#
+# Rules are *native vmalert YAML* owned by the feature they watch, gathered from
+# every agent host at build time (the same one-way gather as the dashboards), and
+# `vmalert -dryRun` over the rendered directory is a build step: a malformed rule
+# fails the build rather than leaving a service that starts and silently never
+# alerts.
+#
+# Alertmanager's receivers take their tokens from `${VAR}` references that
+# nixpkgs' envsubst pass leaves untouched (its build environment is empty), which
+# `secretspec run` expands at start-up into a 0400 file in the unit's
+# RuntimeDirectory. So the store holds variable *names* and the process holds the
+# values — see `lib/observability.nix` and `docs/runbooks/alerting-accounts.md`.
+#
+# Alertmanager's own UI is **never** published: no firewall rule, no Serve
+# entry, loopback bind. Silences are made through Grafana's Alertmanager
+# datasource, which is the only place its state is visible.
 #
 # ## Publishing
 #
@@ -36,6 +59,23 @@
     let
       obs = import ../../lib/observability.nix { inherit lib; };
 
+      # The committed flake's hosts. Naming it once means every gather below
+      # reads the same set, and the reason it is `inputs.self` (see the
+      # dashboards comment) is written down in one place.
+      #
+      # `my.observabilityGatheredHosts` is a **test hook**, and the only way to
+      # prove the gather off-host: the acceptance criterion ("a rule declared on
+      # lumquat appears in calamansi's vmalert config") cannot be shown with
+      # `extendModules` alone, because an extended configuration is not in
+      # `inputs.self`. A test replaces this with an attrset of extended hosts;
+      # leaving it unset — the only thing any real host does — gathers
+      # `inputs.self` exactly as before. It is never set in a host config.
+      allHosts =
+        if config.my.observabilityGatheredHosts == { } then
+          inputs.self.nixosConfigurations
+        else
+          config.my.observabilityGatheredHosts;
+
       # ── Dashboards gathered from every agent host ─────────────────────
       #
       # Build-time discovery, per BOX-318: every NixOS host whose
@@ -47,9 +87,7 @@
       # `inputs.self` rather than the flake-fixpoint `config`: by the time a
       # deferred module's `config` is being evaluated, the sibling hosts'
       # configurations are already complete, so reading them cannot recurse.
-      agentHosts = lib.filterAttrs (
-        _: host: host.config.my.observabilityAgent or false
-      ) inputs.self.nixosConfigurations;
+      agentHosts = lib.filterAttrs (_: host: host.config.my.observabilityAgent or false) allHosts;
 
       gatheredDashboards = lib.concatMapAttrs (
         hostName: host:
@@ -101,6 +139,147 @@
           path = dashboard.path;
         }) gatheredDashboards
       );
+
+      # ── Alert rules gathered from every agent host (BOX-329) ──────────
+      #
+      # Same build-time discovery as the dashboards, same one-way dependency,
+      # same consequence: a rule added on lumquat means redeploying calamansi.
+      # Rules are *additive* rather than override-by-name — two features on two
+      # hosts may legitimately both ship rules for their own service, and there
+      # is no collision to resolve the way a dashboard name has one. The same
+      # ruleset name on two hosts is therefore fine; the rendered file name
+      # carries the host to keep the directory unambiguous.
+      gatheredRules = lib.concatMapAttrs (
+        hostName: host:
+        lib.mapAttrs' (
+          name: ruleset: lib.nameValuePair "${hostName}-${name}" ruleset
+        ) host.config.my.observability.rules
+      ) agentHosts;
+
+      # The generic defaults are not gathered: they belong to the *stack*, not
+      # to any one feature, exactly like the prebuilt dashboards above. They are
+      # merged in first so a later ticket can override one by name if it ever
+      # needs to (a feature that legitimately sits at 96% disk, say).
+      #
+      # `builtins.path` rather than a bare `./file`: it fixes the store path name
+      # to the file's own name instead of a hash, which keeps the rendered rule
+      # directory readable and its derivation stable.
+      defaultRules = {
+        generic = {
+          files = [
+            (builtins.path {
+              path = ./observability-default.rules.yaml;
+              name = "observability-default.rules.yaml";
+            })
+            (builtins.path {
+              path = ./observability-watchdog.rules.yaml;
+              name = "observability-watchdog.rules.yaml";
+            })
+          ];
+          type = "metrics";
+        };
+      };
+
+      allRules = defaultRules // gatheredRules;
+
+      # One vmalert instance per `type`. Only `metrics` exists in v1 — the
+      # `logs` type needs VictoriaLogs (BOX-330) — so this is a filter rather
+      # than a fan-out, and declaring a `logs` ruleset before BOX-330 is an
+      # assertion failure rather than a vmalert that queries nothing.
+      metricRules = obs.rulesetsOfType "metrics" allRules;
+      logRules = obs.rulesetsOfType "logs" allRules;
+
+      # The rendered rule directory: every file linked verbatim, named
+      # `<host>-<ruleset>.<n>.yaml`. `vmalert -rule=<dir>/*.yaml` loads them all.
+      #
+      # A `linkFarm`, not a copy, so this is the *only* place a rule file exists
+      # in the store: the validation below adds no second copy to drift from it.
+      ruleDir = pkgs.linkFarm "vmalert-rules-metrics" (obs.mkRuleFiles metricRules);
+
+      # ── Build-time rule validation ──────────────────────────────────────
+      #
+      # `vmalert -dryRun` parses and validates every rule file, checking group
+      # and rule shape, duplicate rules, unknown fields, `for`/`interval`
+      # durations and annotation/label templates (`-rule.validateTemplates` is on
+      # by default). It touches no network and needs no datasource, so it runs
+      # inside the derivation's build.
+      #
+      # This is a derivation, not a check step in the docs, because the
+      # acceptance criterion is that a malformed rule *fails the build*: a
+      # vmalert unit that dies at start-up leaves alerting silently dead, which
+      # is the one failure this whole ticket exists to prevent. The same trick as
+      # the agent's `vmagent -dryRun` on its scrape config.
+      #
+      # The check's *output* re-exports the same files by symlink, so no copy of
+      # a rule ever exists in the store: there is one rendered directory and the
+      # check merely proves it parses. `ruleDir` is what vmalert loads and what a
+      # test can read without building anything.
+      ruleCheck =
+        pkgs.runCommand "vmalert-rules-metrics"
+          {
+            nativeBuildInputs = [ pkgs.victoriametrics ];
+          }
+          ''
+            set -eu
+            vmalert -dryRun \
+              -rule="${ruleDir}/*.yaml" \
+              -notifier.url=http://127.0.0.1:${toString config.my.observabilityAlertmanagerPort} \
+              -datasource.url=http://127.0.0.1:${toString config.my.observabilityIngestPort}
+            mkdir -p $out
+            for f in ${ruleDir}/*.yaml; do
+              ln -s "$f" "$out/$(basename "$f")"
+            done
+          '';
+
+      # ── Alertmanager ────────────────────────────────────────────────────
+      #
+      # Loopback port for the healthchecks.io bridge. Not an option: nothing
+      # outside this module has an opinion about it, and a published port would
+      # be a way to keep the dead-man's switch quiet.
+      healthchecksReceiverPort = 9094;
+
+      alertmanagerConfig = obs.mkAlertmanagerConfig {
+        healthchecksReceiverUrl = "http://127.0.0.1:${toString healthchecksReceiverPort}/";
+      };
+
+      # The alerting components, scraped by this host's own agent in the same
+      # shape the agent renders its targets. They are stack-internal, so they
+      # are not declared through `my.observability.scrapeTargets` — that
+      # collection is for a *feature's* targets.
+      alertingScrapeJobs = [
+        {
+          job_name = "vmalert";
+          static_configs = [
+            { targets = [ "127.0.0.1:${toString config.my.observabilityVmalertPort}" ]; }
+          ];
+        }
+        {
+          job_name = "alertmanager";
+          static_configs = [
+            { targets = [ "127.0.0.1:${toString config.my.observabilityAlertmanagerPort}" ]; }
+          ];
+        }
+      ];
+
+      # The rendered Alertmanager config, as the file nixpkgs' module needs.
+      # `lib.mkForce` on `ExecStart` references this exact file, so the template
+      # the store holds and the template `envsubst` expands cannot drift apart.
+      # `envsubst` does not expand the
+      # `${VAR}` references at build time (its environment is empty), which is
+      # exactly what keeps them in the store as text and out of a secret's way.
+      alertmanagerTemplate = (pkgs.formats.yaml { }).generate "alertmanager.yml" alertmanagerConfig;
+
+      # The bridge that turns Alertmanager's POST into healthchecks.io's GET.
+      # Its only secret-adjacent behaviour is `curl`-ing the capability URL, and
+      # it logs status codes, never the URL.
+      healthchecksReceiver = pkgs.writeShellApplication {
+        name = "healthchecks-webhook";
+        runtimeInputs = [
+          pkgs.curl
+          pkgs.jq
+        ];
+        text = builtins.readFile ../../scripts/healthchecks-webhook.sh;
+      };
     in
     {
       config = lib.mkIf config.my.observabilityHost {
@@ -121,6 +300,20 @@
           {
             assertion = config.my.access;
             message = "my.observabilityHost requires my.access: Grafana is published over Tailscale Serve, which needs tailscaled running on this host.";
+          }
+          # A `logs` ruleset has nowhere to run yet. Declaring one before
+          # VictoriaLogs exists (BOX-330) would silently produce no alerts,
+          # which is the failure mode this ticket exists to prevent, so it is a
+          # build error that names the ticket instead.
+          {
+            assertion = logRules == { };
+            message = "A my.observability.rules entry declares type = \"logs\", but the VictoriaLogs datasource and its vmalert instance are BOX-330. Declare the ruleset with type = \"metrics\" (the default) or wait for BOX-330.";
+          }
+          # A ruleset that names no files contributes nothing, and looks exactly
+          # like a feature whose rules were forgotten. Fail at eval.
+          {
+            assertion = lib.all (ruleset: ruleset.files != [ ]) (builtins.attrValues gatheredRules);
+            message = "A my.observability.rules entry has an empty `files` list. Either list the YAML files it contributes or remove the entry.";
           }
         ];
 
@@ -273,6 +466,29 @@
                   timeInterval = "15s";
                 };
               }
+              {
+                # The Alertmanager here is Grafana's *silencing* path, not its
+                # datasource for alert rules: `unified_alerting` is off and
+                # vmalert owns evaluation (BOX-320). Grafana's Alertmanager
+                # datasource also renders a read-only view of what is firing,
+                # which is the only place Alertmanager's state is visible — its
+                # own UI is deliberately unpublished.
+                #
+                # Loopback, like the metrics datasource: both processes are on
+                # this host.
+                name = "Alertmanager";
+                uid = obs.datasourceUids.alertmanager;
+                type = "alertmanager";
+                access = "proxy";
+                url = "http://127.0.0.1:${toString config.my.observabilityAlertmanagerPort}";
+                jsonData = {
+                  # Without this Grafana infers receivers and templates by
+                  # probing endpoints the proxy cannot see, and the datasource
+                  # shows an error instead of the alert list.
+                  handleGrafanaManagedAlerts = false;
+                  implementation = "prometheus";
+                };
+              }
             ];
           };
 
@@ -294,6 +510,250 @@
             ];
           };
         };
+
+        # ── Alertmanager: route and deliver ───────────────────────────
+        #
+        # Native nixpkgs module (ADR 0006). It renders `configuration` to
+        # `alertmanager.yml` with `envsubst` — see lib/observability.nix for why
+        # that is what keeps the tokens out of the store.
+        #
+        # `listenAddress` is loopback, restated because it is load bearing:
+        # vmalert and Grafana both reach it there, and nothing else has any
+        # business doing so. There is no firewall rule for it anywhere in this
+        # file and no Tailscale Serve entry — the Alertmanager UI is *never*
+        # published, per BOX-320. Silences are made through Grafana's
+        # Alertmanager datasource below.
+        #
+        # `checkConfig = false` is not a weakening: nixpkgs' amtool pass cannot
+        # see the credential values (it runs in the sandbox with no environment),
+        # so it reports "invalid URL: unsupported scheme" against a perfectly
+        # correct file — the option's own documentation says so. The config's
+        # *shape* is asserted instead by the contract test, and the bridge below
+        # fails loudly if a ping URL is not there.
+        services.prometheus.alertmanager = {
+          enable = true;
+          listenAddress = "127.0.0.1";
+          port = config.my.observabilityAlertmanagerPort;
+          checkConfig = false;
+          # nixpkgs renders this to `alertmanager.yml` with `envsubst`, whose
+          # environment is empty at build time — which is exactly what leaves
+          # the `${VAR}` references in the store as text.
+          configText = builtins.readFile alertmanagerTemplate;
+          # Exposed as a value too, so the contract test asserts on the route
+          # tree as data instead of grep-ing the rendered YAML.
+          configuration = builtins.fromJSON (builtins.toJSON alertmanagerConfig);
+        };
+
+        # Where Alertmanager's secrets come from.
+        #
+        # None of the three values in `alerting` is ever a file path the store
+        # knows about. The chain is:
+        #
+        #   1. this module renders `configuration` with the literal text
+        #      `${PUSHOVER_APP_TOKEN}` and so on (lib/observability.nix).
+        #   2. nixpkgs' `envsubst` pass over the rendered file sees an empty
+        #      environment, so the text survives unchanged into the store. The
+        #      store thus contains variable *names* and no values.
+        #   3. `preStart` (below, inside `secretspec run`) runs `envsubst` again
+        #      with the three variables set from BWS, writing the real file to
+        #      `/run/alertmanager/alertmanager.yml` — a tmpfs the unit owns.
+        #
+        # `LoadCredential` + `SECRETSPEC_PROVIDER=bws-service` is the repo's
+        # standard bootstrap (modules/features/secrets.nix): the BWS access
+        # token arrives as a systemd credential, so it is not in the
+        # environment either.
+        systemd.services.alertmanager = {
+          wants = [ "network-online.target" ];
+          after = [ "network-online.target" ];
+          path = [
+            pkgs.secretspec
+            pkgs.bws
+          ];
+          # Rotating a value edits no file this unit can see, so watch the
+          # manifest: a `secretspec.toml` change must cycle the unit or the old
+          # token stays in the running process.
+          restartTriggers = [ config.my.secretspecManifest ];
+          serviceConfig = {
+            Environment = [
+              "SECRETSPEC_FILE=${config.my.secretspecManifest}"
+              "SECRETSPEC_PROVIDER=bws-service"
+            ];
+            LoadCredential = [ "access_token:${config.my.bwsAccessTokenFile}" ];
+            # A tmpfs of its own, so the expanded config does not outlive the
+            # process: `umask 077` plus 0400 below means it is never readable by
+            # anyone but this unit, even for an instant.
+            RuntimeDirectory = "secretspec-alerting";
+            RuntimeDirectoryMode = "0700";
+          };
+        };
+
+        # Expand the rendered template against the resolved secrets, and point
+        # Alertmanager at the result.
+        #
+        # This is the second half of the indirection: the store's copy contains
+        # `${PUSHOVER_APP_TOKEN}` and friends as literal text, expanded here
+        # inside `secretspec run`, where they are set. `ExecStart` is overridden
+        # rather than patched because Alertmanager only takes its config via
+        # `--config.file`, and a unit that reads the store's template directly
+        # would start with unusable receivers.
+        #
+        # `ExecStartPre` is overridden too, and that is not cosmetic: nixpkgs'
+        # own pre-start expands the template into `/tmp/alert-manager-substituted.yaml`,
+        # a world-readable path. It runs with an empty environment so it
+        # substitutes nothing, but leaving it in place would put a *future*
+        # change to that template (or a stray env var) one bug away from a
+        # readable token. The expansion here writes 0400 inside the unit's
+        # RuntimeDirectory instead.
+        systemd.services.alertmanager.serviceConfig.ExecStartPre = lib.mkForce ''
+          umask 077
+          ${lib.escapeShellArgs [
+            "${pkgs.envsubst}/bin/envsubst"
+            "-i"
+            "${alertmanagerTemplate}"
+            "-o"
+            "/run/secretspec-alerting/alertmanager.yml"
+          ]}
+        '';
+
+        systemd.services.alertmanager.serviceConfig.ExecStart = lib.mkForce "${
+          lib.escapeShellArgs [
+            "${pkgs.secretspec}/bin/secretspec"
+            "run"
+            "-P"
+            "production"
+            "-S"
+            "alerting"
+            "--"
+            "${pkgs.envsubst}/bin/envsubst"
+            "-i"
+            "${alertmanagerTemplate}"
+            "-o"
+            "/run/secretspec-alerting/alertmanager.yml"
+          ]
+        } && exec ${
+          lib.escapeShellArgs [
+            "${config.services.prometheus.alertmanager.package}/bin/alertmanager"
+            "--config.file=/run/secretspec-alerting/alertmanager.yml"
+            "--storage.path=/var/lib/alertmanager"
+            "--web.listen-address=127.0.0.1:${toString config.my.observabilityAlertmanagerPort}"
+          ]
+        }";
+
+        # ── vmalert: evaluate rules, notify Alertmanager ───────────────
+        #
+        # One instance, for metrics. Its rule *directory* is the checked link
+        # farm above, so a malformed rule file cannot reach the service.
+        #
+        # `-remoteWrite.url` points back at VictoriaMetrics: it is how alert
+        # state and recording-rule results become queryable series, which is
+        # what lets a dashboard show "firing since" rather than only "firing".
+        #
+        # `-external.url` is Grafana's own address, because the `source` link on
+        # every notification should open the dashboard a reader can act on.
+        systemd.services.vmalert = {
+          description = "vmalert — evaluate alerting and recording rules";
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "victoriametrics.service"
+            "alertmanager.service"
+          ];
+          wants = [
+            "victoriametrics.service"
+            "alertmanager.service"
+          ];
+          # `ruleCheck` is in the `path` so the validation derivation is part of
+          # this unit's *build* closure, not merely of the activation. Building
+          # any system that contains this unit therefore runs
+          # `vmalert -dryRun` over the rule directory, and a rule file that does
+          # not parse fails the build rather than the service. `preStart` prints
+          # the path so the link is not optimised away as dead.
+          preStart = ''
+            echo "validated rules: ${ruleCheck}"
+          '';
+          path = [ ruleCheck ];
+          serviceConfig = {
+            Type = "simple";
+            User = "vmalert";
+            Group = "vmalert";
+            DynamicUser = true;
+            Restart = "always";
+            RestartSec = 5;
+            ExecStart = lib.escapeShellArgs ([
+              "${pkgs.victoriametrics}/bin/vmalert"
+              "-rule=${ruleDir}/*.yaml"
+              "-datasource.url=http://127.0.0.1:${toString config.my.observabilityIngestPort}"
+              "-remoteWrite.url=http://127.0.0.1:${toString config.my.observabilityIngestPort}"
+              "-notifier.url=http://127.0.0.1:${toString config.my.observabilityAlertmanagerPort}"
+              "-evaluationInterval=1m"
+              "-httpListenAddr=127.0.0.1:${toString config.my.observabilityVmalertPort}"
+              "-external.url=https://${config.my.accessTailnetName}.${config.my.observabilityTailnetDomain}/grafana"
+              # Keep vmalert's own memory bounded; it only ever holds rule
+              # state, and a rule that needs more history is a recording rule.
+              "-memory.allowedPercent=40"
+            ]);
+          };
+        };
+
+        # ── The healthchecks.io bridge ─────────────────────────────────
+        #
+        # See scripts/healthchecks-webhook.sh for why a bridge exists at all.
+        # It is a systemd *socket* plus a per-connection service, so a ping that
+        # fails cannot take the listener down with it and the next minute's ping
+        # still arrives.
+        systemd.sockets.healthchecks-webhook = {
+          wantedBy = [ "sockets.target" ];
+          listenStreams = [ "127.0.0.1:${toString healthchecksReceiverPort}" ];
+          socketConfig.Accept = "yes";
+        };
+
+        systemd.services."healthchecks-webhook@" = {
+          description = "Translate an Alertmanager notification into a healthchecks.io ping";
+          requires = [ "healthchecks-webhook.socket" ];
+          # The capability URL is a secret, so this unit resolves it the same way
+          # Alertmanager does and never writes it anywhere.
+          path = [
+            pkgs.secretspec
+            pkgs.bws
+          ];
+          serviceConfig = {
+            Type = "oneshot";
+            DynamicUser = true;
+            Environment = [
+              "SECRETSPEC_FILE=${config.my.secretspecManifest}"
+              "SECRETSPEC_PROVIDER=bws-service"
+            ];
+            LoadCredential = [ "access_token:${config.my.bwsAccessTokenFile}" ];
+            ExecStart = "${pkgs.secretspec}/bin/secretspec run -P production -S alerting -- ${lib.getExe healthchecksReceiver}";
+            StandardInput = "socket";
+            # A non-zero exit (healthchecks.io refused the ping, no network) is
+            # reported to Alertmanager, which retries the webhook — that is the
+            # whole point of failing loudly instead of swallowing it. The unit
+            # itself is ephemeral (`healthchecks-webhook@<conn>`), so a failed
+            # instance is transient and does not accumulate in the unit table.
+            # Deliberately *not* Restart=always: the next Watchdog notification a
+            # minute later is a better retry than a tight loop on a broken URL.
+          };
+        };
+
+        # ── Scrape the alerting path itself ────────────────────────────
+        #
+        # "Who watches the watcher": both components expose `/metrics`, and the
+        # host's own agent scrapes them, so a vmalert that stopped evaluating is
+        # visible in Grafana even though it cannot alert on itself. These are
+        # stack-internal targets, which is why they are added here and not
+        # declared through `my.observability.scrapeTargets` (that collection is
+        # for a *feature's* targets).
+        #
+        # `prometheusConfig` is *replaced* rather than supplemented: nixpkgs'
+        # module turns that option into `-promscrape.config=<checked config>`,
+        # and adding a second `-promscrape.config` through `extraArgs` would
+        # leave two flags with only one of them taking effect. The document
+        # below is the agent module's own set of jobs plus these two, so nothing
+        # a feature declared is lost.
+        # The agent module renders `node` plus every declared target; adding
+        # these two here (rather than replacing the list) keeps one source of
+        # truth for everything a feature declared.
+        services.vmagent.prometheusConfig.scrape_configs = lib.mkAfter alertingScrapeJobs;
 
         # Generate Grafana's datasource-signing key once, into the service's
         # own RuntimeDirectory (`/run/grafana`, created by systemd 0755 and

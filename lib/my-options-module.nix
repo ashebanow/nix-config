@@ -189,6 +189,46 @@
         contributes them automatically.
       '';
     };
+    observabilityGatheredHosts = lib.mkOption {
+      type = lib.types.attrsOf lib.types.unspecified;
+      default = { };
+      description = ''
+        **Test hook. Never set this in a host configuration.**
+
+        The set of hosts whose `my.observability` collections the observability
+        host gathers, as an attrset shaped like `nixosConfigurations`. Empty (the
+        default) means "the committed flake's `nixosConfigurations`", which is
+        what every real deployment does.
+
+        It exists because the gather reads `inputs.self`, and an
+        `extendModules`-ed configuration is not in `inputs.self`: without a seam
+        there is no way to demonstrate "a rule declared on lumquat reaches
+        calamansi" before the rule itself is committed. A test sets this to an
+        attrset of extended hosts; nothing else does.
+      '';
+    };
+    observabilityVmalertPort = lib.mkOption {
+      type = lib.types.port;
+      default = 8880;
+      description = ''
+        Loopback port vmalert serves its own `/metrics` and web UI on, so the
+        observability host's agent can scrape the alert engine and a silent
+        vmalert is visible. vmalert's upstream default; nothing is published.
+      '';
+    };
+    observabilityAlertmanagerPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9093;
+      description = ''
+        Loopback port Alertmanager listens on, which is where vmalert sends
+        alerts and where Grafana's Alertmanager datasource sends silences.
+        Alertmanager's upstream default.
+
+        Never published: no Tailscale Serve entry, no firewall rule. Silences
+        are made through Grafana, so there is no reason for a second, uglier
+        UI to be reachable at all.
+      '';
+    };
     observabilityHostAddress = lib.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
@@ -267,10 +307,10 @@
     # cannot cycle; the cost is that changing a lumquat feature's rule means
     # redeploying calamansi.
     #
-    # Only `scrapeTargets` and `dashboards` are consumed so far. `rules`,
-    # `textfileChecks` and `redactions` are declared here — with their real
-    # types — so the tickets that implement them extend this set instead of
-    # reshaping it. Nothing reads them yet, so setting one is inert today.
+    # `scrapeTargets`, `dashboards` and `rules` are consumed (BOX-326, BOX-329);
+    # `textfileChecks` (BOX-332) and `redactions` (BOX-337) are declared with
+    # their real types so those tickets extend this set rather than reshape it.
+    # Setting one of those two is inert today.
     observability = lib.mkOption {
       default = { };
       description = ''
@@ -405,33 +445,49 @@
             );
           };
 
-          # Declared now, consumed by later tickets. Each is the shape its
-          # ticket needs; none is read by any module yet, so setting one has no
-          # effect. Documented here so a feature module written today can be
-          # extended tomorrow rather than rewritten.
-
+          # Consumed by the observability host (BOX-329). See the collection's
+          # own description for the contract.
           rules = lib.mkOption {
             default = { };
             description = ''
               Alerting and recording rules, as **native vmalert YAML files**
-              — one file per feature, beside its module (e.g.
-              `my.observability.rules.bifrost = ./bifrost.rules.yaml;`).
-              vmalert takes both kinds in the same file, which is why this is
-              one collection and not two.
+              — one entry per feature, beside the module that owns the thing
+              being alerted on (e.g. `my.observability.rules.bifrost = {
+              files = [ ./bifrost.rules.yaml ]; }`).
+
+              A ruleset is a *list of files* rather than a single path because
+              one owning feature can legitimately need more than one: a shared
+              feature's rules, and separately the rules for a specific
+              service. `files` is concatenated, so adding a file never means
+              rewriting the entry that was already there.
 
               Not Nix attrsets: rule expressions are a language of their own,
               and keeping them as YAML lets them be copied from documentation
-              and checked with `vmalert -dryRun` unchanged.
+              and checked with `vmalert -dryRun` unchanged. The rendered files
+              are copied verbatim into vmalert's rule directory; only their
+              names are chosen here (`<ruleset>.<n>.yaml`).
 
-              **Not consumed yet (BOX-329 implements alerting).** Declared
-              with its final type so BOX-329 adds a reader, not a reshape.
+              **A malformed file fails the build**, not the service: the
+              observability host loads the whole directory into
+              `vmalert -dryRun` as part of the derivation's own build.
+
+              Gathered by the observability host from every agent host at
+              build time, so a rule added on lumquat means redeploying
+              calamansi (one-way dependency by design).
             '';
             type = lib.types.attrsOf (
               lib.types.submodule {
                 options = {
-                  path = lib.mkOption {
-                    type = lib.types.path;
-                    description = "Path to the vmalert rule file (YAML).";
+                  files = lib.mkOption {
+                    type = lib.types.listOf lib.types.path;
+                    default = [ ];
+                    example = lib.literalExpression "[ ./bifrost.rules.yaml ]";
+                    description = ''
+                      Paths to the vmalert rule files (YAML), relative to the
+                      module declaring them. Each is loaded as its own group
+                      file, so files do not participate in each other's group
+                      names.
+                    '';
                   };
                   type = lib.mkOption {
                     type = lib.types.enum [
@@ -443,7 +499,13 @@
                       Which datasource the rules query: `metrics` against
                       VictoriaMetrics, `logs` against VictoriaLogs. vmalert
                       runs one instance per type, so this decides which one
-                      loads the file.
+                      loads the files.
+
+                      **`logs` is reserved and not implemented**: VictoriaLogs
+                      arrives with BOX-330, and until it does a `logs` ruleset
+                      would query a store that does not exist. Declaring one
+                      now is a build error naming the ticket, not a silently
+                      dead rule (see `modules/features/observability-host.nix`).
                     '';
                   };
                 };

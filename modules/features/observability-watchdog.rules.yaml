@@ -1,0 +1,31 @@
+# The always-firing Watchdog (BOX-316, BOX-320, BOX-329).
+#
+# One alert that is *always* firing, delivered every minute to healthchecks.io.
+# Its value is what happens when it stops arriving: healthchecks.io expects a
+# ping a minute with a 10-minute grace and raises its own alert (Pushover plus
+# email) when silence exceeds that. Because the alert travels the whole path —
+# VictoriaMetrics query → vmalert → Alertmanager → webhook — the heartbeat
+# proves the entire pipeline, not merely that calamansi has power.
+#
+# This is the only thing in the stack that can speak when the house is dark, so
+# it is deliberately trivial: `vector(1)` cannot fail to have data, and there is
+# no threshold to tune.
+#
+# `severity: none` is what routes it: Alertmanager's watchdog route matches
+# that label and sends only to the healthchecks.io receiver, at priority-free
+# `-` (no Pushover at all). Give it a `warning` or `critical` severity and the
+# phone starts buzzing once a minute.
+groups:
+  - name: watchdog
+    # One minute, matching healthchecks.io's expected period and Alertmanager's
+    # repeat interval for this route. If the two disagreed, a healthy system
+    # would look like a missing ping whenever the rule interval ran slower.
+    interval: 1m
+    rules:
+      - alert: Watchdog
+        expr: vector(1)
+        labels:
+          severity: none
+        annotations:
+          summary: 'Alerting pipeline is alive'
+          description: 'Deliberately always firing. This alert IS the heartbeat: if it stops arriving at healthchecks.io, the alerting path is broken.'
