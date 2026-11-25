@@ -70,6 +70,7 @@ _: {
   my.modules.nixos.observability-agent =
     {
       lib,
+      pkgs,
       config,
       ...
     }:
@@ -96,6 +97,80 @@ _: {
         ]
         ++ obs.renderScrapeConfigs config.my.observability.scrapeTargets;
       };
+
+      # ── Textfile checks (BOX-332) ────────────────────────────────────
+      #
+      # One systemd service + timer pair per `my.observability.textfileChecks`
+      # entry. A check answers a question only a command can answer (a
+      # database's size, a certificate's remaining days), so the shape is
+      # timer → run → write `<name>.prom` into node_exporter's textfile
+      # directory; the next scrape exposes it as metrics with no exporter to
+      # write.
+      #
+      # Built outside the `mkIf` so they can be named in `in`, then attached
+      # under it. `lib.mkIf` cannot be applied to a bare attrset of units
+      # without naming each one, so the whole conditional fragment uses
+      # `mkIf` and merges these lists.
+      #
+      # Why a service unit per check instead of the timer's own ExecStart:
+      # systemd timers cannot run commands. The service is also what gives a
+      # check its own `User=`, its own failed state (visible as
+      # `node_systemd_unit_state{state="failed"}`, which the generic rules
+      # already alert on) and its own journal stream. One shared service would
+      # make "which check broke" unanswerable.
+      textfileCheckServices = lib.mapAttrs' (
+        name: check:
+        let
+          unitUser = obs.checkUnitUser check;
+        in
+        lib.nameValuePair "textfile-check-${name}" {
+          description = "Textfile check ${name} for node_exporter";
+          path = with pkgs; [
+            sqlite
+            coreutils
+            jq
+            util-linux
+          ];
+          serviceConfig = {
+            Type = "oneshot";
+            # The owning user of whatever the check reads. A check with an
+            # escape hatch (`unreadableAs`) must be able to become root, so its
+            # unit is root and the script drops to the owning user itself —
+            # see obs.checkUnitUser.
+            User = unitUser;
+            # No `Group=`: systemd then derives the primary group from the user,
+            # which is right for both cases — `podman:podman` for a check that
+            # runs as the owning account, and `root:root` for one that may drop
+            # to it. Setting it explicitly here was wrong for the first case.
+            # The check must be able to write exactly one file, in the textfile
+            # directory, and nothing else anywhere.
+            ProtectSystem = "strict";
+            PrivateTmp = true;
+            NoNewPrivileges = true;
+            ReadWritePaths = [ obs.textfileDirectory ];
+          };
+          script = obs.checkPrelude check + "\n" + check.script;
+        }
+      ) config.my.observability.textfileChecks;
+
+      textfileCheckTimers = lib.mapAttrs' (
+        name: check:
+        lib.nameValuePair "textfile-check-${name}" {
+          description = "Periodic textfile check ${name}";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            # A check reads a file or queries a database, so it runs on a
+            # multi-minute clock, not a scrape interval.
+            OnBootSec = "2m";
+            OnUnitInactiveSec = check.interval;
+            # `Persistent` only means something with a calendar spec, so it is
+            # deliberately absent: `OnUnitInactiveSec` schedules from the last
+            # run, and systemd's monotonic timers fire once on return anyway.
+            RandomizedDelaySec = "30s";
+            Unit = "textfile-check-${name}.service";
+          };
+        }
+      ) config.my.observability.textfileChecks;
     in
     {
       config = lib.mkIf config.my.observabilityAgent {
@@ -126,15 +201,25 @@ _: {
           ] ++ lib.optional config.my.observabilityGpuMetrics "drm";
           # textfile: the directory BOX-332's checks write `<name>.prom` into.
           # Enabled with the directory created and empty, so the collector is
-          # not switched on later as a second change to the same unit.
+          # not switched on later as a second change to the same unit. The path
+          # comes from `obs.textfileDirectory` so the collector's flag and the
+          # checks' target cannot drift apart.
           extraFlags = [
-            "--collector.textfile.directory=/var/lib/node_exporter/textfile"
+            "--collector.textfile.directory=${obs.textfileDirectory}"
           ];
         };
 
+        # Root-owned and 0755 — deliberately NOT writable by the accounts the
+        # checks run as. A check that could create files here could also
+        # replace another check's output; a check writes into it because its
+        # unit is granted it (`ReadWritePaths`), not because the mode allows it.
         systemd.tmpfiles.rules = [
-          "d /var/lib/node_exporter/textfile 0755 root root -"
+          "d ${obs.textfileDirectory} 0755 root root -"
         ];
+
+        # The checks themselves, if a feature declared any.
+        systemd.services = textfileCheckServices;
+        systemd.timers = textfileCheckTimers;
 
         # A GPU host needs no extra device access for this: the drm and hwmon
         # collectors read `/sys/class/drm` and `/sys/class/hwmon`, which are
