@@ -67,10 +67,34 @@ _: {
           isPromoted = modelPath != null;
           gguf = modelsLib.ggufs.${modelCfg.hf} or { };
           portStr = toString modelCfg.port;
+          # Host-side publish for the *inference* port. A model entry carries
+          # `port` for callers that want it (the generic /llm path did, before
+          # BOX-138), and it is published only when the caller does not blank it
+          # — see the qwen container below, which sets `ports = [ ]` so the model
+          # is reachable only through the bifrost gateway. The metrics mapping is
+          # added separately, *after* `extraConfig` is applied, so blanking the
+          # inference port cannot silently take the metrics port with it. That
+          # coupling is the bug this arrangement avoids: a plain `ports = [ ]`
+          # override would have removed both.
+          inferencePorts = [ "${portStr}:8080" ];
+
+          # The loopback-only metrics publish (BOX-331). Bound to 127.0.0.1 in
+          # the port mapping itself, so it is unreachable from anywhere but this
+          # host — not on the LAN, not over the tailnet, not on the
+          # `llm-internal` bridge. The right-hand side is always 8080 because
+          # that is what `--port` below tells llama-server to serve on;
+          # `metricsPort` is the *host* side and is what gets scraped.
+          #
+          # A second mapping on the same HTTP listener is how llama.cpp exposes
+          # /metrics: there is no separate metrics listener, and `--metrics`
+          # (in baseFlags) is what turns the endpoint on at all.
+          metricsPorts = lib.optional (
+            modelCfg ? metricsPort
+          ) "127.0.0.1:${toString modelCfg.metricsPort}:8080";
         in
         {
           image = "docker.io/kyuz0/amd-strix-halo-toolboxes:rocm-10.0";
-          ports = [ "${portStr}:8080" ];
+          ports = inferencePorts;
           autoStart = true;
           extraOptions = baseOptions;
           podman.user = cfg.baseUsername; # Run rootless as the podman user
@@ -118,10 +142,68 @@ _: {
           ++ (modelCfg.extraFlags or [ ])
           ++ baseFlags;
         }
-        // extraConfig;
+        # The metrics publish is appended *after* the caller's overrides, so a
+        # container that blanks `ports` to keep its inference port private still
+        # has its metrics port published. It can be extended by a caller, never
+        # replaced — which is the whole reason this is not a plain
+        # `// extraConfig`.
+        // {
+          ports = (extraConfig.ports or inferencePorts) ++ metricsPorts;
+        }
+        // lib.removeAttrs extraConfig [ "ports" ];
     in
     {
       config = lib.mkIf cfg.llm {
+        # ── Observability: one scrape target per model (BOX-331) ────────
+        #
+        # Declared here rather than in an observability module because this is
+        # the module that owns the models: `lib/models.nix` is the catalog, and
+        # a model with `metricsPort` set publishes that port above. Adding a
+        # model to the catalog therefore adds its metrics with no second edit,
+        # which is the property worth having — a per-model scrape target
+        # written by hand beside a port written by hand is two things to forget.
+        #
+        # Guarded on `cfg.llm` by the enclosing mkIf *and* on there being a
+        # metricsPort, so a model without one contributes nothing rather than
+        # a target pointing at a port nothing publishes.
+        #
+        # `labels.model` is why the job name is per-model: it is what a
+        # dashboard groups by, and it is the model's catalog name, which is also
+        # its `--alias` and therefore what bifrost and Open WebUI call it.
+        # `interval = "30s"` rather than the agent's 15 s default is deliberate:
+        # see the note in llm.rules.yaml about llama.cpp's counters resetting on
+        # each scrape, and change both together.
+        my.observability.scrapeTargets = lib.mapAttrs' (
+          name: modelCfg:
+          lib.nameValuePair "llama-${name}" {
+            address = "127.0.0.1:${toString modelCfg.metricsPort}";
+            labels.model = name;
+            interval = "30s";
+          }
+        ) (lib.filterAttrs (_: modelCfg: modelCfg ? metricsPort) modelsLib.models);
+
+        # Alert rules for the containers and the inference endpoints. Declared
+        # here because this module owns both; the observability host gathers
+        # rule files from every agent host at build time (BOX-329), so a change
+        # here means redeploying calamansi.
+        my.observability.rules.llm = {
+          files = [ ./llm.rules.yaml ];
+          type = "metrics";
+        };
+
+        # The two dashboards (BOX-331): container health, and the inference
+        # endpoints. Keys must be unique across all agent hosts — the
+        # observability host asserts that — so `containers` is the risk and is
+        # worth watching when a second host adds one.
+        my.observability.dashboards = {
+          containers = {
+            path = ./containers.dashboard.json;
+          };
+          llm = {
+            path = ./llm.dashboard.json;
+          };
+        };
+
         # Model storage (used as HF cache for unpromoted models)
         # hfCacheDir must be owned by the podman user so rootless containers can write to it
         systemd.tmpfiles.rules = [
@@ -200,10 +282,16 @@ _: {
           containers = {
             # Qwen 3.6 35B-A3B UD-Q8_K_XL MTP — coding assistant (256K ctx, ~2x faster via MTP)
             qwen-35b-a3b = mkContainer "qwen-35b-a3b" modelsLib.models.qwen-35b-a3b {
-              # Not published on the host — reachable only as `qwen-35b-a3b:8080`
-              # on the llm-internal bridge, i.e. only through the bifrost gateway.
-              # (The host :8080 publish and the direct `lumquat.ts.net/<model>`
-              # serve paths were retired with LiteLLM in BOX-138.)
+              # No host publish for the *inference* port — reachable only as
+              # `qwen-35b-a3b:8080` on the llm-internal bridge, i.e. only
+              # through the bifrost gateway. (The host :8080 publish and the
+              # direct `lumquat.ts.net/<model>` serve paths were retired with
+              # LiteLLM in BOX-138.)
+              #
+              # This blanks the inference publish only: mkContainer re-adds the
+              # loopback-only metrics mapping after applying this attrset, so
+              # `127.0.0.1:<metricsPort>:8080` is still published. See the
+              # `metricsPorts` binding in mkContainer.
               ports = [ ];
               extraOptions = baseOptions ++ [
                 "--network"

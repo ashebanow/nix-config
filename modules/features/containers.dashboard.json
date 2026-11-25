@@ -1,0 +1,218 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "11.0.0" },
+    { "type": "prometheus", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" },
+    { "type": "timeseries", "id": "timeseries", "name": "Time series", "version": "" },
+    { "type": "stat", "id": "stat", "name": "Stat", "version": "" },
+    { "type": "table", "id": "table", "name": "Table", "version": "" }
+  ],
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Containers running",
+      "description": "podman_container_state == 2 is running (the exporter's own state encoding: -1 unknown, 0 created, 1 initialized, 2 running, 3 stopped, 4 paused, 5 exited, 6 removing, 7 stopping).",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "color": { "mode": "thresholds" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "count(podman_container_state{job=\"podman\"} == 2)", "instant": true, "legendFormat": "running", "refId": "A" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Unhealthy",
+      "description": "podman_container_health == 1 means unhealthy. -1 means the container declares no health check, 2 means still starting; neither counts here.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }, "color": { "mode": "thresholds" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "count(podman_container_health{job=\"podman\"} == 1) or vector(0)", "instant": true, "legendFormat": "unhealthy", "refId": "A" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Restarts in the last hour",
+      "description": "The exporter has no restart counter. podman_container_started_seconds is the container's start time as a unix timestamp, so changes() over it is the restart count — the same construction ContainerCrashLooping uses at 15m.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 4 }] }, "color": { "mode": "thresholds" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "sum(max by (instance, name) (changes(podman_container_started_seconds{job=\"podman\"}[1h])))", "instant": true, "legendFormat": "restarts", "refId": "A" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Podman exporter",
+      "description": "vmagent's own up series for the container exporter. 0 means the scrape is failing and every panel on this dashboard is stale.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red", "index": 0 }, "1": { "text": "UP", "color": "green", "index": 1 } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }, "color": { "mode": "thresholds" } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "min(up{job=\"podman\"})", "instant": true, "legendFormat": "exporter", "refId": "A" }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Containers",
+      "description": "One row per container, joined from the exporter's state/health/started/exit/metrics series on (instance, name). State and health are the exporter's integer encodings; the value mappings below turn them into words.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 4 },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "inspect": false } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "State" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "mappings", "value": [{ "type": "value", "options": { "-1": { "text": "unknown", "color": "text", "index": 0 }, "0": { "text": "created", "color": "text", "index": 1 }, "1": { "text": "initialized", "color": "blue", "index": 2 }, "2": { "text": "running", "color": "green", "index": 3 }, "3": { "text": "stopped", "color": "red", "index": 4 }, "4": { "text": "paused", "color": "yellow", "index": 5 }, "5": { "text": "exited", "color": "red", "index": 6 }, "6": { "text": "removing", "color": "orange", "index": 7 }, "7": { "text": "stopping", "color": "orange", "index": 8 } } }] }] },
+          { "matcher": { "id": "byName", "options": "Health" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "mappings", "value": [{ "type": "value", "options": { "-1": { "text": "none", "color": "text", "index": 0 }, "0": { "text": "healthy", "color": "green", "index": 1 }, "1": { "text": "unhealthy", "color": "red", "index": 2 }, "2": { "text": "starting", "color": "yellow", "index": 3 } } }] }] },
+          { "matcher": { "id": "byName", "options": "Restarts (1h)" }, "properties": [{ "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 4 }] } }] },
+          { "matcher": { "id": "byName", "options": "Up since" }, "properties": [{ "id": "unit", "value": "dateTimeAsIso" }] },
+          { "matcher": { "id": "byName", "options": "Memory" }, "properties": [{ "id": "unit", "value": "bytes" }] },
+          { "matcher": { "id": "byName", "options": "Memory limit" }, "properties": [{ "id": "unit", "value": "bytes" }] },
+          { "matcher": { "id": "byName", "options": "CPU" }, "properties": [{ "id": "unit", "value": "percentunit" }, { "id": "decimals", "value": 2 }] }
+        ]
+      },
+      "options": { "showHeader": true, "sortBy": [{ "desc": false, "displayName": "Container" }] },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_state{job=\"podman\"}", "format": "table", "instant": true, "legendFormat": "", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_health{job=\"podman\"}", "format": "table", "instant": true, "legendFormat": "", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_started_seconds{job=\"podman\"}", "format": "table", "instant": true, "legendFormat": "", "refId": "C" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_exit_code{job=\"podman\"}", "format": "table", "instant": true, "legendFormat": "", "refId": "D" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "max by (instance, name) (changes(podman_container_started_seconds{job=\"podman\"}[1h]))", "format": "table", "instant": true, "legendFormat": "", "refId": "E" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_mem_usage_bytes{job=\"podman\"}", "format": "table", "instant": true, "legendFormat": "", "refId": "F" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_mem_limit_bytes{job=\"podman\"}", "format": "table", "instant": true, "legendFormat": "", "refId": "G" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "rate(podman_container_cpu_seconds_total{job=\"podman\"}[5m])", "format": "table", "instant": true, "legendFormat": "", "refId": "H" }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "Time 1": true, "Time 2": true, "Time 3": true, "Time 4": true, "Time 5": true, "Time 6": true, "Time 7": true, "Time 8": true, "id": true, "id 1": true, "id 2": true, "id 3": true, "id 4": true, "id 5": true, "id 6": true, "id 7": true, "pod_id": true, "pod_id 1": true, "pod_id 2": true, "pod_id 3": true, "pod_id 4": true, "pod_id 5": true, "pod_id 6": true, "pod_id 7": true, "pod_name": true, "pod_name 1": true, "pod_name 2": true, "pod_name 3": true, "pod_name 4": true, "pod_name 5": true, "pod_name 6": true, "pod_name 7": true, "job": true, "job 1": true, "job 2": true, "job 3": true, "job 4": true, "job 5": true, "job 6": true, "job 7": true, "__name__": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "__name__ 4": true, "__name__ 5": true, "__name__ 6": true, "__name__ 7": true, "Value": true, "Value #A": false, "Value #B": false, "Value #C": false, "Value #D": false, "Value #E": false, "Value #F": false, "Value #G": false, "Value #H": false }, "renameByName": { "instance": "Host", "name": "Container", "Value #A": "State", "Value #B": "Health", "Value #C": "Up since", "Value #D": "Exit code", "Value #E": "Restarts (1h)", "Value #F": "Memory", "Value #G": "Memory limit", "Value #H": "CPU" }, "indexByName": { "Container": 0, "Host": 1, "State": 2, "Health": 3, "Restarts (1h)": 4, "Up since": 5, "Memory": 6, "Memory limit": 7, "CPU": 8, "Exit code": 9 } } }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Container CPU",
+      "description": "rate() of the exporter's CPU counter. 1.0 is one full core.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "sum by (instance, name) (rate(podman_container_cpu_seconds_total{job=\"podman\"}[5m]))", "legendFormat": "{{ instance }} / {{ name }}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Container memory",
+      "description": "podman_container_mem_usage_bytes, per container. A rootless container with no limit reports the host's total as its limit, so compare against the container's own working set rather than treating the limit as a cap.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "podman_container_mem_usage_bytes{job=\"podman\"}", "legendFormat": "{{ instance }} / {{ name }}", "refId": "A" }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "Container network throughput",
+      "description": "Rate of the exporter's net input/output counters, summed across interfaces by podman.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "sum by (instance, name) (rate(podman_container_net_input_total{job=\"podman\"}[5m]))", "legendFormat": "{{ instance }} / {{ name }} in", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "sum by (instance, name) (rate(podman_container_net_output_total{job=\"podman\"}[5m]))", "legendFormat": "{{ instance }} / {{ name }} out", "refId": "B" }
+      ]
+    },
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Container restarts",
+      "description": "changes() over podman_container_started_seconds, the exporter's only per-container start-time signal. This is the series ContainerCrashLooping thresholds at 15m.",
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "lineWidth": 1, "fillOpacity": 30, "showPoints": "never" }, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }, "editorMode": "code", "expr": "max by (instance, name) (changes(podman_container_started_seconds{job=\"podman\"}[15m]))", "legendFormat": "{{ instance }} / {{ name }}", "refId": "A" }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["containers", "podman", "observability"],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_prometheus",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
+      },
+      {
+        "name": "instance",
+        "label": "Host",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+        "query": "label_values(podman_container_state{job=\"podman\"}, instance)",
+        "definition": "label_values(podman_container_state{job=\"podman\"}, instance)",
+        "current": {},
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      },
+      {
+        "name": "container",
+        "label": "Container",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+        "query": {
+          "query": "label_values(podman_container_state{job=\"podman\", instance=~\"$instance\"}, name)",
+          "refId": "StandardVariableQuery"
+        },
+        "definition": "label_values(podman_container_state{job=\"podman\", instance=~\"$instance\"}, name)",
+        "current": {},
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Containers",
+  "uid": "containers-v1",
+  "version": 1,
+  "weekStart": ""
+}

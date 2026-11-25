@@ -46,6 +46,16 @@
   # `docs/lumquat-hardware.md` and still needs confirming on the box.
   my.observabilityGpuMetrics = true;
 
+  # lumquat runs the LLM containers (modules/features/llm.nix), so the agent
+  # also runs the podman exporter and scrapes it as `job="podman"` (BOX-331).
+  # It runs as the `podman` user against that user's rootless podman socket,
+  # which is where every rootless container on this host lives — an exporter
+  # running as root would see an empty list. The same module publishes each
+  # model's llama.cpp `/metrics` on a loopback-only port and declares a scrape
+  # target per model from `lib/models.nix`, so those arrive with the flag this
+  # module already needs; nothing else is set here.
+  my.observabilityContainerMetrics = true;
+
   # calamansi's LAN address, for vmagent's remote-write target.
   #
   # The real address is not known yet: calamansi is not on the network (BOX-324

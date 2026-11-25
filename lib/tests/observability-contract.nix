@@ -1,7 +1,8 @@
 # Contract test for the `my.observability` option set (BOX-326), extended by
 # BOX-327 (a remote agent, GPU telemetry, the Host detail dashboard), BOX-330
-# (journal shipping and the log store), BOX-329 (rules and the alerting path)
-# and BOX-332 (textfile checks and the bifrost dashboard).
+# (journal shipping and the log store), BOX-329 (rules and the alerting path),
+# BOX-331 (container metrics, llama.cpp scrape targets, rules, dashboards) and
+# BOX-332 (textfile checks and the bifrost dashboard).
 #
 # The seam this ticket establishes is "a feature module declares a source and
 # the machine's machinery picks it up". That is exactly what BOX-331
@@ -123,7 +124,8 @@ let
   storage2Job = jobNamed "storage2";
   storage2ExporterJob = jobNamed "storage2-exporter";
   storage2Address = flake.nixosConfigurations.calamansi.config.my.storage2Address;
-  snmpAuth = flake.nixosConfigurations.calamansi.config.services.prometheus.exporters.snmp.configuration.auths.storage2;
+  snmpAuth =
+    flake.nixosConfigurations.calamansi.config.services.prometheus.exporters.snmp.configuration.auths.storage2;
 
   lumquatJobNames = map (j: j.job_name) lumquat.services.vmagent.prometheusConfig.scrape_configs;
   lumquatNodeJob = builtins.head (
@@ -274,9 +276,16 @@ let
     )
   );
 
-  # BOX-334 makes calamansi declare a feature ruleset, so "a new agent host gets
-  # the generic defaults for free" can no longer be read off the committed host:
-  # it is asserted on the same host with the feature switched off.
+  # Every committed agent host now declares at least one feature ruleset —
+  # BOX-334 on calamansi (storage2), BOX-331 (`llm`) and BOX-332 (`bifrost`) on
+  # lumquat — so "a new agent host gets the generic defaults for free" can no
+  # longer be read off any of them. It is asserted instead on calamansi with its
+  # own feature switched off *and* with no gathered hosts at all: the shape of a
+  # brand-new agent host that has declared nothing.
+  #
+  # Listing the committed lumquat here (as this did before BOX-331) would defeat
+  # the point: its rulesets would be gathered in, and this would assert that
+  # feature rules are generic rules.
   genericOnlyFlake = {
     calamansi = flake.nixosConfigurations.calamansi.extendModules {
       modules = [
@@ -284,20 +293,21 @@ let
         { config.my.observabilityGatheredHosts = { }; }
       ];
     };
-    lumquat = flake.nixosConfigurations.lumquat;
   };
 
-  genericOnlyRuleFiles = map (f: f.name) (obsHelper.mkRuleFiles (
-    obsHelper.rulesetsOfType "metrics" (
-      defaultRulesets
-      // lib.concatMapAttrs (
-        hostName: host:
-        lib.mapAttrs' (
-          name: ruleset: lib.nameValuePair "${hostName}-${name}" ruleset
-        ) host.config.my.observability.rules
-      ) (lib.filterAttrs (_: host: host.config.my.observabilityAgent or false) genericOnlyFlake)
+  genericOnlyRuleFiles = map (f: f.name) (
+    obsHelper.mkRuleFiles (
+      obsHelper.rulesetsOfType "metrics" (
+        defaultRulesets
+        // lib.concatMapAttrs (
+          hostName: host:
+          lib.mapAttrs' (
+            name: ruleset: lib.nameValuePair "${hostName}-${name}" ruleset
+          ) host.config.my.observability.rules
+        ) (lib.filterAttrs (_: host: host.config.my.observabilityAgent or false) genericOnlyFlake)
+      )
     )
-  ));
+  );
 
   committedRuleFiles = map (f: f.name) committedRuleEntries;
   gatheredRuleFiles = map (f: f.name) gatheredRuleEntries;
@@ -323,16 +333,17 @@ let
     map builtins.head (builtins.filter (m: builtins.isList m && m != [ ]) matched);
 
   # Only the generic files: `committedRuleFiles` now also contains BOX-334's
-  # storage2 ruleset, and this list is the *stack's* default alert set.
+  # storage2 ruleset and BOX-331's lumquat `llm` ruleset, and this list is the
+  # *stack's* default alert set.
   defaultRuleNames = builtins.concatMap alertNamesIn [
     "generic.0.yaml"
     "generic.1.yaml"
   ];
   storage2RuleNames = alertNamesIn "calamansi-storage2.0.yaml";
 
-  # The stack's own rules, i.e. those in the two `generic.*` files. BOX-332 adds
-  # a feature's rules to the same committed farm, and "the defaults are the
-  # stack's" is a statement about `generic.*`, not about everything loaded.
+  # The stack's own rules, i.e. those in the two `generic.*` files. BOX-332 and
+  # BOX-331 add feature rules to the same committed farm, and "the defaults are
+  # the stack's" is a statement about `generic.*`, not about everything loaded.
   genericRuleFiles = builtins.filter (n: lib.hasPrefix "generic." n) committedRuleFiles;
   genericRuleNames = builtins.concatMap alertNamesIn genericRuleFiles;
 
@@ -343,6 +354,67 @@ let
 
   pushoverConfig = builtins.head (receiverNamed "pushover").pushover_configs;
 
+  # ── BOX-331: containers and llama.cpp ───────────────────────────────
+  #
+  # lumquat is the host that owns the model containers and the podman exporter,
+  # so everything here is read from the committed lumquat config rather than an
+  # extended one: these are properties of the real deployment, and a test that
+  # extended a host could pass while the committed one stayed broken.
+
+  # The container unit's `ports` argument, as `virtualisation.oci-containers`
+  # renders it. That option is a passthrough list of `podman run -p` strings, so
+  # the port mapping *is* the string and loopback binding is readable only from
+  # its shape — hence the parse below rather than a substring search.
+  qwenContainer = lumquat.virtualisation.oci-containers.containers.qwen-35b-a3b;
+  qwenPorts = qwenContainer.ports;
+
+  # "[<bind>:]<hostPort>:<containerPort>" -> the bind, or null when unbound
+  # (which podman answers by listening on every interface — the thing this test
+  # exists to prevent).
+  bindOf =
+    spec:
+    let
+      parts = lib.splitString ":" spec;
+    in
+    if builtins.length parts >= 3 then builtins.head parts else null;
+
+  # Only the metrics publish: the inference port is a separate mapping whose
+  # host side is models.nix's `port`, not `metricsPort`.
+  metricsPorts = builtins.filter (spec: lib.hasInfix ":8080" spec) qwenPorts;
+
+  lumquatScrapeTargets = lumquat.my.observability.scrapeTargets;
+  llamaTargetNames = builtins.filter (n: lib.hasPrefix "llama-" n) (
+    builtins.attrNames lumquatScrapeTargets
+  );
+
+  # The agent's rendered scrape config, as the committed lumquat has it.
+  lumquatScrapeJobs = lumquat.services.vmagent.prometheusConfig.scrape_configs;
+  llamaJobs = builtins.filter (j: lib.hasPrefix "llama-" j.job_name) lumquatScrapeJobs;
+  podmanJobs = builtins.filter (j: j.job_name == "podman") lumquatScrapeJobs;
+
+  # The podman exporter unit, and where it listens.
+  podmanExporterUnit = lumquat.systemd.services.prometheus-podman-exporter;
+  podmanExporterExecStart = podmanExporterUnit.serviceConfig.ExecStart;
+  podmanExporterEnv = podmanExporterUnit.serviceConfig.Environment;
+
+  # The BOX-331 ruleset and dashboards, as committed.
+  lumquatRulesets = lumquat.my.observability.rules;
+  lumquatDashboards = lumquat.my.observability.dashboards;
+
+  # The rule file text, read from the committed YAML — not through vmalert's
+  # rendered farm, because this eval must not depend on a build. Alert names are
+  # extracted from the same `- alert: <name>` shape the generic rules use.
+  llmRulesText = builtins.readFile ../../modules/features/llm.rules.yaml;
+  llmRulesLines = builtins.filter builtins.isString (builtins.split "\n" llmRulesText);
+  llmAlertNames = map builtins.head (
+    builtins.filter (m: builtins.isList m && m != [ ]) (
+      map (line: builtins.match "[ ]*- alert: (.*)" line) llmRulesLines
+    )
+  );
+
+  # The ruleset name the host renders for lumquat's `llm` entry, in the
+  # `<host>-<ruleset>.<n>.yaml` scheme (obs.mkRuleFiles).
+  committedLlmRuleFiles = builtins.filter (n: lib.hasPrefix "lumquat-llm." n) committedRuleFiles;
   # ── BOX-332: textfile checks ──────────────────────────────���──────────
   #
   # The acceptance criterion is "the helper is generic: another feature could add
@@ -382,8 +454,12 @@ let
       ];
     }).config;
 
-  checkNames = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (builtins.attrNames checkCfg.systemd.services);
-  checkTimers = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (builtins.attrNames checkCfg.systemd.timers);
+  checkNames = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (
+    builtins.attrNames checkCfg.systemd.services
+  );
+  checkTimers = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (
+    builtins.attrNames checkCfg.systemd.timers
+  );
 
   demoService = checkCfg.systemd.services."textfile-check-demo-db";
   demoScript = demoService.script;
@@ -395,13 +471,14 @@ let
   # assertion that matters most: the checks write into the directory the
   # collector actually scans, and both sides get it from
   # `obs.textfileDirectory` so a rename cannot half-apply.
-  textfileDirFlag =
-    builtins.head (
-      builtins.filter (f: lib.hasPrefix "--collector.textfile.directory=" f) (
-        checkCfg.services.prometheus.exporters.node.extraFlags
-      )
-    );
-  textfileDir = builtins.substring (builtins.stringLength "--collector.textfile.directory=") 1000 textfileDirFlag;
+  textfileDirFlag = builtins.head (
+    builtins.filter (f: lib.hasPrefix "--collector.textfile.directory=" f) (
+      checkCfg.services.prometheus.exporters.node.extraFlags
+    )
+  );
+  textfileDir =
+    builtins.substring (builtins.stringLength "--collector.textfile.directory=") 1000
+      textfileDirFlag;
 
   # ── BOX-332: the committed bifrost check and its dashboard ───────────
   #
@@ -436,7 +513,8 @@ let
     else
       "";
   bifrostDashboardDatasources_raw = builtins.concatMap (
-    panel: [ (uidOf (panel.datasource or "")) ] ++ map (t: uidOf (t.datasource or "")) (panel.targets or [ ])
+    panel:
+    [ (uidOf (panel.datasource or "")) ] ++ map (t: uidOf (t.datasource or "")) (panel.targets or [ ])
   ) bifrostDashboard.panels or [ ];
 
   bifrostDashboardDatasources = builtins.filter (d: d != "") bifrostDashboardDatasources_raw;
@@ -499,7 +577,8 @@ let
     # the only series that distinguishes "device unreachable" from "poll
     # returning nothing", which is what Storage2PollDead is for.
     {
-      assertion = storage2Job.metrics_path == "/snmp?target=${storage2Address}&module=storage2&auth=storage2";
+      assertion =
+        storage2Job.metrics_path == "/snmp?target=${storage2Address}&module=storage2&auth=storage2";
       message = "The storage2 scrape job does not poll my.storage2Address through snmp_exporter's query API with the storage2 module and auth, so it is either scraping nothing or the wrong device.";
     }
     {
@@ -658,15 +737,13 @@ let
     # with no feature declaring anything, which is the "a new host gets them for
     # free" property.
     {
+      # BOX-331 and BOX-332 both added gathered feature rulesets, so this asserts
+      # the "for free" property against a flake whose features are all switched
+      # off (`genericOnlyRuleFiles`), not against the committed farm.
       assertion =
         genericOnlyRuleFiles == [
           "generic.0.yaml"
           "generic.1.yaml"
-          # BOX-332: bifrost's rules are declared on lumquat and gathered, so the
-          # committed farm now holds them too. The "for free" property is what
-          # this asserts, not an empty farm: the two generic files are still
-          # first, still unqualified and still unreplaced by any feature.
-          "lumquat-bifrost.0.yaml"
         ];
       message = "A host with no feature rulesets of its own does not load exactly the two generic rule files. A new agent host is supposed to get the default rules with no declaration of its own.";
     }
@@ -685,7 +762,7 @@ let
           "HotHardware"
           "Watchdog"
         ];
-      message = "The generic rule set no longer matches BOX-320's decided v1 list (host down, disk filling, disk nearly full, OOM, unit failed, source down, hot hardware, watchdog).";
+      message = "The generic rule set no longer matches BOX-320's decided v1 list (host down, disk filling, disk nearly full, OOM, unit failed, source down, hot hardware, watchdog). BOX-331's container and llama.cpp rules belong to lumquat's `llm` ruleset, not to this one.";
     }
 
     # The acceptance criterion: a rule declared by a lumquat feature appears in
@@ -723,6 +800,7 @@ let
           "generic.0.yaml"
           "generic.1.yaml"
           "lumquat-bifrost.0.yaml"
+          "lumquat-llm.0.yaml"
         ];
       message = "calamansi's gathered rule file set changed. If a feature just added rules, name its file here so the set stays deliberate; if not, something is being gathered that should not be.";
     }
@@ -787,13 +865,164 @@ let
       message = "Alertmanager's unit does not resolve the `alerting` scope, so the \${VAR} references in its config would never be substituted at start-up.";
     }
 
+    # ── BOX-331: containers and llama.cpp ───────────────────────────────
+
+    # The metrics port is published, and published **loopback-only**. A bare
+    # "8081:8080" is the failure this catches: podman would listen on every
+    # interface, including the LAN and the tailnet, and nothing else in the
+    # config would look wrong.
+    {
+      assertion = builtins.length metricsPorts == 1;
+      message = "The qwen container does not publish exactly one metrics port mapping (:8080). BOX-331 gives each model a loopback-only published port for llama.cpp's /metrics; without it neither the scrape target nor the LLM dashboard has a source.";
+    }
+    {
+      assertion = builtins.all (spec: bindOf spec == "127.0.0.1") metricsPorts;
+      message = "A model container publishes its llama.cpp metrics port on something other than 127.0.0.1. podman with no bind address listens on every interface, which would put the inference API's /metrics on the LAN and the tailnet for no benefit.";
+    }
+    {
+      assertion = lib.elem "--metrics" qwenContainer.cmd;
+      message = "The qwen container does not pass --metrics to llama-server, so /metrics is not served at all and every llama.cpp series (dashboard and LlamaCppBackingUp rule) is absent.";
+    }
+
+    # A scrape target per model, derived from the catalog rather than written
+    # out, and carrying the label the dashboards and the alert group by.
+    {
+      assertion = llamaTargetNames == [ "llama-qwen-35b-a3b" ];
+      message = "lumquat does not declare exactly one llama-* scrape target for its one catalog model. llm.nix derives these from lib/models.nix's `metricsPort`, so a mismatch means the derivation broke or a target was added by hand.";
+    }
+    {
+      assertion = builtins.all (n: lumquatScrapeTargets.${n}.labels ? model) llamaTargetNames;
+      message = "A llama-* scrape target has no `model` label. It is what the LLM dashboard groups by and what LlamaCppBackingUp names in its alert; without it every panel collapses to one series.";
+    }
+    {
+      assertion = builtins.all (
+        n: bindOf "${lumquatScrapeTargets.${n}.address}:x" == "127.0.0.1"
+      ) llamaTargetNames;
+      message = "A llama-* scrape target does not point at a loopback address. It must match the loopback-only publish above.";
+    }
+    {
+      assertion = builtins.length llamaJobs == builtins.length llamaTargetNames;
+      message = "The number of llama-* jobs in lumquat's rendered vmagent scrape config does not match the number of declared llama-* targets, so a target did not reach the agent.";
+    }
+
+    # The podman exporter itself.
+    {
+      assertion = lumquat.my.observabilityContainerMetrics;
+      message = "lumquat runs the model containers but does not set my.observabilityContainerMetrics, so no container metrics are collected and the Containers dashboard and ContainerCrashLooping rule have no source.";
+    }
+    {
+      assertion = podmanExporterUnit.serviceConfig.User == lumquat.my.baseUsername;
+      message = "The podman exporter does not run as my.baseUsername. lumquat's containers are rootless under that account, so an exporter running as root would report an empty container list — indistinguishable from 'nothing is running'.";
+    }
+    {
+      assertion = builtins.any (e: lib.hasInfix "CONTAINER_HOST=" e) podmanExporterEnv;
+      message = "The podman exporter unit sets no CONTAINER_HOST, so it would fall back to podman's own guess at the rootless socket from a system unit that has no $XDG_RUNTIME_DIR.";
+    }
+    {
+      assertion = lib.hasInfix "--web.listen-address=127.0.0.1:" podmanExporterExecStart;
+      message = "The podman exporter does not bind loopback. Its /metrics lists every container on the host, which is not something to publish on the LAN.";
+    }
+    {
+      assertion = builtins.length podmanJobs == 1;
+      message = "lumquat's rendered vmagent scrape config has no `podman` job. The exporter may be running but nothing scrapes it, which looks exactly like the exporter being down.";
+    }
+    {
+      assertion = builtins.any (
+        sc:
+        builtins.elem "127.0.0.1:${toString lumquat.my.observabilityPodmanExporterPort}" (sc.targets or [ ])
+      ) (builtins.head podmanJobs).static_configs;
+      message = "The `podman` job does not target the exporter's configured port (my.observabilityPodmanExporterPort). The unit's --web.listen-address and the scrape config must come from the same option.";
+    }
+
+    # Rules and dashboards declared by the committing feature, gathered by the
+    # observability host.
+    {
+      assertion =
+        builtins.attrNames lumquatRulesets == [
+          "bifrost"
+          "llm"
+        ];
+      message = "lumquat's rulesets are not exactly `bifrost` (BOX-332) and `llm` (BOX-331). BOX-331's container and llama.cpp rules belong to modules/features/llm.nix, guarded by its own flag.";
+    }
+    {
+      assertion = lumquatRulesets.llm.type == "metrics";
+      message = "lumquat's `llm` ruleset is not a metrics ruleset. VictoriaLogs' vmalert instance does not exist (BOX-330 follow-up), so a logs ruleset here would be dead.";
+    }
+    {
+      assertion = committedLlmRuleFiles == [ "lumquat-llm.0.yaml" ];
+      message = "lumquat's `llm` ruleset did not reach the observability host's vmalert rule directory under the `<host>-<ruleset>.<n>.yaml` scheme.";
+    }
+    {
+      # Both BOX-320 thresholds, named. The expressions are asserted by
+      # substring because the *shape* (a range selector carrying the whole
+      # threshold) is the decision, and an exact-expression assertion would have
+      # to be rewritten for a whitespace change.
+      assertion = builtins.all (n: builtins.elem n llmAlertNames) [
+        "ContainerCrashLooping"
+        "LlamaCppBackingUp"
+      ];
+      message = "modules/features/llm.rules.yaml does not declare both of BOX-320's container/llama.cpp rules (ContainerCrashLooping, LlamaCppBackingUp).";
+    }
+    {
+      assertion =
+        lib.hasInfix "changes(podman_container_started_seconds" llmRulesText
+        && lib.hasInfix "[15m]" llmRulesText;
+      message = "ContainerCrashLooping no longer counts restarts from podman_container_started_seconds over 15m. The exporter has no restart counter, so that changes() is the only exact restart count available; BOX-320's threshold is '>3 in 15 min'.";
+    }
+    {
+      assertion = lib.hasInfix "for: 10m" llmRulesText && lib.hasInfix "requests_deferred" llmRulesText;
+      message = "LlamaCppBackingUp no longer holds llama.cpp's queue depth for 10 minutes. BOX-320's threshold is 'queued requests for 10 min'.";
+    }
+
+    # The dashboards, both committed and reaching the provider directory (the
+    # seam-2 assertion above covers the gather; these name the keys and check
+    # the JSON actually parses and carries no hardcoded datasource UID).
+    {
+      assertion =
+        builtins.attrNames lumquatDashboards == [
+          "bifrost"
+          "containers"
+          "llm"
+        ];
+      message = "lumquat's dashboards are not exactly `bifrost` (BOX-332), `containers` and `llm` (BOX-331).";
+    }
+    {
+      assertion = builtins.all (d: builtins.isAttrs (builtins.fromJSON (builtins.readFile d.path))) (
+        builtins.attrValues lumquatDashboards
+      );
+      message = "A declared dashboard is not valid JSON. Grafana's provider would refuse to load it and the dashboard would be absent with no error anywhere in Nix.";
+    }
+    {
+      # Never a hardcoded UID: the dashboards bind to `ds_prometheus`, exactly
+      # as Node Exporter Full does, so the VictoriaMetrics datasource UID can be
+      # changed without rewriting them.
+      assertion =
+        builtins.all
+          (
+            key:
+            let
+              d = lumquatDashboards.${key};
+              body = builtins.fromJSON (builtins.readFile d.path);
+              vars = map (v: v.name) body.templating.list;
+              text = builtins.readFile d.path;
+            in
+            builtins.elem "ds_prometheus" vars && !lib.hasInfix "\"uid\": \"victoriametrics\"" text
+          )
+          [
+            "containers"
+            "llm"
+          ];
+      message = "A BOX-331 dashboard has no `ds_prometheus` templating variable, or hardcodes the VictoriaMetrics datasource UID. Either way it breaks when the datasource is renamed, which is precisely what the variable exists to prevent.";
+    }
     # ── BOX-332: textfile checks ─────────────────────────────────────────
 
     # The collection is inert until a feature declares something: calamansi
     # declares no checks, so it must get no check units at all. Otherwise a
     # `mkIf`-guarded empty attrset would leave dead units on every host.
     {
-      assertion = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (builtins.attrNames hostCfg.systemd.services) == [ ];
+      assertion =
+        builtins.filter (n: lib.hasPrefix "textfile-check-" n) (builtins.attrNames hostCfg.systemd.services)
+        == [ ];
       message = "The observability host has textfile-check units even though it declares no checks. The check units must appear only with the entries that need them.";
     }
 
@@ -870,7 +1099,8 @@ let
       message = "The bifrost check does not query the `logs` table's `timestamp` column. That is bifrost's own schema (framework/logstore/tables.go), and a guessed name would make the check emit _success 0 forever.";
     }
     {
-      assertion = lib.hasInfix "bifrost_logs_db_size_bytes" bifrostScript
+      assertion =
+        lib.hasInfix "bifrost_logs_db_size_bytes" bifrostScript
         && lib.hasInfix "bifrost_logs_db_rows" bifrostScript
         && lib.hasInfix "bifrost_logs_db_oldest_row_age_seconds" bifrostScript;
       message = "The bifrost check does not publish all three of BOX-207's numbers: size, row count and oldest-row age.";
@@ -1020,6 +1250,21 @@ let
     pushoverTokenIsReference = pushoverConfig.token;
     pushoverUserKeyIsReference = pushoverConfig.user_key;
 
+    # ── BOX-331 output: containers and llama.cpp ──
+    qwenMetricsPorts = metricsPorts;
+    qwenMetricsPortBinds = map bindOf metricsPorts;
+    llamaScrapeTargets = builtins.listToAttrs (
+      map (n: lib.nameValuePair n lumquatScrapeTargets.${n}) llamaTargetNames
+    );
+    llamaJobs = llamaJobs;
+    podmanExporterUser = podmanExporterUnit.serviceConfig.User;
+    podmanExporterExecStart = podmanExporterExecStart;
+    podmanExporterEnvironment = podmanExporterEnv;
+    podmanJob = podmanJobs;
+    llmRulesetTypes = builtins.mapAttrs (_: r: r.type) lumquatRulesets;
+    llmAlertNames = llmAlertNames;
+    committedLlmRuleFiles = committedLlmRuleFiles;
+    lumquatDashboardKeys = builtins.attrNames lumquatDashboards;
     # ── Seam 10 output (BOX-332): textfile checks ──
     textfileDirectory = textfileDir;
     checkServices = checkNames;

@@ -356,6 +356,43 @@
         `docs/lumquat-hardware.md`.
       '';
     };
+    observabilityContainerMetrics = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        This agent host runs podman containers whose metrics matter, so the
+        agent starts the **podman exporter** and scrapes it as `job="podman"`
+        (BOX-331).
+
+        Separate from `observabilityAgent` because container metrics are not
+        universal: a host that runs no containers would get an exporter that
+        reports nothing, and a running podman API is a real dependency (the
+        unit orders after `podman.socket` and `linger-users`) that an agent host
+        without containers should not have.
+
+        The exporter is `prometheus-podman-exporter`, packaged in
+        `lib/overlays/prometheus-podman-exporter.nix` because our pinned nixpkgs
+        does not contain it. It runs as `my.baseUsername` and talks to that
+        user's **rootless** podman socket, so what it reports is the containers
+        that account actually owns. A root exporter against a rootless socket
+        reports an empty list, which is indistinguishable from "no containers
+        running" — that is the failure mode this option exists to avoid, and why
+        the unit's user is not configurable.
+      '';
+    };
+    observabilityPodmanExporterPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9882;
+      description = ''
+        Loopback port the podman exporter serves `/metrics` on, and the port the
+        agent scrapes as `job="podman"`.
+
+        Upstream's default (9882), kept so the binary, the upstream docs and the
+        rendered scrape config all name one number. Bound to 127.0.0.1: a
+        metrics endpoint on the LAN would advertise which containers exist on
+        the machine for no benefit.
+      '';
+    };
     observabilityIngestPort = lib.mkOption {
       type = lib.types.port;
       default = 8428;

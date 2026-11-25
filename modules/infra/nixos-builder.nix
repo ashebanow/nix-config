@@ -37,6 +37,13 @@ let
     # builder metadata (BOX-339). Provides `rex-patched`, consumed by
     # modules/features/rex.nix.
     (import ../../lib/overlays/rex.nix { inherit (inputs) rex; })
+    # prometheus-podman-exporter is absent from our pinned nixpkgs (it was
+    # initialised upstream at a *newer* rev) and has no NixOS module at any rev,
+    # so BOX-331 packages it here rather than bumping the whole lock for one Go
+    # binary. Provides `pkgs.prometheus-podman-exporter`, consumed by
+    # modules/features/observability-agent.nix. Delete this line and the file
+    # once our nixpkgs pin passes d70e8bc28a.
+    (import ../../lib/overlays/prometheus-podman-exporter.nix)
   ];
 
   # mkNixosHost — build one NixOS host from hosts/<hostName>/.
