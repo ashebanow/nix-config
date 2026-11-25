@@ -149,15 +149,15 @@ let
     flake.nixosConfigurations.calamansi.config.my.observability.dashboards
   );
 
-  # The dashboard as Grafana will serve it. Read from the module's own source
-  # file rather than through the provider directory: the farm is a symlink farm
-  # (one symlink per declared dashboard, named `<key>.json`) and Nix will not
-  # follow a store symlink out of `readFile`. Delivery is asserted by name in
-  # `dashboardFiles`; contents are asserted from the file the farm links to, and
-  # the two cannot differ because the farm is a one-to-one map over the same
-  # declarations.
+  # The dashboard as Grafana will actually serve it — read **through** the
+  # provider directory, not from the module's source file. `readFile` does
+  # follow the farm's symlinks (an earlier comment here claimed otherwise and a
+  # reviewer disproved it), and going through the farm is strictly stronger: it
+  # proves the bytes Grafana loads are the ones asserted, rather than proving
+  # something about a file the farm might in principle not point at. Same shape
+  # as `nodeExporterFullJson` below.
   storage2DashboardJson = builtins.fromJSON (
-    builtins.readFile ../../modules/features/storage2.dashboard.json
+    builtins.readFile (dashboardProvider.options.path + "/storage2.json")
   );
 
   # ── BOX-330: the agent's always-on collectors ──────────────────────
@@ -709,6 +709,22 @@ let
     {
       assertion = builtins.elem "Storage2PollDead" storage2RuleNames;
       message = "No Storage2PollDead rule exists. Nothing would notice storage2's SNMP agent going away.";
+    }
+    {
+      # A reviewer's finding: once the per-file assertions became `elem` checks,
+      # nothing pinned the committed host's rule set *exactly*, so a fourth
+      # ruleset arriving unannounced would have passed. Re-pin it. This fails
+      # when a feature adds rules — which is the point: the fix is to name the
+      # new file here, so the gathered set stays a reviewed fact rather than an
+      # accumulation.
+      assertion =
+        committedRuleFiles == [
+          "calamansi-storage2.0.yaml"
+          "generic.0.yaml"
+          "generic.1.yaml"
+          "lumquat-bifrost.0.yaml"
+        ];
+      message = "calamansi's gathered rule file set changed. If a feature just added rules, name its file here so the set stays deliberate; if not, something is being gathered that should not be.";
     }
 
     # The delivery path, as BOX-320 decided it.

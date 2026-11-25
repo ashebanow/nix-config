@@ -75,9 +75,12 @@
 # net-snmp, and net-snmp in nixpkgs ships no MIB files at all. Numeric OIDs
 # need no MIB database, so this config is self-contained and reproducible
 # without a MIB fetch — at the cost that a typo in an OID is not caught at
-# build time. The build-time `snmp_exporter --dry-run` still validates the
-# *module* shape (name/OID/type/indexes), and `Storage2PollDead` in the rule
-# file catches "reachable but returning nothing" on the host.
+# build time. The build-time `snmp_exporter --dry-run` validates only the
+# document's structure and auth sections (it accepts a bogus metric type or a
+# bogus OID without complaint — see the note beside `configCheck`), so the
+# promise of catching a typo is *not* met anywhere off-host. `Storage2PollDead`
+# in the rule file is what catches "reachable but returning nothing" on the
+# host, and it is the only thing that does.
 #
 # ## Credentials
 #
@@ -415,11 +418,18 @@
 
       # ── Build-time config validation ─────────────────────────────────
       #
-      # `snmp_exporter --dry-run` parses and validates the module config: the
-      # document's shape, every metric's `type`, and the index/lookup wiring.
-      # It does not contact a device and does not need credentials — the
-      # `${VAR}` references are valid strings to the parser, so they check as
-      # they stand.
+      # `snmp_exporter --dry-run` parses the module config and validates its
+      # **structure and auth sections only**. It does not contact a device and
+      # does not need credentials — the `${VAR}` references are valid strings to
+      # the parser, so they check as they stand.
+      #
+      # What it does NOT catch, measured rather than assumed: a bogus metric
+      # `type` (`NOT_A_REAL_TYPE`) and a bogus OID (`not.an.oid`, or a bogus
+      # lookup OID) all print "Configuration parsed successfully" and exit 0.
+      # So this gate is worth having for shape, and worthless for typo
+      # detection — which is why the header says a typo in an OID is not caught
+      # at build time, and why `Storage2PollDead` exists to make a wrong OID or
+      # protocol visible on the host instead of silently empty.
       #
       # nixpkgs' own `enableConfigCheck` would run this too, but its result is
       # only reachable through the module's *default* ExecStart, which the
@@ -514,10 +524,12 @@
         # BOX-329 found nixpkgs' Alertmanager service expanding its template
         # into `/tmp` through a world-readable ExecStartPre, and the fix there
         # was to override it and write a 0400 file in the RuntimeDirectory.
-        # **The snmp exporter module has no ExecStartPre at all** — checked in
-        # nixpkgs' `exporters/snmp.nix` and its shared `exporters.nix`, which
-        # sets sandboxing but no pre-start hook — so there is nothing to
-        # override and nothing writing to `/tmp`. That makes the runtime env
+        # **No module-generated pre-start writes credentials anywhere** — no
+        # `/tmp`, no materialised plaintext. (The rendered unit does have an
+        # `ExecStartPre`, but it is only this module's own `preStart` echo; an
+        # earlier version of this comment said the unit had none, which a
+        # reviewer correctly flagged as false. The conclusion held either way.)
+        # That makes the runtime env
         # the better option here: the exporter never materialises the
         # credentials anywhere, so there is no file whose mode could regress.
         #
