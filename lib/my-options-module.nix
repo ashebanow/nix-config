@@ -128,6 +128,92 @@
       description = "Cockpit web interface port.";
     };
 
+    # ── storage2 (the UniFi UNAS Pro archive) ────────────────────────────
+    #
+    # storage2 cannot run services, so its health can only be observed from
+    # outside. These options are the SNMP poller the observability host runs
+    # for it (BOX-334).
+    #
+    # Set `storage2` on the **observability host** and nowhere else: the
+    # exporter it enables is a loopback service on that machine, and nothing
+    # else scrapes it. The module asserts this rather than silently starting a
+    # poller that produces no reachable series.
+    storage2 = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Poll storage2 (UniFi UNAS Pro) over SNMPv3 and ship its fans,
+        temperatures, per-drive I/O, load, memory and CPU as metrics.
+
+        Needs the `unifi-snmp` secretspec scope (`UNIFI_SNMP_USER`,
+        `UNIFI_SNMP_PASSWORD`) resolved from BWS; the values never enter the
+        Nix store. See `modules/features/storage2.nix` for what the device does
+        and does not expose — capacity, SMART and pool state are **not**
+        available over SNMP and stay with UniFi's own notifications (BOX-314).
+      '';
+    };
+    storage2Address = lib.mkOption {
+      type = lib.types.str;
+      default = "10.40.0.59";
+      example = "10.40.0.59";
+      description = ''
+        LAN address the SNMP exporter polls. From `docs/network.md`, which is
+        the source of truth for addresses: storage2 is on the servers/storage
+        subnet (`10.40.0.0/24`), not the workstation one.
+      '';
+    };
+    storage2ExporterPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9116;
+      description = ''
+        Loopback port `prometheus-snmp-exporter` serves on. Upstream's default,
+        kept so the exporter's own documentation and its `/snmp` query API match
+        without translation. Nothing is published: only this host's own vmagent
+        scrapes it.
+      '';
+    };
+    storage2AuthProtocol = lib.mkOption {
+      type = lib.types.enum [
+        "MD5"
+        "SHA"
+        "SHA224"
+        "SHA256"
+        "SHA384"
+        "SHA512"
+      ];
+      default = "SHA";
+      description = ''
+        SNMPv3 authentication protocol.
+
+        Default `SHA` because BOX-320 recorded the device answering
+        SNMPv3 `authPriv` with SHA authentication. **Unverified beyond that
+        single observation**: no one has confirmed which SHA variant the UNAS
+        Pro negotiates, and SHA-1 (plain `SHA`) is what UniFi documents as its
+        choice. If the poll fails with an authentication error on the host,
+        suspect this first — `Storage2PollDead` exists to make that visible.
+      '';
+    };
+    storage2PrivProtocol = lib.mkOption {
+      type = lib.types.enum [
+        "DES"
+        "AES"
+        "AES192"
+        "AES192C"
+        "AES256"
+        "AES256C"
+      ];
+      default = "AES";
+      description = ''
+        SNMPv3 privacy (encryption) protocol.
+
+        Default `AES` (AES-128) because BOX-320 recorded the device answering
+        SNMPv3 `authPriv` with AES privacy. **Unverified beyond that single
+        observation**: AES-128 is what UniFi documents, but AES-192/256 were
+        not distinguished on the wire. If the poll fails with a privacy or
+        decryption error, suspect this after the auth protocol.
+      '';
+    };
+
     # ── Observability ────────────────────────────────────────────────────
     #
     # Two roles, two flags. They are separate roles, not alternatives: the
