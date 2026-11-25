@@ -814,7 +814,10 @@
               "-notifier.url=http://127.0.0.1:${toString config.my.observabilityAlertmanagerPort}"
               "-evaluationInterval=1m"
               "-httpListenAddr=127.0.0.1:${toString config.my.observabilityVmalertPort}"
-              "-external.url=https://${config.my.accessTailnetName}.${config.my.observabilityTailnetDomain}/grafana"
+              # Grafana is served at the tailnet root (Serve maps 443 to
+              # 127.0.0.1:3000 with no path prefix), so this is the dashboard a
+              # reader can actually open from the notification.
+              "-external.url=https://${config.my.accessTailnetName}.${config.my.observabilityTailnetDomain}"
               # Keep vmalert's own memory bounded; it only ever holds rule
               # state, and a rule that needs more history is a recording rule.
               "-memory.allowedPercent=40"
