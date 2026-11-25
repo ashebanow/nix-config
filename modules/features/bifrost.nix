@@ -10,10 +10,17 @@
 # named for its function, so a future gateway swap does not move the endpoint.
 #
 # Secrets (bifrost scope: BIFROST_TS_AUTHKEY for the sidecar; DEEPSEEK_API_KEY,
-# ANTHROPIC_API_KEY, MINIMAX_API_KEY for the remote providers) are resolved from
-# BWS via secretspec at start. Values live only in the process environment;
-# config.json references the provider keys by name (env.<VAR>), never by value.
-# Compose + config are symlinked to /etc/bifrost via tmpfiles below.
+# ANTHROPIC_API_KEY, MINIMAX_API_KEY, SUBQ_API_KEY for the remote providers) are
+# resolved from BWS via secretspec at start. Values live only in the process
+# environment; config.json references the provider keys by name (env.<VAR>),
+# never by value. Compose + config are symlinked to /etc/bifrost via tmpfiles
+# below.
+#
+# SubQ (https://docs.subq.ai) is reached over its OpenAI-compatible Chat
+# Completions API as the `subq` custom provider. Only subq-savant-1.4 is wired:
+# SubQ Snap's Decisions API (/v1/systemone) returns typed probabilities in a
+# shape that is not OpenAI-compatible, so bifrost cannot proxy it — call it
+# directly, reading the same SUBQ_API_KEY from BWS.
 #
 # Gated behind my.bifrostServe, separate from my.llmServe, so bifrost and
 # LiteLLM can run side by side until the cutover completes.
@@ -54,9 +61,15 @@ _: {
           # content does, so without this a rebuild leaves the old stack running.
           # A change here re-runs ExecStop (`down`, no -v) + ExecStart; the named
           # data volume — and the request logs in it — survive (BOX-133).
+          #
+          # The manifest is watched too: adding or rotating a bifrost-scope
+          # secret that neither compose.yml nor config.json names (a value only
+          # read via `env.` at runtime) would otherwise leave the old env in the
+          # running container until something else happened to cycle the stack.
           restartTriggers = [
             "${../../compose/llm/bifrost-compose.yml}"
             "${../../compose/llm/bifrost-config.json}"
+            config.my.secretspecManifest
             # A runtime bump must cycle the gateway stack: its containers were
             # created by the podman in `path` above. Bifrost recovers in seconds
             # (no model to load), so this is the cheapest of the four.
@@ -83,8 +96,9 @@ _: {
               set -e
               export XDG_RUNTIME_DIR="/run/user/$(id -u)"
               # secretspec injects the bifrost scope (BIFROST_TS_AUTHKEY,
-              # DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, MINIMAX_API_KEY) into this
-              # environment; podman-compose substitutes them in compose.yml.
+              # DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, MINIMAX_API_KEY,
+              # SUBQ_API_KEY) into this environment; podman-compose substitutes
+              # them in compose.yml.
               exec ${pkgs.secretspec}/bin/secretspec run -P production -S bifrost -- \
                 ${pkgs.podman-compose}/bin/podman-compose -f /etc/bifrost/compose.yml up -d
             '';

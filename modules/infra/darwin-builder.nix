@@ -29,11 +29,11 @@ let
   deferredDarwinModules = builtins.attrValues config.my.modules.darwin;
   deferredHmModules = builtins.attrValues config.my.modules.home-manager;
 
-  # worktrunk (wt) is three releases behind nixpkgs, and the agent-plugin
-  # commands (`wt config plugins pi|codex|opencode`) only exist from 0.77.0.
-  # Apply the pinned-release overlay to every Darwin workstation's pkgs so
-  # `pkgs.worktrunk` — installed by modules/features/cli-vcs-tools.nix via
-  # home.packages — is upstream's build.
+  # worktrunk (wt) is pinned ahead of nixpkgs (0.82.0 vs 0.80.0), and the
+  # agent-plugin commands (`wt config plugins pi|codex|opencode`) only exist
+  # from 0.77.0. Apply the pinned-release overlay to every Darwin
+  # workstation's pkgs so `pkgs.worktrunk` — installed by
+  # modules/features/cli-vcs-tools.nix via home.packages — is upstream's build.
   worktrunkOverlay = import ../../lib/overlays/worktrunk.nix { inherit (inputs) worktrunk; };
 
   # linear-cli (BOX-176): not in nixpkgs at all, so the overlay is the only
@@ -43,14 +43,6 @@ let
   # pi-coding-agent: nixpkgs' build does not work in a read-only store, so the
   # overlay supplies pi.nix's build. Installed by cli-ai-tools.nix.
   piOverlay = import ../../lib/overlays/pi.nix { inherit (inputs) pi-nix; };
-
-  # devenv (BOX-245): nixpkgs is on 2.3.1, which bundles SecretSpec 0.20.0 and
-  # re-prompts for the macOS keychain on every `cd` because the item's
-  # change_acl list is sealed. 2.4.0 is the first release carrying SecretSpec
-  # 0.21.0 and its keyring fix. That overlay deliberately pins devenv ONLY and
-  # not `secretspec` — SecretSpec is vendored into devenv's workspace, so the
-  # bundled binary is the one that reads the keychain. See the overlay header.
-  devenvOverlay = import ../../lib/overlays/devenv.nix { inherit (inputs) devenvUnstable; };
 
   # claude-code: nixpkgs trails the CLI's several-releases-a-week cadence (our
   # pin is 2.1.272 against Anthropic's 2.1.296). This overlay swaps in
@@ -135,14 +127,12 @@ let
         }
         {
           # Dev-workstation-only package overrides — see worktrunkOverlay,
-          # linearCliOverlay, piOverlay, devenvOverlay, and claudeCodeOverlay
-          # above for why these are here and not (or, for claude-code, also) in
-          # the NixOS builder.
+          # linearCliOverlay, piOverlay and claudeCodeOverlay above for why these
+          # are here and not (or, for claude-code, also) in the NixOS builder.
           nixpkgs.overlays = [
             worktrunkOverlay
             linearCliOverlay
             piOverlay
-            devenvOverlay
             claudeCodeOverlay
           ];
         }
