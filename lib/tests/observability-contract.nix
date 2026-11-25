@@ -1,7 +1,7 @@
 # Contract test for the `my.observability` option set (BOX-326), extended by
 # BOX-327 (a remote agent, GPU telemetry, the Host detail dashboard), BOX-330
-# (journal shipping and the log store) and BOX-329 (rules and the alerting
-# path).
+# (journal shipping and the log store), BOX-329 (rules and the alerting path)
+# and BOX-332 (textfile checks and the bifrost dashboard).
 #
 # The seam this ticket establishes is "a feature module declares a source and
 # the machine's machinery picks it up". That is exactly what BOX-331
@@ -26,6 +26,8 @@
 #   rules         -> the observability host  gathered, via the documented
 #                                            `my.observabilityGatheredHosts` hook
 #   alerting      -> Alertmanager's config   rendered, asserted as data
+#   textfileChecks -> this host's agent      extended in-process (BOX-332)
+#   the bifrost check + dashboard             read from the committed lumquat
 #
 # The dashboard seam reads the *committed* flake's host configurations, so it
 # cannot be exercised by `extendModules` (an extended config is not in
@@ -279,12 +281,118 @@ let
 
   defaultRuleNames = builtins.concatMap alertNamesIn committedRuleFiles;
 
+  # The stack's own rules, i.e. those in the two `generic.*` files. BOX-332 adds
+  # a feature's rules to the same committed farm, and "the defaults are the
+  # stack's" is a statement about `generic.*`, not about everything loaded.
+  genericRuleFiles = builtins.filter (n: lib.hasPrefix "generic." n) committedRuleFiles;
+  genericRuleNames = builtins.concatMap alertNamesIn genericRuleFiles;
+
   alertmanagerConfig = hostCfg.services.prometheus.alertmanager.configuration;
   alertmanagerRoute = alertmanagerConfig.route;
   alertmanagerReceivers = alertmanagerConfig.receivers;
   receiverNamed = name: builtins.head (builtins.filter (r: r.name == name) alertmanagerReceivers);
 
   pushoverConfig = builtins.head (receiverNamed "pushover").pushover_configs;
+
+  # ── BOX-332: textfile checks ──────────────────────────────���──────────
+  #
+  # The acceptance criterion is "the helper is generic: another feature could add
+  # a sqlite check in a few lines", so the test declares **two** checks that it
+  # did not have to write: one from `obs.sqliteCheck`, against a database that
+  # does not exist on any host (the point is the rendering, not the file), and
+  # one hand-written `textfileScript`. Between them they prove the shape a future
+  # feature copies.
+
+  # A trivial second consumer: a plain textfile check with no helper at all,
+  # which is what "not every check is a sqlite check" looks like.
+  secondConsumerModule = {
+    config.my.observability.textfileChecks.disk-snapshot = {
+      user = "podman";
+      interval = "1h";
+      script = obsHelper.textfileScript "disk-snapshot" ''
+        printf '# TYPE sample_gauge gauge\nsample_gauge 1\n' | emit_textfile
+      '';
+    };
+  };
+
+  # A sqlite check, in the shape a feature module writes it.
+  sqliteConsumerModule = {
+    config.my.observability.textfileChecks.demo-db = obsHelper.sqliteCheck {
+      name = "demo-db";
+      database = "/var/lib/demo/demo.db";
+      table = "events";
+      user = "podman";
+    };
+  };
+
+  checkCfg =
+    (flake.nixosConfigurations.calamansi.extendModules {
+      modules = [
+        sqliteConsumerModule
+        secondConsumerModule
+      ];
+    }).config;
+
+  checkNames = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (builtins.attrNames checkCfg.systemd.services);
+  checkTimers = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (builtins.attrNames checkCfg.systemd.timers);
+
+  demoService = checkCfg.systemd.services."textfile-check-demo-db";
+  demoScript = demoService.script;
+  diskService = checkCfg.systemd.services."textfile-check-disk-snapshot";
+  demoTimer = checkCfg.systemd.timers."textfile-check-demo-db".timerConfig;
+  diskTimer = checkCfg.systemd.timers."textfile-check-disk-snapshot".timerConfig;
+
+  # The directory node_exporter is told to read, from its own flag. This is the
+  # assertion that matters most: the checks write into the directory the
+  # collector actually scans, and both sides get it from
+  # `obs.textfileDirectory` so a rename cannot half-apply.
+  textfileDirFlag =
+    builtins.head (
+      builtins.filter (f: lib.hasPrefix "--collector.textfile.directory=" f) (
+        checkCfg.services.prometheus.exporters.node.extraFlags
+      )
+    );
+  textfileDir = builtins.substring (builtins.stringLength "--collector.textfile.directory=") 1000 textfileDirFlag;
+
+  # ── BOX-332: the committed bifrost check and its dashboard ───────────
+  #
+  # Read from the committed lumquat, because the host that matters is the one
+  # that will run it. The assertions below are what stops the rendered script
+  # drifting away from the read-only contract BOX-202 established.
+  bifrostService = lumquat.systemd.services."textfile-check-bifrost-logs-db";
+  bifrostScript = bifrostService.script;
+  bifrostTimer = lumquat.systemd.timers."textfile-check-bifrost-logs-db".timerConfig;
+
+  # The bifrost dashboard's identity, read out of the provider directory. A
+  # dashboard whose datasource UID is wrong renders empty, which looks exactly
+  # like "no data yet" — so the UID is asserted, not eyeballed.
+  bifrostDashboard =
+    if builtins.elem "bifrost.json" dashboardFiles then
+      builtins.fromJSON (builtins.readFile (dashboardProvider.options.path + "/bifrost.json"))
+    else
+      { };
+
+  # A panel and each of its targets must both name the datasource: Grafana
+  # resolves the panel-level one for display, and a target with no `datasource`
+  # of its own inherits it — but an *explicitly wrong* one on either renders the
+  # panel empty, so both are collected. `uid` may be a bare string in older
+  # schema versions, so both spellings are accepted rather than reported as
+  # missing.
+  uidOf =
+    ds:
+    if builtins.isAttrs ds then
+      ds.uid or ""
+    else if builtins.isString ds then
+      ds
+    else
+      "";
+  bifrostDashboardDatasources_raw = builtins.concatMap (
+    panel: [ (uidOf (panel.datasource or "")) ] ++ map (t: uidOf (t.datasource or "")) (panel.targets or [ ])
+  ) bifrostDashboard.panels or [ ];
+
+  bifrostDashboardDatasources = builtins.filter (d: d != "") bifrostDashboardDatasources_raw;
+
+  bifrostAlertsInGathered = builtins.filter (n: n == "lumquat-bifrost.0.yaml") gatheredRuleFiles;
 
   # ── Assertions ──────────────────────────────────────────────────────
   #
@@ -316,11 +424,13 @@ let
       message = "Node Exporter Full has no `ds_prometheus` datasource variable, so it would need a datasource UID baked in and vendoring before it renders.";
     }
     {
-      # When the first feature dashboard is declared (BOX-331/BOX-338 shape),
-      # this test must start asserting that its key reached the provider
-      # directory. Failing here is the reminder, not a defect.
-      assertion = declaredDashboardKeys == [ ];
-      message = "An observation dashboard is now declared. Extend this test to assert its key reaches Grafana's provider directory, then remove this reminder assertion.";
+      # BOX-332: this reminder is now satisfied for real — `bifrost.json` is
+      # asserted to reach the provider directory above, and its UID and
+      # datasource bindings are asserted with it. The reminder is replaced rather
+      # than deleted so the *property* (a declared dashboard key must be in the
+      # directory) stays asserted for whatever BOX-331/BOX-338 declares next.
+      assertion = lib.all (key: builtins.elem "${key}.json" dashboardFiles) declaredDashboardKeys;
+      message = "A my.observability.dashboards key is declared on an agent host but is not in Grafana's provider directory. Either the gather dropped it or the key collides.";
     }
 
     # Seam 3 — a remote agent ships to the host, not to its own loopback.
@@ -435,12 +545,19 @@ let
         committedRuleFiles == [
           "generic.0.yaml"
           "generic.1.yaml"
+          # BOX-332: bifrost's rules are declared on lumquat and gathered, so the
+          # committed farm now holds them too. The "for free" property is what
+          # this asserts, not an empty farm: the two generic files are still
+          # first, still unqualified and still unreplaced by any feature.
+          "lumquat-bifrost.0.yaml"
         ];
       message = "The observability host's vmalert does not load exactly the two generic rule files. A new agent host is supposed to get the default rules with no declaration of its own.";
     }
     {
+      # `generic.*` explicitly, not the whole committed farm: BOX-332 adds
+      # bifrost's rules to the farm, and they are a feature's, not the stack's.
       assertion =
-        defaultRuleNames == [
+        genericRuleNames == [
           "HostDown"
           "DiskFilling"
           "DiskNearlyFull"
@@ -524,6 +641,168 @@ let
       assertion = lib.hasInfix "-S alerting" hostCfg.systemd.services.alertmanager.serviceConfig.ExecStart;
       message = "Alertmanager's unit does not resolve the `alerting` scope, so the \${VAR} references in its config would never be substituted at start-up.";
     }
+
+    # ── BOX-332: textfile checks ─────────────────────────────────────────
+
+    # The collection is inert until a feature declares something: calamansi
+    # declares no checks, so it must get no check units at all. Otherwise a
+    # `mkIf`-guarded empty attrset would leave dead units on every host.
+    {
+      assertion = builtins.filter (n: lib.hasPrefix "textfile-check-" n) (builtins.attrNames hostCfg.systemd.services) == [ ];
+      message = "The observability host has textfile-check units even though it declares no checks. The check units must appear only with the entries that need them.";
+    }
+
+    # A declared check becomes a service *and* a timer, named after the entry.
+    {
+      assertion =
+        checkNames == [
+          "textfile-check-demo-db"
+          "textfile-check-disk-snapshot"
+        ];
+      message = "A declared my.observability.textfileChecks entry did not become a systemd service named textfile-check-<name>. Two checks were declared (one from obs.sqliteCheck, one hand-written) and both must be rendered.";
+    }
+    {
+      assertion = checkTimers == checkNames;
+      message = "A textfile check has a service but no timer, or a timer with no service. Each check needs both: the timer schedules, the service runs.";
+    }
+    {
+      assertion = demoTimer.Unit == "textfile-check-demo-db.service";
+      message = "A textfile check's timer does not point at its own service.";
+    }
+    {
+      assertion = demoTimer.OnUnitInactiveSec == "15m" && diskTimer.OnUnitInactiveSec == "1h";
+      message = "A textfile check's timer does not use the declared `interval` (default 15m, or the value the entry set).";
+    }
+
+    # The user contract: a check runs as the account that owns what it reads.
+    # A check with no escape hatch runs directly as that user, so `User=` names
+    # it — this is the option the whole shape exists for (BOX-202).
+    {
+      assertion = diskService.serviceConfig.User == "podman";
+      message = "A textfile check without an escape hatch does not run as its declared `user`. That is the BOX-202 lesson: a check runs as the owner of what it reads, not as root.";
+    }
+
+    # The documentation's "another feature adds a check in a few lines" claim,
+    # asserted rather than asserted-in-prose: two consumers, two shapes, no
+    # per-check wiring anywhere.
+    {
+      assertion = lib.hasInfix "sample_gauge" diskService.script;
+      message = "A hand-written textfile check's body did not reach its service script.";
+    }
+
+    # ── BOX-202: the bifrost check must be read-only ─────────────────
+    #
+    # This is the assertion that would have caught the crash-loop. Every query
+    # the check runs has to open the database `mode=ro` **and** `immutable=1`:
+    # ro refuses a write, immutable means sqlite takes no lock and reads no
+    # -wal, so it can neither create a `-shm` sidecar nor leave one owned by the
+    # wrong uid. `-readonly` is the second refusal at the CLI layer.
+    {
+      assertion = lib.hasInfix "mode=ro&immutable=1" bifrostScript;
+      message = "The bifrost logs.db check does not open the database `mode=ro&immutable=1`. Without `immutable=1` sqlite takes a lock and may create a -shm sidecar owned by the check's user, which makes bifrost crash-loop on \"attempt to write a readonly database\" (BOX-202).";
+    }
+    {
+      assertion = lib.hasInfix "-readonly" bifrostScript;
+      message = "The bifrost logs.db check does not pass sqlite3's `-readonly` flag, so the read-only guarantee rests on the URI alone.";
+    }
+    {
+      # A write anywhere in the script is the failure this ticket exists to
+      # avoid. The only writes the script performs are its own .prom temp file
+      # and the rename onto the target.
+      assertion =
+        !(lib.hasInfix "VACUUM" bifrostScript)
+        && !(lib.hasInfix "INSERT" bifrostScript)
+        && !(lib.hasInfix "DELETE" bifrostScript)
+        && !(lib.hasInfix "UPDATE " bifrostScript)
+        && !(lib.hasInfix "PRAGMA" bifrostScript);
+      message = "The bifrost logs.db check's script contains a database write (VACUUM/INSERT/DELETE/UPDATE/PRAGMA). A check must never open bifrost's database for writing (BOX-202).";
+    }
+    {
+      # The read-only query must actually query the table bifrost writes, and
+      # with the column that table has. `logs`/`timestamp` was read from
+      # bifrost's source (framework/logstore/tables.go), not guessed.
+      assertion = lib.hasInfix "FROM logs" bifrostScript && lib.hasInfix "timestamp" bifrostScript;
+      message = "The bifrost check does not query the `logs` table's `timestamp` column. That is bifrost's own schema (framework/logstore/tables.go), and a guessed name would make the check emit _success 0 forever.";
+    }
+    {
+      assertion = lib.hasInfix "bifrost_logs_db_size_bytes" bifrostScript
+        && lib.hasInfix "bifrost_logs_db_rows" bifrostScript
+        && lib.hasInfix "bifrost_logs_db_oldest_row_age_seconds" bifrostScript;
+      message = "The bifrost check does not publish all three of BOX-207's numbers: size, row count and oldest-row age.";
+    }
+
+    # The atomic write: a temp file in the same directory, then a rename. In
+    # place would let a scrape read a half-written file.
+    {
+      assertion = lib.hasInfix "mv -f" bifrostScript && lib.hasInfix ".prom.$$" bifrostScript;
+      message = "The bifrost check does not write atomically (temp file + rename in the textfile directory), so a scrape can read a half-written .prom file.";
+    }
+    {
+      assertion = lib.hasInfix "chmod 0644" bifrostScript;
+      message = "The bifrost check does not chmod its .prom file 0644, so the file's readability depends on the check user's umask and node_exporter may not be able to read it.";
+    }
+
+    # The writer and the reader must agree on the directory. Both come from
+    # `obs.textfileDirectory`, and this asserts the check writes where
+    # node_exporter is told to look.
+    {
+      assertion = lib.hasInfix textfileDir bifrostScript;
+      message = "The bifrost check writes its .prom file somewhere other than node_exporter's textfile directory (${textfileDir}). Nothing would read it.";
+    }
+    {
+      assertion = lib.hasInfix "ReadWritePaths" (builtins.toJSON bifrostService.serviceConfig);
+      message = "The bifrost check's unit is not granted write access to the textfile directory, so it cannot publish its file under `ProtectSystem = strict`.";
+    }
+
+    # The bifrost timer is on a multi-minute clock, not a scrape interval.
+    {
+      assertion = bifrostTimer.OnUnitInactiveSec == "15m";
+      message = "The bifrost check does not run on the default 15-minute interval.";
+    }
+
+    # ── BOX-332: the rule and the dashboard ──────────────────────
+
+    # The recording rule and the alerts must be gathered by the observability
+    # host — a rule file that stays on lumquat alerts on nothing.
+    {
+      assertion = bifrostAlertsInGathered != [ ];
+      message = "lumquat's bifrost rules did not reach calamansi's vmalert rule directory. The ruleset is declared on lumquat and gathered across agent hosts.";
+    }
+    {
+      assertion =
+        let
+          entry = builtins.head (
+            builtins.filter (f: f.name == "lumquat-bifrost.0.yaml") (
+              committedRuleEntries ++ gatheredRuleEntries
+            )
+          );
+          text = builtins.readFile entry.path;
+        in
+        lib.hasInfix "bifrost:logs_db_growth_mib_per_day" text
+        && lib.hasInfix "BifrostLogGrowth" text
+        && lib.hasInfix "> 200" text
+        && lib.hasInfix "1024^3" text;
+      message = "The bifrost rule file no longer carries BOX-320's decided thresholds: a `bifrost:logs_db_growth_mib_per_day` recording rule, a `BifrostLogGrowth` alert at 200 MB/day and a 1 GB total.";
+    }
+
+    # The dashboard reaches Grafana's provider directory, and its panels query
+    # the datasource UID that is actually provisioned.
+    {
+      assertion = builtins.elem "bifrost.json" dashboardFiles;
+      message = "BOX-332's bifrost dashboard is not in Grafana's provider directory. Declared on lumquat in my.observability.dashboards.bifrost, gathered by calamansi.";
+    }
+    {
+      assertion = bifrostDashboard.uid == "bifrost-logs-db";
+      message = "The bifrost dashboard's uid is not `bifrost-logs-db`. BOX-331/BOX-338 link to that literal, so changing it breaks their links.";
+    }
+    {
+      assertion = lib.unique bifrostDashboardDatasources == [ "victoriametrics" ];
+      message = "The bifrost dashboard does not bind every panel to the provisioned `victoriametrics` datasource UID. A wrong UID renders empty, which looks exactly like \"no data yet\".";
+    }
+    {
+      assertion = builtins.length (bifrostDashboard.panels or [ ]) >= 5;
+      message = "The bifrost dashboard has fewer than five panels, so it cannot show size, rows, oldest-row age and growth together (BOX-207's list).";
+    }
   ];
 
   failures = map (a: a.message) (builtins.filter (a: !a.assertion) assertions);
@@ -586,6 +865,19 @@ let
     pushoverPriority = pushoverConfig.priority;
     pushoverTokenIsReference = pushoverConfig.token;
     pushoverUserKeyIsReference = pushoverConfig.user_key;
+
+    # ── Seam 10 output (BOX-332): textfile checks ──
+    textfileDirectory = textfileDir;
+    checkServices = checkNames;
+    checkTimers = checkTimers;
+    demoCheckUser = demoService.serviceConfig.User;
+    demoCheckTimerInterval = demoTimer.OnUnitInactiveSec;
+    bifrostCheckUser = bifrostService.serviceConfig.User;
+    bifrostCheckInterval = bifrostTimer.OnUnitInactiveSec;
+    bifrostCheckWritesTo = textfileDir;
+    bifrostDashboardUid = bifrostDashboard.uid or null;
+    bifrostDashboardPanels = builtins.length (bifrostDashboard.panels or [ ]);
+    bifrostRuleFile = bifrostAlertsInGathered;
 
     # ── The gate ──
     # Printed too, so a reader of the JSON sees the result without checking the

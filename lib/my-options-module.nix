@@ -620,16 +620,30 @@
               only a shell command knows" (a database size, a certificate's
               remaining days) without writing an exporter.
 
-              **Not implemented yet (BOX-332 adds the runner and the
-              `lib/observability.nix` builder helpers such as
-              `obs.sqliteCheck`).** Declared with its final type so BOX-332
-              adds a reader, not a reshape.
+              **Implemented by BOX-332.** The runner is in the agent module
+              (`modules/features/observability-agent.nix`), and the builders —
+              `obs.sqliteCheck`, `obs.textfileScript`, `obs.emitTextfile` — are
+              in `lib/observability.nix`. A feature normally declares a check by
+              calling a builder rather than writing the script itself:
+
+              ```nix
+              my.observability.textfileChecks.bifrost-logs-db =
+                obs.sqliteCheck {
+                  name = "bifrost-logs-db";
+                  database = "…/_data/logs.db";
+                  table = "request_logs";
+                  user = "podman";
+                  unreadableAs = "…/_data/logs.db";
+                };
+              ```
 
               The `user` option is the point of the shape, not an
               afterthought: a check that reads another service's file runs as
               that file's **owning** user, so it can be given read permission
               rather than being run as root (the BOX-202 trap — a check that
-              ran as the wrong user crash-looped bifrost).
+              ran as the wrong user crash-looped bifrost). `unreadableAs` is the
+              documented escape hatch for the one case where that is
+              impossible; see its description.
             '';
             type = lib.types.attrsOf (
               lib.types.submodule {
@@ -659,6 +673,28 @@
                       whatever the check reads — the service's own user
                       (`podman` for a container's data file) — so the check
                       needs read permission rather than privilege.
+                    '';
+                  };
+                  unreadableAs = lib.mkOption {
+                    type = lib.types.nullOr lib.types.str;
+                    default = null;
+                    example = "/home/podman/.local/share/containers/storage/volumes/bifrost_bifrost-data/_data/logs.db";
+                    description = ''
+                      Escape hatch for when `user` genuinely cannot read the
+                      path: the check probes this path **as that user** and,
+                      if unreadable, runs as root instead.
+
+                      This exists for one real case — a rootless container's
+                      volume, whose files are owned by a uid mapped into the
+                      owning user's subuid range. The owning user cannot read
+                      its own container's data while root can, so "run as the
+                      owning user" would produce a permanently failing unit.
+
+                      **Only safe for a read-only check.** Running as root does
+                      not reintroduce the BOX-202 trap when the check cannot
+                      write: `obs.sqliteCheck` opens `mode=ro&immutable=1`,
+                      which takes no lock and creates no `-wal`/`-shm` sidecar.
+                      A check that writes to its data must leave this `null`.
                     '';
                   };
                 };

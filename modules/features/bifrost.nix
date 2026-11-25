@@ -40,6 +40,44 @@ _: {
       config,
       ...
     }:
+    let
+      obs = import ../../lib/observability.nix { inherit lib; };
+
+      # ── Where bifrost's request log lives ────────────────────────────
+      #
+      # The compose stack mounts the named volume `bifrost-data` at
+      # `/app/data` (compose/llm/bifrost-compose.yml), and this is the same
+      # path the vacuum timer in this module already uses. Rootless podman puts
+      # a named volume under the *owning user's* data dir, volume name prefixed
+      # with the compose project name (`bifrost`), which is why the directory is
+      # `bifrost_bifrost-data`.
+      bifrostDataDir = "/home/${config.my.baseUsername}/.local/share/containers/storage/volumes/bifrost_bifrost-data/_data";
+      bifrostLogsDb = "${bifrostDataDir}/logs.db";
+
+      # The table the request-log rows live in, and the column carrying their
+      # time.
+      #
+      # **This is bifrost's internal schema and upstream may rename it.** It was
+      # read from source rather than guessed: `framework/logstore/tables.go` in
+      # maximhq/bifrost defines `type Log struct` with `func (Log) TableName()
+      # string { return "logs" }` and a `Timestamp time.Time` field (GORM's
+      # default column name, so the column is `timestamp`). There is no
+      # `created_at` on that struct — `agent_logs` and `mcp_tool_logs` have one,
+      # `logs` does not, so using it would have produced a permanently broken
+      # check.
+      #
+      # The check is nevertheless written so a wrong name is a *visible* failure
+      # rather than a silent zero: a sqlite error (no such column) makes
+      # `sqliteCheck` emit `_success 0` and exit non-zero, so the unit goes
+      # failed, the generic `SystemdUnitFailed` rule fires, and the cause is one
+      # `journalctl` away.
+      #
+      # `iso` is the right time format: the driver opens with
+      # `_journal_mode=WAL` and no `_time_format` override, so GORM stores
+      # `time.Time` as a text timestamp that `strftime('%s', …)` parses.
+      bifrostLogTable = "logs";
+      bifrostLogTimeColumn = "timestamp";
+    in
     {
       config = lib.mkIf config.my.bifrostServe {
         systemd.tmpfiles.rules = [
@@ -173,6 +211,54 @@ _: {
             RandomizedDelaySec = "30m";
             Persistent = true;
           };
+        };
+
+        # ── Observability: what the request log is doing (BOX-332) ───────
+        #
+        # BOX-207: the log grew to 1.63 GB in eight days and nothing noticed,
+        # because the only way to see it was to SSH in and run `stat` by hand.
+        # This publishes its size, row count and newest-row age as metrics so
+        # the growth is a graph and an alert instead of a diagnosis.
+        #
+        # The query is read-only by construction — `obs.sqliteCheck` opens
+        # `file:…?mode=ro&immutable=1` and passes `-readonly` — so it cannot take
+        # the write lock that leaves `-wal`/`-shm` sidecars owned by the reader
+        # and crash-loops bifrost on "attempt to write a readonly database"
+        # (BOX-202). That is the whole reason the builder exists rather than a
+        # shell one-liner in this module.
+        #
+        # `user = podman` is the owning account, as the contract asks. It is not
+        # quite enough on its own: rootless podman stores the volume's files as
+        # a uid mapped into `podman`'s *subuid* range, so `podman` cannot read
+        # its own container's data. `unreadableAs` is the documented escape
+        # hatch for exactly that — the check probes the file as `podman` and
+        # re-execs as root when it cannot. Root is safe here only because the
+        # query cannot write, which the builder guarantees. This is also why it
+        # is right to state it in the option rather than discovering it as a
+        # permanently red unit on the host.
+        my.observability.textfileChecks.bifrost-logs-db = obs.sqliteCheck {
+          name = "bifrost-logs-db";
+          database = bifrostLogsDb;
+          table = bifrostLogTable;
+          timeColumn = bifrostLogTimeColumn;
+          user = config.my.baseUsername;
+          unreadableAs = bifrostLogsDb;
+        };
+
+        # The rules live beside this module, per the rules contract: they are
+        # native vmalert YAML and are gathered by the observability host at
+        # build time, which means adding or changing one is a `just switch` on
+        # calamansi.
+        my.observability.rules.bifrost = {
+          files = [ ./bifrost.rules.yaml ];
+          type = "metrics";
+        };
+
+        # The dashboard is BBOX-331's LLM dashboard territory, so this ticket
+        # ships its own instead of editing a file another ticket owns. See
+        # BOX-332.md for what BOX-331/BOX-338 need to link to it.
+        my.observability.dashboards.bifrost = {
+          path = ./bifrost.dashboard.json;
         };
       };
     };
