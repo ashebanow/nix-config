@@ -9,9 +9,63 @@
 #
 # Native services, not containers: docs/adr/0006.
 #
-# v1 of this module is metrics only. `systemd-journal-upload` (BOX-330) and the
-# podman exporter (BOX-331) belong here too — same flag, same machine, one
-# agent — and are deliberately absent rather than forgotten.
+# v1 of this module is metrics and logs. The podman exporter (BOX-331) belongs
+# here too — same flag, same machine, one agent — and is deliberately absent
+# rather than forgotten.
+#
+# ## Log shipping: why `systemd-journal-upload` and nothing in between
+#
+# The whole local journal — every unit's, and every podman container's, because
+# podman's default log driver is `journald` — is shipped to VictoriaLogs by
+# `systemd-journal-upload`. VictoriaLogs has a native systemd-journal ingest
+# endpoint (`/insert/journald`) that accepts the journal's own binary encoding
+# (`application/vnd.fdo.journal`), which is exactly what this uploader emits. So
+# there is **no bridge, no parser and no sidecar**: no `journalctl -o json`
+# shipper, no `vector`, no `promtail`. That is the least-maintenance option,
+# which is this project's first criterion, and it is why the plan's
+# "systemd-journal-upload to VictoriaLogs' journald endpoint" was checked rather
+# than replaced — it is correct.
+#
+# The alternatives were considered and rejected:
+#   journalctl -o json + a cursor shipper   a second daemon to write, package,
+#                                           alert on and debug, to re-speak a
+#                                           protocol VictoriaLogs already speaks
+#   vector / promtail / fluent-bit          a whole extra agent runtime and
+#                                           config language beside
+#                                           node_exporter + vmagent, reversing
+#                                           BOX-317's one-collector decision
+#                                           (and promtail is EOL upstream)
+#   vlagent                                 a disk-buffered *push* agent for
+#                                           files and syslog, not the journal:
+#                                           it would add a hop, not remove one.
+#                                           (It is the right answer for
+#                                           BOX-335's CEF syslog, which has no
+#                                           journal to read.)
+#   systemd-journal-remote                  receives; it does not forward to
+#                                           VictoriaLogs. Wrong direction.
+#
+# What matters going forward is the two properties this arrangement gives us
+# for free, because a future ticket must not accidentally lose them:
+#
+#   - AC4 ("logs written while the host was down arrive after it returns").
+#     `systemd-journal-upload` uploads from a cursor and systemd's own unit
+#     passes `--save-state`, so the cursor is persisted to
+#     /var/lib/systemd/journal-upload/state after each successfully uploaded
+#     entry and the upload resumes there on reconnect. Entries that piled up
+#     while the observability host was unreachable are therefore delivered when
+#     it comes back. The bound on that catch-up is **local** journal retention,
+#     not VictoriaLogs — a long outage on a small disk can outrun the local
+#     journal. Do not set `NetworkTimeoutSec`: unset, the uploader waits out an
+#     outage instead of exiting, which is what a home server rebooting needs.
+#
+#   - BOX-318's "logs need no declaration". Shipping the whole journal means a
+#     new service is indexed by existing, with no change to this module and no
+#     `my.observability` entry. That is why this module has no per-unit option
+#     and no allowlist — an allowlist is the thing that would make a new service
+#     silently unmonitored.
+#
+# NOT covered here: the UniFi gateway and storage2, which send CEF syslog over
+# the network rather than writing to any journal (BOX-335).
 _: {
   my.modules.nixos.observability-agent =
     {
@@ -58,8 +112,10 @@ _: {
         #   processes per-unit counts rather than none
         #   hwmon     temperatures and fans, which is how "hot hardware"
         #             becomes alertable
-        # `drm` (lumquat's AMD GPU) is BOX-327's business: it is meaningless on
-        # a host without a GPU, and enabling it there costs a futile sysfs scan.
+        # `drm` is per-host rather than universal: `my.observabilityGpuMetrics`
+        # (lib/my-options-module.nix) is set by a host that has a GPU whose
+        # telemetry node_exporter reads. Enabling it everywhere is meaningless
+        # on a host without a GPU and costs a futile sysfs scan per scrape.
         services.prometheus.exporters.node = {
           enable = true;
           listenAddress = "127.0.0.1";
@@ -67,7 +123,7 @@ _: {
             "systemd"
             "processes"
             "hwmon"
-          ];
+          ] ++ lib.optional config.my.observabilityGpuMetrics "drm";
           # textfile: the directory BOX-332's checks write `<name>.prom` into.
           # Enabled with the directory created and empty, so the collector is
           # not switched on later as a second change to the same unit.
@@ -79,6 +135,14 @@ _: {
         systemd.tmpfiles.rules = [
           "d /var/lib/node_exporter/textfile 0755 root root -"
         ];
+
+        # A GPU host needs no extra device access for this: the drm and hwmon
+        # collectors read `/sys/class/drm` and `/sys/class/hwmon`, which are
+        # world-readable, so the exporter keeps its default hardening
+        # (`DeviceAllow = [ "" ]`, `PrivateDevices = true`). Nothing here opens
+        # `/dev/dri/cardN`; that would only be needed to talk to the GPU, which
+        # a metrics scrape never does. See docs/lumquat-hardware.md for which
+        # metrics the Strix Halo APU actually populates.
 
         # ── Shipping ────────────────────────────────────────────────────
         #
@@ -106,6 +170,38 @@ _: {
         services.vmagent.extraArgs = [
           "-httpListenAddr=127.0.0.1:8429"
         ];
+
+        # ── Logs ────────────────────────────────────────────────────────
+        #
+        # The whole journal, to the observability host's VictoriaLogs. See this
+        # file's header for why `systemd-journal-upload` alone is the right
+        # answer and what its two free properties are (offline catch-up, and no
+        # per-service declaration).
+        #
+        # `services.journald.upload` is a real nixpkgs module, so the unit is
+        # systemd's own `systemd-journal-upload.service` with nixpkgs'
+        # `Restart = "always"` (upstream says `on-failure`) and a native
+        # `journal-upload.conf` generated from `settings`. Nothing is
+        # hand-written here, which is the point: the collector needs the
+        # `systemd-journal` group to read the journal, and the upstream unit
+        # already declares `SupplementaryGroups=systemd-journal` — so there is no
+        # group membership for us to add, and nothing to get wrong on a new
+        # host.
+        #
+        # The URL goes to `my.observabilityHostAddress`, which every agent host
+        # already sets for vmagent, so logs and metrics cannot point at
+        # different machines. On the observability host itself that is
+        # loopback, which is correct: it stores its own journal locally and
+        # ships it over the loopback interface.
+        #
+        # No `NetworkTimeoutSec`: unset means the uploader waits out an outage
+        # rather than exiting, so a calamansi reboot does not need the unit to
+        # be resurrected. Combined with `--save-state` in the upstream unit, that
+        # is what makes "written while it was down, delivered after" work.
+        services.journald.upload = {
+          enable = true;
+          settings.Upload.URL = obs.journalUploadUrl config.my.observabilityHostAddress config.my.observabilityLogsPort;
+        };
       };
     };
 }

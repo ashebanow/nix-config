@@ -205,12 +205,35 @@ rec {
       inhibit_rules = [ ];
     };
 
+  # ── VictoriaLogs endpoints ────────────────────────────────────────────
+  #
+  # The journald ingest URL, in one place because two modules need to agree on
+  # it: the host opens a firewall port for it, the agent uploads to it. A
+  # mismatch there is the worst kind of bug — the firewall looks right, the
+  # uploader looks right, and nothing arrives.
+  #
+  # `/insert/journald` is VictoriaLogs' native systemd-journal ingest endpoint:
+  # it accepts the journal's own binary encoding
+  # (`application/vnd.fdo.journal`), which is exactly what
+  # `systemd-journal-upload` sends. It is not a JSON endpoint with a journald
+  # name; VictoriaLogs' own error string is "only application/vnd.fdo.journal
+  # encoding is supported for Journald". So no translation layer is needed — see
+  # the module header in modules/features/observability-agent.nix for the
+  # alternatives that were rejected.
+  #
+  # Upstream writes the same URL path (`/insert/journald`) in its setup docs;
+  # `/insert/journald/upload` also exists and is what the metric name
+  # `vl_http_request_duration_seconds{path="/insert/journald/upload"}` reports,
+  # but the documented value is used here so a future reader comparing our
+  # config to the upstream page sees the same string.
+  journalUploadUrl = hostAddress: port: "http://${hostAddress}:${toString port}/insert/journald";
+
   # ── Grafana datasource UIDs ───────────────────────────────────────────
   #
   # Fixed, because dashboards and the Alertmanager links inside them reference
   # a datasource by UID and a generated UID would break them on every rebuild.
-  # VictoriaLogs' UID is already reserved so BOX-330 adds the datasource
-  # without every dashboard in between having to change.
+  # VictoriaLogs was reserved before it existed (BOX-326) and is now provisioned
+  # by BOX-330; Alertmanager is still reserved and is BOX-329's.
   datasourceUids = {
     victoriaMetrics = "victoriametrics";
     victoriaLogs = "victorialogs";

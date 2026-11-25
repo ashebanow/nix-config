@@ -30,6 +30,45 @@
   my.zmx = true;
   my.memory = true;
 
+  # Observability — lumquat is an observability **agent**, not a host: it
+  # collects its own metrics and ships them to calamansi, and stores nothing
+  # (CONTEXT.md; docs/adr/0006). The flag turns on the shared agent module
+  # (modules/features/observability-agent.nix): node_exporter on loopback,
+  # and vmagent scraping it and remote-writing to the observability host with
+  # disk buffering. Nothing else on this host needs to know it happened.
+  my.observabilityAgent = true;
+
+  # The AMD Strix Halo GPU (gfx1151). Turns on node_exporter's `drm`
+  # collector — GPU busy percentage and VRAM / visible-VRAM / GTT usage —
+  # alongside the `hwmon` collector every agent runs. This is the entirety of
+  # BOX-315's GPU answer: no ROCm, no amd-smi, no amdgpu_top. Which of those
+  # metrics this APU actually populates is recorded in
+  # `docs/lumquat-hardware.md` and still needs confirming on the box.
+  my.observabilityGpuMetrics = true;
+
+  # calamansi's LAN address, for vmagent's remote-write target.
+  #
+  # The real address is not known yet: calamansi is not on the network (BOX-324
+  # installs it). lumquat's own address is now recorded — it is 10.40.0.87, on
+  # the 10.40.0.0/24 side of the house — and the two subnets in use are
+  # 10.40.0.0/24 (lumquat, storage2 10.40.0.59, miraclemax's secondary
+  # 10.40.0.240) and 10.40.60.0/24 (bergamot 10.40.60.74, miracle_max
+  # 10.40.60.97, printer 10.40.60.111, gateway 10.40.60.1). Do not assume
+  # calamansi lands on either one; confirm its lease at install.
+  #
+  # 10.40.60.20 is a placeholder, not a claim: it is a free-looking address on
+  # the .60 subnet, which is the side lumquat is NOT on, so this also does not
+  # pretend the two agree. BOX-324 sets it to calamansi's real address.
+  #
+  # The default (`127.0.0.1`) is wrong here in a way that is easy to miss:
+  # vmagent would happily buffer forever writing to a VictoriaMetrics that does
+  # not exist on this host, and the only symptom would be an empty Grafana.
+  #
+  # vmagent runs here and remote-writes to calamansi, so this is the
+  # observability host's address — not this host's. See the comment above; it is
+  # still a placeholder because calamansi has no address until BOX-324.
+  my.observabilityHostAddress = "10.40.60.20";
+
   # Rex — a server for the `podman` account, published through Rex's own
   # tailnet node (BOX-292). modules/features/rex.nix explains the roles.
   #

@@ -178,8 +178,8 @@
       default = false;
       description = ''
         This host runs an **observability agent**: the set of collector
-        processes (node_exporter, vmagent, later `systemd-journal-upload`)
-        that gathers this machine's logs and metrics and ships them to the
+        processes (node_exporter, vmagent, `systemd-journal-upload`) that
+        gathers this machine's logs and metrics and ships them to the
         observability host.
 
         There is one agent per machine, shared by every service on it — a
@@ -232,7 +232,7 @@
     observabilityHostAddress = lib.mkOption {
       type = lib.types.str;
       default = "127.0.0.1";
-      example = "10.40.60.20";
+      example = "10.40.0.50";
       description = ''
         Where a non-host agent remote-writes its metrics: the observability
         host's address, as `<host>` or `<host>:<port>`.
@@ -245,6 +245,29 @@
         LAN address; today it is a plain shared value, deliberately, because
         reading another host's config from this module would be a dependency
         in the wrong direction.
+      '';
+    };
+    observabilityGpuMetrics = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        This agent host has a GPU whose telemetry node_exporter can read, so
+        the machine's node_exporter enables its `drm` collector — busy
+        percentage and VRAM / visible-VRAM / GTT usage — on top of the
+        `hwmon` collector every agent already runs for temperatures and
+        power.
+
+        Off by default because `drm` is AMD-specific and scans
+        `/sys/class/drm` on every scrape: on a host without an AMD GPU that is
+        a wasted sysfs walk, and on one with no GPU at all it is noise. It is
+        a flag rather than "enable drm everywhere" for the same reason the
+        other capability flags exist at all — the host knows its own hardware,
+        the shared agent module does not.
+
+        Per BOX-315 this is the whole GPU story: no ROCm, no amd-smi, no
+        amdgpu_top. Which of these metrics an APU actually populates is a
+        hardware question, recorded per host — for lumquat, in
+        `docs/lumquat-hardware.md`.
       '';
     };
     observabilityIngestPort = lib.mkOption {
@@ -269,13 +292,76 @@
         what restricts who may reach it.
       '';
     };
+    observabilityLogsPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9428;
+      description = ''
+        TCP port the observability host listens on for VictoriaLogs: both the
+        journald ingest from every agent host and Grafana's LogsQL query path.
+
+        Upstream VictoriaLogs' own default, kept for the same reason as the
+        metrics port — the binary, the firewall, the Grafana datasource URL and
+        the upstream documentation all name one number, so nothing has to be
+        translated.
+      '';
+    };
+    observabilityLogRetention = lib.mkOption {
+      type = lib.types.str;
+      default = "90d";
+      example = "30d";
+      description = ''
+        How long the observability host keeps logs, as a duration VictoriaLogs'
+        `-retentionPeriod` accepts (1d up to 100y).
+
+        **The suffix is mandatory.** A bare number is read as *months*, so `90`
+        would mean 90 months; `90d` is the 90 days BOX-319 decided. VictoriaLogs
+        rejects anything below one day.
+
+        This is a time bound and it applies even when the disk cap below is what
+        actually triggers a drop, so the two are complementary rather than
+        alternatives: 90 days normally, with the cap as the safety net.
+      '';
+    };
+    observabilityLogDiskUsagePercent = lib.mkOption {
+      type = lib.types.int;
+      default = 80;
+      description = ''
+        Safety net: the percentage of the filesystem holding VictoriaLogs' data
+        directory above which VictoriaLogs drops its oldest per-day partitions.
+
+        Set by BOX-319 as "90 days of logs, with a disk-usage cap at 80% as a
+        safety net". VictoriaLogs' `-retention.maxDiskUsagePercent` is exactly
+        this, and takes 1-100.
+
+        Two things to know before changing it:
+
+        - It is a **filesystem** percentage, not a share of the store's own
+          directory. The store must therefore live on the disk whose capacity
+          the cap is meant to describe (calamansi's 2 TB SSD), not on a small
+          separate `/var`.
+        - VictoriaLogs keeps at least the last two days' partitions regardless,
+          so usage can exceed this transiently. That is upstream behaviour, not
+          a misconfiguration.
+
+        VictoriaLogs also has an absolute `-retention.maxDiskSpaceUsageBytes`
+        and refuses to start if both are set; the percentage is used because
+        "80% of the disk" is the decision and the disk size is not knowable
+        here.
+      '';
+    };
     observabilityHostAllowedSources = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
-      example = lib.literalExpression ''[ "10.40.60.20" ]'';
+      example = lib.literalExpression ''[ "10.40.0.87" ]'';
       description = ''
         Source IP addresses allowed to reach the observability host's ingest
-        port (`observabilityIngestPort`): the LAN addresses of the agent hosts.
+        ports: `observabilityIngestPort` (metrics) and `observabilityLogsPort`
+        (logs) — the LAN addresses of the agent hosts.
+
+        One list for both, deliberately: they are the same set of machines
+        (every observability agent ships metrics *and* its journal), so two
+        lists could only ever disagree. If a future source needs one port but
+        not the other, that is the point at which a second list is justified.
 
         **An empty list opens nothing**, which is the deliberate default — an
         ingest port reachable from a wrong address is either useless (the
@@ -311,6 +397,12 @@
     # `textfileChecks` (BOX-332) and `redactions` (BOX-337) are declared with
     # their real types so those tickets extend this set rather than reshape it.
     # Setting one of those two is inert today.
+    #
+    # Note what is NOT in this collection and never will be: a log source.
+    # BOX-330 ships every agent host's whole journal (container logs included)
+    # from the shared agent module, so a feature's logs are indexed with no
+    # declaration at all. `redactions` is the one log-adjacent exception, and it
+    # modifies the *archive*, not the shipping.
     observability = lib.mkOption {
       default = { };
       description = ''
@@ -323,7 +415,13 @@
         by their own flag, e.g.
         `lib.mkIf config.my.bifrost { my.observability.scrapeTargets.bifrost = { ... }; }`.
         Logs need no declaration: every service's output already reaches the
-        journal, and VictoriaLogs indexes the journal's own fields.
+        journal, the agent ships the whole journal, and VictoriaLogs indexes the
+        journal's own fields (`_SYSTEMD_UNIT`, `CONTAINER_NAME`,
+        `SYSLOG_IDENTIFIER`). That is not a convention to remember — there is no
+        option to set, so a service cannot forget to declare its logs. The catch
+        worth knowing is that it depends on the writer reaching the journal at
+        all: podman containers do by default (`log-driver=journald`), a
+        container pinned to `k8s-file` does not.
       '';
       type = lib.types.submodule {
         options = {
