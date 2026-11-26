@@ -60,9 +60,16 @@ rec {
   # collection key. Two hosts declaring the same key is a collision, and the
   # assertion in observability-host.nix catches it — a silent overwrite would
   # look like one host's dashboard simply not existing.
-  mkDashboardLinks =
-    dashboards:
-    lib.mapAttrs' (name: dashboard: lib.nameValuePair "${name}.json" dashboard.path) dashboards;
+  #
+  # There is one entry point to this shape, `dashboardEntries` below, and the
+  # host module uses it for *both* halves of the directory (the fetched
+  # prebuilts and the gathered dashboards). It used to also exist as
+  # `mkDashboardLinks`, which nothing called — one rendering shape with two
+  # names is exactly the drift this file exists to prevent.
+  dashboardEntries = dashboards: lib.mapAttrsToList (name: dashboard: {
+    name = "${name}.json";
+    path = dashboard.path;
+  }) dashboards;
 
   # ── Alert rules ───────────────────────────────────────────────────────
   #

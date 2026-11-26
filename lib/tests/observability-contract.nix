@@ -521,6 +521,154 @@ let
 
   bifrostAlertsInGathered = builtins.filter (n: n == "lumquat-bifrost.0.yaml") gatheredRuleFiles;
 
+  # ── BOX-338: the Overview home dashboard ────────────────────────────
+  #
+  # Read through the provider directory like every other dashboard here, plus
+  # the Grafana `[dashboards]` setting that makes it the page Grafana opens on.
+  # The two must agree: a home path naming a file that is not in the directory
+  # makes Grafana silently fall back to its own home page, and nothing in the
+  # config looks wrong.
+  homeDashboardPath = hostCfg.services.grafana.settings.dashboards.home_dashboard_path;
+  overviewFile = builtins.baseNameOf homeDashboardPath;
+
+  overviewDashboard =
+    if builtins.elem overviewFile dashboardFiles then
+      builtins.fromJSON (builtins.readFile (dashboardProvider.options.path + "/${overviewFile}"))
+    else
+      { };
+
+  overviewPanels = overviewDashboard.panels or [ ];
+
+  # Every hyperlink a reader can click, flattened out of the `text` panels.
+  # Every link on this dashboard is one: the sections are `text` panels and the
+  # status tiles are `stat` panels, which carry no link of their own. That is a
+  # deliberate layout choice rather than a limitation — see the ticket notes —
+  # and it is what makes the link inventory below exhaustive rather than a
+  # sample: `text` panels are the only place this dashboard can hold a link.
+  #
+  # One capture group, so `split` hands back exactly the path for each link and
+  # the interleaved text pieces can be dropped by keeping only the lists.
+  hrefsInText =
+    text:
+    map builtins.head (
+      builtins.filter (group: group != [ ]) (builtins.filter builtins.isList (builtins.split "href=\"([^\"]*)\"" text))
+    );
+  overviewLinks = builtins.concatMap (p: if p.type == "text" then hrefsInText (p.options.content or "") else [ ]) overviewPanels;
+
+
+  # The detail dashboards of BOX-322's list, by the uid each one actually
+  # declares in the provider directory. Node Exporter Full is the prebuilt Host
+  # detail dashboard (asserted above as uid rYdddlPWk); the other four are
+  # ours. The literal here, rather than a lookup, is deliberate: a dashboard
+  # that renamed its uid would make this list stale, and the Overview's links
+  # would 404 to Grafana's dashboard-not-found page.
+  detailDashboardUids = [
+    "rYdddlPWk" # Host detail — Node Exporter Full (BOX-327), prebuilt
+    "containers-v1" # Containers (BOX-331)
+    "llm-v1" # LLM (BOX-331)
+    "bifrost-logs-db" # Bifrost (BOX-332)
+    "storage2-nas" # storage2 (BOX-334)
+  ];
+
+  # The uid each of our own dashboards declares, read from the directory, so
+  # the list above is checked against reality instead of trusted.
+  declaredUidsOf =
+    files:
+    map (f: (builtins.fromJSON (builtins.readFile (dashboardProvider.options.path + "/${f}"))).uid or null) files;
+  ourDashboardFiles = builtins.filter (f: !lib.hasPrefix "prebuilt-" f && f != overviewFile) dashboardFiles;
+  ourDashboardUids = declaredUidsOf ourDashboardFiles;
+
+  # ── The narrow grid ────────────────────────────────────────────────
+  #
+  # "Readable without horizontal scrolling on an iPhone" cannot be observed
+  # from a Nix eval, let alone from this workstation, so the *layout* is what is
+  # asserted instead: a numerically narrow grid, stated as a rule rather than
+  # eyeballed once.
+  #
+  # The rule, and why each number is what it is:
+  #
+  #   Grafana's grid is 24 columns wide at *every* viewport. It does not
+  #   reflow — a panel with `w: 12` is half the grid on a desktop and half of a
+  #   375-point phone, so "two columns" is the thing that breaks on a phone,
+  #   not the grid itself.
+  #
+  #   Panels are therefore **at most 8 columns** (`overviewMaxPanelWidth`),
+  #   i.e. a third of the grid, and they sit three to a row on a desktop. On a
+  #   390-point iPhone the content area is about 375 points wide, so an
+  #   8-column panel is 125 points: room for a 6-7 character number or word
+  #   ("UP", "12.4%", "14 days") at Grafana's stat font, which is all a
+  #   status panel shows. Ten characters is the measured worst case in the
+  #   titles we ship and those are headers (full width), not values.
+  #
+  #   No panel is wider than 24 (the grid) and no panel is placed past
+  #   `x + w > 24`, so there is nothing to scroll to horizontally at any
+  #   zoom — the pathological cases are `w: 24` on a narrow panel and an `x`
+  #   that pushes a panel off the right edge, and both are excluded below.
+  #
+  #   Section headers are the exception at `w: 24`, because they are one line
+  #   of text and Grafana wraps text; that is modelled as `overviewSectionWidth`
+  #   rather than as "text panels are exempt", so a *stat* panel cannot quietly
+  #   grow to full width later.
+  overviewMaxPanelWidth = 8;
+  overviewSectionWidth = 24;
+  overviewGridWidth = 24;
+
+  # `repeat` is the phone-hostile feature this dashboard deliberately leans on
+  # instead of fixed per-host panels: a `repeat: "host"` panel is rendered once
+  # per value, each at its declared width, so one definition covers every host
+  # and the grid math above holds for each copy. A panel that repeated *across*
+  # (`repeatDirection: "v"`) would stack full-width copies, which is fine, but
+  # an unrepeated wide panel is not — hence the width bounds are checked on the
+  # declared `gridPos` regardless.
+  overviewWidePanels = builtins.filter (
+    p:
+    let
+      w = p.gridPos.w or 0;
+      x = p.gridPos.x or 0;
+      limit = if p.type == "text" || p.type == "row" then overviewSectionWidth else overviewMaxPanelWidth;
+    in
+    w > limit || x + w > overviewGridWidth
+  ) overviewPanels;
+
+  # The datasource bindings, gathered the same way as the bifrost dashboard's:
+  # a panel and each of its targets must point at the variable, never at the
+  # provisioned UID literal. A status panel bound to a hardcoded UID is the
+  # failure that looks like "no data" after a datasource rename.
+  overviewDatasources = builtins.filter (d: d != "") (
+    builtins.concatMap (
+      panel:
+      [ (uidOf (panel.datasource or "")) ] ++ map (t: uidOf (t.datasource or "")) (panel.targets or [ ])
+    ) overviewPanels
+  );
+
+  overallDatasourceUid = obsHelper.datasourceUids.victoriaMetrics;
+
+  overviewText = builtins.toJSON overviewDashboard;
+
+  # The source blocks the ticket names, in the order they appear, matched
+  # against the section headers' titles. Keeping this as a list rather than a
+  # count is what makes "every v1 source has a status panel" checkable: a
+  # removed block fails here and not only visually.
+  overviewSectionTitles = map (p: p.title) (builtins.filter (p: p.type == "text") overviewPanels);
+
+  # Whether each alert-name a status panel colours on is a rule that exists.
+  # Not every panel maps to an alert (load, queue depth and GPU temperature are
+  # readings, not rules), so this asserts the ones that *are* alert-shaped, and
+  # nothing is invented for the others.
+  overviewAlertBoundNames = [
+    "HostDown"
+    "DiskFilling"
+    "ContainerCrashLooping"
+    "ContainerUnhealthy"
+    "BifrostLogGrowth"
+    "Storage2Unreachable"
+    "Storage2PollDead"
+    "Storage2Hot"
+    "HotHardware"
+  ];
+  allAlertNames = builtins.concatMap alertNamesIn committedRuleFiles;
+
+
   # ── Assertions ──────────────────────────────────────────────────────
   #
   # Each entry says what broke and what is affected. They are collected in one
@@ -1177,6 +1325,139 @@ let
     {
       assertion = builtins.length (bifrostDashboard.panels or [ ]) >= 5;
       message = "The bifrost dashboard has fewer than five panels, so it cannot show size, rows, oldest-row age and growth together (BOX-207's list).";
+    }
+
+    # ── BOX-338: the Overview home dashboard ────────────────────────────
+
+    # It is reachable, and it is the page Grafana opens on. Both halves are
+    # asserted separately because each fails silently on its own: a home path
+    # naming a missing file makes Grafana fall back to its own home page with
+    # no error, and a dashboard in the directory that nothing points at is a
+    # page nobody opens.
+    {
+      assertion = builtins.elem overviewFile dashboardFiles;
+      message = "Grafana's home dashboard path names ${overviewFile}, which is not in the dashboard provider directory. Grafana would silently fall back to its own home page (BOX-338).";
+    }
+    {
+      assertion = homeDashboardPath == "/var/lib/grafana/dashboards/${overviewFile}";
+      message = "Grafana's home dashboard path is not the provider directory's Overview. Grafana opens a blank home page, or worse, whatever dashboard sorts first, and nothing reports an error.";
+    }
+    {
+      assertion = overviewDashboard.uid or "" == "overview";
+      message = "The Overview dashboard's uid is not `overview`. Every dashboard-to-dashboard link on it is a `/d/overview`-style path, and so is any bookmark.";
+    }
+    {
+      assertion = overviewDashboard.title or "" == "Overview";
+      message = "The Overview dashboard's title is not \"Overview\". Grafana's flat dashboard list shows the title, and BOX-322 named it.";
+    }
+
+    # Every v1 source has a block, and each block links to the detail
+    # dashboard a reader would go to next.
+    {
+      assertion =
+        overviewSectionTitles == [
+          "Hosts"
+          "Containers"
+          "LLM"
+          "bifrost"
+          "storage2"
+          "Monitoring itself"
+        ];
+      message = "The Overview's section blocks are not BOX-322's v1 sources in order (hosts, containers, LLM, bifrost, storage2, the stack itself). A source without a block is a source nothing on the home screen answers \"is it wrong?\" for.";
+    }
+    {
+      # Every detail dashboard's uid, from the directory rather than from the
+      # Overview, so a renamed uid fails here instead of producing a link to
+      # Grafana's dashboard-not-found page.
+      assertion = lib.all (uid: builtins.elem uid ourDashboardUids) [
+        "containers-v1"
+        "llm-v1"
+        "bifrost-logs-db"
+        "storage2-nas"
+      ];
+      message = "A dashboard the Overview links to no longer declares the uid the Overview links by (containers-v1, llm-v1, bifrost-logs-db, storage2-nas). The link would open Grafana's not-found page.";
+    }
+    {
+      assertion = lib.all (uid: builtins.elem "/d/${uid}" overviewLinks) detailDashboardUids;
+      message = "The Overview does not link to every v1 detail dashboard (Host detail rYdddlPWk, Containers containers-v1, LLM llm-v1, bifrost bifrost-logs-db, storage2 storage2-nas). BOX-338's criterion is that every source's status panel leads somewhere.";
+    }
+    {
+      # The other half of "the links match the dashboards": a link that names a
+      # dashboard we do not ship is as broken as a dashboard we do not link to,
+      # and it fails the same way — Grafana's not-found page.
+      assertion = lib.all (
+        h:
+        (lib.hasPrefix "/d/" h)
+        && (builtins.elem (builtins.substring 3 1000 h) (detailDashboardUids ++ [
+          "victoriametrics"
+          "vmagent"
+          "vmalert"
+        ]))
+      ) overviewLinks;
+      message = "The Overview links to a dashboard that is not one of its documented targets (${lib.concatStringsSep ", " overviewLinks}). A dead drill-down link is indistinguishable from a dashboard that was never built.";
+    }
+    {
+      assertion = lib.all (uid: builtins.elem "/d/${uid}" overviewLinks) [
+        "victoriametrics"
+        "vmagent"
+        "vmalert"
+      ];
+      message = "The Overview does not link to the VictoriaMetrics, vmagent and vmalert dashboards. BOX-322's \"monitoring the monitoring\" row is part of v1, and those are the pages that explain a missing series.";
+    }
+    {
+      # Relative, not absolute: the tailnet hostname changes with the tailnet
+      # and Serve's URL, and a hardcoded one would 404 the whole page's links
+      # on the day it changed. A `Null`-relative link is what Grafana itself
+      # emits for its own navigation.
+      assertion = lib.all (h: lib.hasPrefix "/d/" h) overviewLinks;
+      message = "The Overview has a link that is not a root-relative `/d/<uid>` path. An absolute one would bake the tailnet hostname into a repo file that is deliberately free of hostnames.";
+    }
+    {
+      assertion = lib.all (uid: lib.hasPrefix "/d/" uid) overviewLinks && builtins.length overviewLinks >= 8;
+      message = "The Overview has fewer than eight drill-down links, so one of the four v1 detail dashboards or the three stack dashboards is unreachable from the home screen.";
+    }
+
+    # Datasource bindings: the variable, never the literal UID.
+    {
+      assertion = builtins.elem "ds_prometheus" (map (v: v.name) (overviewDashboard.templating.list or [ ]));
+      message = "The Overview has no `ds_prometheus` templating variable. Every panel must bind through it, exactly as Node Exporter Full does, or the dashboard needs rewriting whenever the datasource UID changes.";
+    }
+    {
+      assertion = builtins.all (ds: ds == "\${ds_prometheus}" || ds == "alertmanager") overviewDatasources;
+      message = "An Overview panel or target binds to a datasource other than \${ds_prometheus} (metrics) or the fixed `alertmanager` uid (the \"Firing now\" panel). A hardcoded ${overallDatasourceUid} would break on a datasource rename and render empty, which reads as \"no data yet\".";
+    }
+    {
+      assertion = !lib.hasInfix "\"uid\": \"${overallDatasourceUid}\"" overviewText;
+      message = "The Overview hardcodes the VictoriaMetrics datasource uid somewhere. It must go through the ds_prometheus variable.";
+    }
+
+    # The narrow grid, numerically. This is the closest a Nix eval can get to
+    # "readable without horizontal scrolling on an iPhone"; the visual check is
+    # an on-host one and is recorded as such in the ticket notes.
+    {
+      assertion = overviewWidePanels == [ ];
+      # The offending panels are in `result.overviewWidePanels` rather than in
+      # this string: a `toString` here would be forced even when the assertion
+      # holds, and it makes the noise show up in every green run.
+      message = "The Overview has a panel wider than ${toString overviewMaxPanelWidth} grid columns, or one placed past the ${toString overviewGridWidth}-column grid edge. Grafana's grid is 24 columns at every viewport, so a wide panel is one a phone cannot show without horizontal scrolling.";
+    }
+    {
+      assertion = builtins.length overviewPanels > 0;
+      message = "The Overview has no panels at all. Every grid assertion above then passes vacuously, which is why this one exists.";
+    }
+    {
+      # The first panel is the alert list, which is BOX-322's "firing alerts"
+      # first line and the only thing on the page that requires action.
+      assertion = (builtins.head overviewPanels).type == "alertlist";
+      message = "The Overview does not start with the firing-alert list. That is the one line of BOX-322's overview that a human must act on.";
+    }
+
+    # A status panel colours on the same series or threshold its alert fires
+    # on, and each of those alert names has to exist — a panel that colours on
+    # a rule renamed elsewhere is decoration.
+    {
+      assertion = lib.all (n: builtins.elem n allAlertNames) overviewAlertBoundNames;
+      message = "A rule the Overview's status panels mirror (${lib.concatStringsSep ", " overviewAlertBoundNames}) is not among the committed alert names. Either a rule was renamed and the dashboard kept the old shape, or the panel was written against something that never existed.";
     }
   ];
 
