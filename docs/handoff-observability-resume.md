@@ -88,9 +88,12 @@ corruption that only occurs when cross-building, because the case-hack renames
 inside it. Native builds are clean (verified: 0 broken symlinks on lumquat vs
 351 on the mis-built Mac path). Do not reintroduce cross-builds.
 
-## Calamansi's state (given by the user, 2026-11-25)
+## Calamansi's state (confirmed by the user 2026-11-26)
 
-Wiped, bare NixOS installed, **headless**.
+Wiped, bare NixOS installed, **headless**. The user added only `vim`, `jq` and
+`openssh`; no dotfiles, no repo config. That sparseness is the whole reason a
+password exists — it is a **one-time bootstrap credential**, not the steady
+state.
 
 | Fact | Value |
 | --- | --- |
@@ -102,22 +105,45 @@ Wiped, bare NixOS installed, **headless**.
 | podman password | BWS item `calamansi-podman-user-password` |
 | Tailscale auth key | BWS item `calamansi-tailscale-auth-key` |
 
-## Discrepancy to resolve before deploying
+## The password question — answered, and no wiring needed
 
-The user said the IP "was noted in another branch". **It is not, anywhere I
-could find.** I checked:
+The handoff previously called this "the first thing that will bite". It does not
+after all, for a reason worth writing down:
 
-- every working tree (`main`, `original`, `wt-box335/336/337/338`)
-- all 20 refs including `origin/*` and the 5 `origin/research/*` branches
-- `git log --all -S "10.40.0.61"`
-- 105 dangling commits from `git fsck --no-reflogs`
+- `base.nix` already sets `PasswordAuthentication = false` **and** installs the
+  operator key in `authorizedKeys`. So the first `nixos-rebuild` is a pivot: the
+  password works up to it and is structurally impossible after it. That is
+  exactly the policy wanted ("once set up, passwords with SSH will be
+  forbidden") and it is already implemented — nothing to add.
+- No `hashedPassword` wiring is needed. `users.mutableUsers` is `true`, so the
+  password set during install **persists** across the switch. NixOS does not
+  overwrite an unmanaged password. Wiring a hash in would be redundant work and
+  would put a credential in the repo's eval path.
+- `calamansi-podman-user-password` therefore stays a BWS-only artefact, used by
+  the operator over SSH, not by the system.
 
-Zero hits. `docs/network.md:34` still says calamansi's address is unknown, and
-`hosts/lumquat/configuration.nix:80` still has the placeholder
-`my.observabilityHostAddress = "10.40.60.20"`.
+**Bootstrap order, now verified against the live box (2026-11-26):**
 
-Treat `10.40.0.61` as **new information from the user**, not something to look
-for in history. Confirm with the user before writing it in.
+| Fact | Value |
+| --- | --- |
+| port 22 | open, answers `publickey,password,keyboard-interactive` |
+| port 2222 | closed until the first switch |
+| the repo's key | **not yet accepted** (`Permission denied (publickey)`) |
+
+So the first access is `ssh podman@10.40.0.61` with the BWS password, and the
+repo's key starts working only once the config is on the box. Nothing lands on
+calamansi until then.
+
+## Discrepancy — RESOLVED 2026-11-26
+
+`10.40.0.61` is confirmed by the user as calamansi's current address, and is now
+written into `docs/network.md` and lumquat's `my.observabilityHostAddress`
+(commit `d74b638`). The previous session's exhaustive search was correct that it
+appeared nowhere in history — it was new information, not a lost note.
+
+It is DHCP until the user pins it in the UniFi console, so treat the tailnet
+name `calamansi` as the durable identity. Both hosts are on `10.40.0.0/24`,
+which corrects earlier comments that assumed they sat on different subnets.
 
 ## The work, in order
 
@@ -210,17 +236,13 @@ in BWS or the unit fails and tailscaled never comes up.
 currently closed, so the first install is over 22 with a password; 2222 comes up
 after the first switch.
 
-### Step 2 — write the IP into the two places that need it
+### Step 2 — write the IP into the two places that need it (DONE 2026-11-26)
 
-1. `docs/network.md` — the calamansi line (~34) and the config table (~53).
-2. `hosts/lumquat/configuration.nix:80` — replace the `10.40.60.20` placeholder
-   with `10.40.0.61`, and update the comment above it that explains it is a
-   placeholder.
-
-Also check `my.observabilityHostAllowedSources` on calamansi (currently
-`[ "10.40.0.87" ]`, lumquat's address) — if calamansi is now `10.40.0.61` the
-*ingest* allow-list may need `10.40.0.59` (storage2) and `10.40.60.1` (gateway)
-added for the syslog path.
+Done in `d74b638`: `docs/network.md` (address table + prose) and
+`hosts/lumquat/configuration.nix` → `my.observabilityHostAddress = "10.40.0.61"`.
+`my.observabilityHostAllowedSources` already named lumquat (`10.40.0.87`)
+correctly; only its subnet commentary was wrong and is now fixed. The gateway
+(`10.40.60.1`) and storage2 (`10.40.0.59`) still join that list with BOX-335.
 
 ### Step 3 — verify the in-review stack on real hardware
 
@@ -264,18 +286,18 @@ Status of the two branches:
 
 | | |
 | --- | --- |
-| box-311 vs `main` | 44 commits ahead, 1 behind (`cb04d37`, the Darwin NLB fix — merge it in, it does not conflict: box-311 touches `darwin-builder.nix` not at all) |
-| this branch vs box-311 | 4 commits ahead; only `3e716ed` and the handoff docs are ours |
-| box-311 evaluates? | **No** — see Step 0 |
+| box-311 vs `main` | 51 commits ahead, 1 behind (`cb04d37`, the Darwin NLB fix — merge it in, it does not conflict: box-311 touches `darwin-builder.nix` not at all) |
+| this branch vs box-311 | 10 commits ahead; the whole stack fits on one branch now |
+| box-311 evaluates? | **Yes** — fixed in `37ae5dc` |
 
 The order is forced:
 
 ```
-0. add boot.loader to calamansi            <- box-311 does not evaluate
-1. BOX-324: deploy to 10.40.0.61
+0. add boot.loader to calamansi            <- DONE (37ae5dc)
+1. BOX-324: deploy to 10.40.0.61            <- next
 2. verify the six In Review tickets on-host   <- all their boxes are unchecked
-3. merge feat/box-311-observability -> main   (44 commits)
-4. land 3e716ed (rebased/merged onto the result), then BOX-338's visual check
+3. merge feat/box-311-integration -> main     (51 commits)
+4. BOX-338's visual check on a phone-sized viewport, once Grafana is up
 ```
 
 Steps 3 and 4 collapse into one if `3e716ed` is merged into box-311 first, which
