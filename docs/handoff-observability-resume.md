@@ -117,7 +117,34 @@ for in history. Confirm with the user before writing it in.
 
 ## The work, in order
 
-### Step 1 — BOX-324: install and deploy (do this first, it unblocks everything)
+### Step 0 — make `feat/box-311-observability` evaluate at all (NEW, blocks everything)
+
+The branch that holds the whole observability stack **does not evaluate**, on
+the branch that has calamansi's real hardware file:
+
+```
+$ nix eval --impure .#nixosConfigurations.calamansi.config.system.build.toplevel.drvPath
+error: Failed assertions:
+       - You must set the option 'boot.loader.grub.devices' or
+         'boot.loader.grub.mirroredBoots' to make the system bootable.
+```
+
+Cause: `593828d` (the user's real `nixos-generate-config` output, 2026-11-25)
+replaced the placeholder on box-311, and — correctly — `nixos-generate-config`
+does **not** write `boot.loader`; that goes in `configuration.nix`. Neither
+box-311's `configuration.nix` nor its hardware file declares one.
+
+Our branch is not affected only because our *placeholder*
+`hardware-configuration.nix` happens to carry `boot.loader.systemd-boot.enable`
+(lines ~44-50). That placeholder is superseded by the real file, so the stanza
+must be re-added where the real hardware file expects it. Calamansi is EFI, so
+systemd-boot is the pattern (`hosts/lumquat/hardware-configuration.nix:54`
+shows the shape, but lumquat also has LUKS — calamansi does not).
+
+**This is the literal first task.** Nothing below can be verified until
+calamansi evaluates.
+
+### Step 1 — BOX-324: install and deploy
 
 Only Backlog ticket that blocks verification of the others. Acceptance:
 
@@ -127,12 +154,13 @@ Only Backlog ticket that blocks verification of the others. Acceptance:
 - [ ] calamansi is on the tailnet
 - [ ] calamansi's LAN IP recorded
 
-**Hardware config is still a placeholder.** `hosts/calamansi/hardware-configuration.nix`
-says so at the top: placeholder UUIDs, "a system built from this file cannot
-boot". Run `nixos-generate-config` on calamansi and commit the real output.
-Note the user did **not** encrypt the filesystem, so the real file will have no
-LUKS/TPM2 — which is why `hosts/lumquat/hardware-configuration.nix`'s LUKS
-block must not be copied.
+**Hardware config: already done on box-311, not on this branch.**
+`origin/feat/box-311-observability` @ `593828d` (2026-11-25 11:37) carries the
+real `nixos-generate-config` output — real UUIDs, no LUKS, no TPM2, matching the
+user's unencrypted install. That supersedes the placeholder this branch still
+has, so the checkbox above is effectively met; what remains is Step 0's missing
+boot loader. Do **not** re-run `nixos-generate-config` and do **not** copy
+lumquat's LUKS block.
 
 **Password gap.** `modules/features/base.nix:21` creates the podman user with
 `openssh.authorizedKeys.keys` and **no password**. On a fresh headless box with
@@ -166,16 +194,19 @@ added for the syslog path.
 
 ### Step 3 — verify the in-review stack on real hardware
 
-These are code-complete but were never run on a real observability host:
+These are code-complete but were never run on a real observability host.
+**Every "On host:" acceptance box on all six is still unchecked** — they are
+gated on calamansi running, not on more code. The on-host boxes are what
+distinguish "In Review" from "Done" here:
 
-| Box | What it adds |
-| --- | --- |
-| BOX-326 | the `my.observability` option set |
-| BOX-327 | remote agent, GPU telemetry, Host detail dashboard |
-| BOX-329 | vmalert, Alertmanager, Pushover, watchdog |
-| BOX-330 | journal shipping, VictoriaLogs |
-| BOX-331 | container metrics, llama.cpp scrape targets |
-| BOX-334 | storage2 over SNMPv3 |
+| Box | What it adds | What still needs the host |
+| --- | --- | --- |
+| BOX-326 | the `my.observability` option set | Grafana over the tailnet as the Tailscale identity, not reachable from LAN; CPU/memory visible; VM dashboards render |
+| BOX-327 | remote agent, GPU telemetry, Host detail dashboard | lumquat's CPU/mem/disk/temps/GPU in Grafana; ingest port closed to all but lumquat; vmagent buffer replays across a calamansi outage |
+| BOX-329 | vmalert, Alertmanager, Pushover, watchdog | a failed test unit on lumquat produces a Pushover alert then a resolve; stopping Alertmanager trips healthchecks.io |
+| BOX-330 | journal shipping, VictoriaLogs | container logs by `CONTAINER_NAME`, unit logs by `_SYSTEMD_UNIT`; calamansi's own journal searchable; logs survive a calamansi outage |
+| BOX-331 | container metrics, llama.cpp scrape targets | every container's state/restarts and tokens/s per model; a forced restart loop raises the crash-loop alert |
+| BOX-334 | storage2 over SNMPv3 | fans/temps/drive I/O visible; blocking SNMP raises the unreachable alert |
 
 Then the Backlog ones that unblock once calamansi exists:
 
@@ -192,6 +223,38 @@ contract assertions on lumquat. Its one unfinished criterion is the
 **on-host visual check on an iPhone-sized viewport**, which needed calamansi.
 Worth confirming once Grafana is up, since it is the one thing code review could
 not establish.
+
+### Step 4 — the actual merge path (what it takes to land `3e716ed`)
+
+`3e716ed` is BOX-338. It sits on top of `feat/box-311-observability`, so it
+cannot reach `main` before that branch does. There is **no PR for box-311 yet**
+(`gh pr list --head feat/box-311-observability` is empty).
+
+Status of the two branches:
+
+| | |
+| --- | --- |
+| box-311 vs `main` | 44 commits ahead, 1 behind (`cb04d37`, the Darwin NLB fix — merge it in, it does not conflict: box-311 touches `darwin-builder.nix` not at all) |
+| this branch vs box-311 | 4 commits ahead; only `3e716ed` and the handoff docs are ours |
+| box-311 evaluates? | **No** — see Step 0 |
+
+The order is forced:
+
+```
+0. add boot.loader to calamansi            <- box-311 does not evaluate
+1. BOX-324: deploy to 10.40.0.61
+2. verify the six In Review tickets on-host   <- all their boxes are unchecked
+3. merge feat/box-311-observability -> main   (44 commits)
+4. land 3e716ed (rebased/merged onto the result), then BOX-338's visual check
+```
+
+Steps 3 and 4 collapse into one if `3e716ed` is merged into box-311 first, which
+is probably the cleanest: one PR carrying the whole observability stack plus the
+Overview, rather than a second stacked branch.
+
+**Do not open a PR for BOX-338 on its own.** Against `main` it would show 47
+commits, 43 of which belong to box-311, and none of the six in-review tickets
+under it are host-verified.
 
 ## Gotchas that cost real time last session
 
