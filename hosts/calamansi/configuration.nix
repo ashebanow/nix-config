@@ -82,6 +82,21 @@
   # to what lumquat does rather than to being a server: my.llm* and
   # my.bifrostServe (AI serving), my.memory, my.rexServer, my.zmx.
 
+  # Boot loader. Belongs here rather than in hardware-configuration.nix:
+  # `nixos-generate-config` deliberately does not write `boot.loader`, and the
+  # real generated file on this branch has no stanza. Without this the host
+  # fails the `boot.loader.grub.devices` / `mirroredBoots` assertion and does
+  # not evaluate at all.
+  #
+  # systemd-boot, not GRUB: calamansi is EFI and installs its ESP at /boot
+  # (hardware-configuration.nix, vfat on 1618-901C). Unlike lumquat there is
+  # no LUKS on this host, so no initrd/TPM2 pieces belong here.
+  boot.loader = {
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+    efi.efiSysMountPoint = "/boot";
+  };
+
   # Non-hardware defaults
   networking.useDHCP = lib.mkDefault true;
 
