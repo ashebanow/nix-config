@@ -46,6 +46,20 @@ _: {
           }
         ];
 
+        # Fallback SSH must be *listened* on, not merely firewalled. The
+        # firewall rule below has always opened accessFallbackPort, but nothing
+        # told sshd to bind it, so the "way back in when Tailscale is down" has
+        # never actually existed on any host (verified on lumquat: firewall
+        # accepted 22 and 2222, sshd listened on 22 alone). Opening a port no
+        # daemon binds is not a fallback, it is a hole.
+        #
+        # Both ports are declared: 2222 is the fallback, 22 stays because it is
+        # what a freshly installed host answers on before this config lands, and
+        # dropping it would remove the only way in during bootstrap.
+        services.openssh.ports = lib.mkIf config.my.accessEnableFallbackSSH [
+          config.my.accessFallbackPort
+        ];
+
         # Firewall configuration
         networking.firewall = {
           enable = true;
