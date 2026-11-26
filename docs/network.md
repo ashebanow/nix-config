@@ -31,10 +31,12 @@ history only ever mentions `10.40.60.0/24`, so it looks like the whole LAN.
 | miracle_max | `10.40.60.97` | macOS workstation |
 | printer | `10.40.60.111` | IPP Everywhere (`hosts/yuzu/configuration.nix`) |
 
-**calamansi** — the observability host. Not yet on the network (installed by
-BOX-324); its address is unknown and no code should assume it sits on either
-subnet. Until it is recorded here, `my.observabilityHostAddress` on lumquat
-remains a placeholder.
+**calamansi** — the observability host, on the server side at **`10.40.0.61`**.
+
+DHCP-assigned and therefore provisional: BOX-324 will pin it in the UniFi
+console. Its durable identity is the tailnet name `calamansi`, which is what
+code should prefer once Tailscale is up; the LAN address exists because the
+first install has no tailnet to join.
 
 ## Why the subnets are routed, not bridged
 
@@ -50,7 +52,7 @@ ingest port is unreachable" rather than "the rule is wrong".
 | Appears in | Value | Set by |
 | --- | --- | --- |
 | `hosts/calamansi/configuration.nix` → `my.observabilityHostAllowedSources` | `10.40.0.87` | this file |
-| `hosts/lumquat/configuration.nix` → `my.observabilityHostAddress` | placeholder `10.40.60.20` | **BOX-324**, to calamansi's real address |
+| `hosts/lumquat/configuration.nix` → `my.observabilityHostAddress` | `10.40.0.61` | this file (BOX-324) |
 
 When BOX-335 lands the CEF syslog path, `my.observabilityHostAllowedSources` on
 calamansi gains the gateway (`10.40.60.1`) and storage2 (`10.40.0.59`).

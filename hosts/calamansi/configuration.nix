@@ -62,14 +62,17 @@
 
   # The agent hosts allowed to reach the ingest port.
   #
-  # lumquat is the only such host, and its address is now known: 10.40.0.87.
-  # Note the subnet — the house runs two. 10.40.0.0/24 carries lumquat
-  # (10.40.0.87), storage2 (10.40.0.59) and miraclemax's secondary
-  # (10.40.0.240); 10.40.60.0/24 carries bergamot (.74), miracle_max (.97),
-  # the printer (.111) and the gateway (.1). A rule written for the wrong
-  # subnet fails closed, which is why this is pinned to the /32 rather than to
-  # a CIDR: the port should open to one machine, not to whatever else shares
-  # its subnet.
+  # lumquat is the only such host, and its address is 10.40.0.87. Both machines
+  # are on the 10.40.0.0/24 side (calamansi is 10.40.0.61), so this rule and the
+  # source agree — but keep it pinned to the /32 rather than to a CIDR: the port
+  # should open to one machine, not to whatever else shares its subnet. A rule
+  # written for an address the packet never had fails closed and silently, which
+  # is why it names the host exactly.
+  #
+  # The house runs two subnets: 10.40.0.0/24 carries lumquat (10.40.0.87),
+  # calamansi (10.40.0.61), storage2 (10.40.0.59) and miraclemax's secondary
+  # (10.40.0.240); 10.40.60.0/24 carries bergamot (.74), miracle_max (.97), the
+  # printer (.111) and the gateway (.1).
   #
   # BOX-324 must also add the UniFi gateway and storage2 here when the syslog
   # path lands (BOX-335): those are 10.40.60.1 and 10.40.0.59 respectively.

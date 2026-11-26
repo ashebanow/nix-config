@@ -58,17 +58,17 @@
 
   # calamansi's LAN address, for vmagent's remote-write target.
   #
-  # The real address is not known yet: calamansi is not on the network (BOX-324
-  # installs it). lumquat's own address is now recorded — it is 10.40.0.87, on
-  # the 10.40.0.0/24 side of the house — and the two subnets in use are
-  # 10.40.0.0/24 (lumquat, storage2 10.40.0.59, miraclemax's secondary
-  # 10.40.0.240) and 10.40.60.0/24 (bergamot 10.40.60.74, miracle_max
-  # 10.40.60.97, printer 10.40.60.111, gateway 10.40.60.1). Do not assume
-  # calamansi lands on either one; confirm its lease at install.
+  # Confirmed by the user 2026-11-26: calamansi is 10.40.0.61, on the
+  # 10.40.0.0/24 side of the house — the same subnet as lumquat (10.40.0.87),
+  # storage2 (10.40.0.59) and miraclemax's secondary (10.40.0.240). The
+  # 10.40.60.0/24 side carries bergamot (10.40.60.74), miracle_max
+  # (10.40.60.97), the printer (10.40.60.111) and the gateway (10.40.60.1).
   #
-  # 10.40.60.20 is a placeholder, not a claim: it is a free-looking address on
-  # the .60 subnet, which is the side lumquat is NOT on, so this also does not
-  # pretend the two agree. BOX-324 sets it to calamansi's real address.
+  # The address is DHCP-assigned at present and so remains provisional; its
+  # durable identity is the tailnet name `calamansi`. Once BOX-324 has the host
+  # on the tailnet, prefer that over this literal — a lease can move, a tailnet
+  # name cannot. The literal is kept because the scrape path predates Tailscale
+  # being up on that host.
   #
   # The default (`127.0.0.1`) is wrong here in a way that is easy to miss:
   # vmagent would happily buffer forever writing to a VictoriaMetrics that does
@@ -77,7 +77,7 @@
   # vmagent runs here and remote-writes to calamansi, so this is the
   # observability host's address — not this host's. See the comment above; it is
   # still a placeholder because calamansi has no address until BOX-324.
-  my.observabilityHostAddress = "10.40.60.20";
+  my.observabilityHostAddress = "10.40.0.61";
 
   # Rex — a server for the `podman` account, published through Rex's own
   # tailnet node (BOX-292). modules/features/rex.nix explains the roles.
