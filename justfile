@@ -302,7 +302,33 @@ bootstrap-bws HOST="lumquat":
         echo "       personal Bitwarden vault: item 'BWS Chezmoi Access Token'" >&2
         exit 1
     }
-    if [[ "$(hostname)" == "{{HOST}}" || "$(hostname -s)" == "{{HOST}}" ]]; then
+    # Are we running ON the target host?
+    #
+    # This used to compare $(hostname) against {{HOST}} alone, which broke two
+    # ordinary cases:
+    #
+    #   * passing an IP. A bare NixOS install is hostnamed `nixos`, so
+    #     `just bootstrap-bws 10.40.0.61` on that box compared "nixos" to
+    #     "10.40.0.61", decided it was remote, and tried `ssh root@...` — which
+    #     our config forbids (base.nix sets PermitRootLogin = "no").
+    #   * a name that does not resolve from the host itself (no DNS/hosts entry
+    #     yet), which is the normal state before the config lands.
+    #
+    # So consider the local IP set too. If any argument matches one of our own
+    # addresses, we are local — that is exactly what "is this host me?" means.
+    local_addrs() {
+        { ip -o addr show 2>/dev/null | awk '{print $4}' | cut -d/ -f1
+          hostname -I 2>/dev/null | tr ' ' '\n'
+        } | grep -v '^$' | sort -u
+    }
+    is_local_host() {
+        local want="$1"
+        [[ "$want" == "$(hostname)" || "$want" == "$(hostname -s)" ]] && return 0
+        local_addrs | grep -qx -- "$want" && return 0
+        return 1
+    }
+
+    if is_local_host '{{HOST}}'; then
         # Running ON the target host — install locally with sudo. Never SSH
         # back to ourselves: root SSH is disabled and podman's key isn't in
         # root's authorizedKeys (only the dev machine's key is).
@@ -333,7 +359,23 @@ bootstrap-bws HOST="lumquat":
         sudo -n chown root:root /var/lib/secrets/bws-access-token
     else
         # Running on a dev machine — pipe the token over SSH to root@HOST.
-        echo "Installing on {{HOST}} over SSH ..."
+        #
+        # This path requires root SSH, which our own config disables
+        # (base.nix: PermitRootLogin = "no"). It therefore only works on a host
+        # that has not been switched to our config yet AND still permits root
+        # login — a narrow window. Say so plainly instead of dropping the user
+        # into a bare `root@host` password prompt they cannot satisfy.
+        echo "Installing on {{HOST}} over SSH as root ..." >&2
+        if ! ssh -o BatchMode=yes -o ConnectTimeout=8 "root@{{HOST}}" true 2>/dev/null; then
+            echo "error: cannot reach root@{{HOST}} without a prompt." >&2
+            echo "       Our config forbids root SSH (PermitRootLogin = no), and a" >&2
+            echo "       bare install has no key for root. Run this recipe ON the host" >&2
+            echo "       instead, as the operator user — it then installs locally with" >&2
+            echo "       sudo and never contacts root:" >&2
+            echo "         ssh podman@{{HOST}}   # then, in that shell:" >&2
+            echo "         just bootstrap-bws $(hostname -s)" >&2
+            exit 1
+        fi
         printf '%s' "$token" | ssh "root@{{HOST}}" 'install -d -m 0700 /var/lib/secrets && umask 077 && cat > /var/lib/secrets/bws-access-token'
     fi
     echo "Bootstrap token installed at {{HOST}}:/var/lib/secrets/bws-access-token"
