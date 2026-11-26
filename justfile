@@ -401,6 +401,15 @@ bootstrap-bws HOST="lumquat":
 secrets-check reason="operator: manual manifest check":
     SECRETSPEC_REASON="{{reason}}" secretspec check -f secretspec.toml -P production --no-prompt
 
+# Turn a bare NixOS install into a configured host. Run from a dev machine; the
+# target needs nothing but stock NixOS (no just, no dotfiles, no checkout, no
+# root SSH, no key yet). The password is typed once into ssh's own prompt.
+# Usage: just provision <host> <address> [branch]
+# See docs/runbooks/provision-new-host.md.
+[group('secrets')]
+provision host address branch="main":
+    scripts/provision-host.sh --host {{host}} --address {{address}} --branch {{branch}}
+
 # ===== LLM GATEWAY =====
 
 # Run the bifrost reliability gate — the size/duration conditions that made
