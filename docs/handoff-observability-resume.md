@@ -75,8 +75,12 @@ The contract test likewise:
 ssh lumquat 'cd ~/nix-config && nix eval --impure --file lib/tests/observability-contract.nix --json'
 ```
 
-That eval exits 0 regardless of content; the gate is the `assertions` array.
-Parse it and check every `assertion` is `true`.
+The eval `throw`s on failure, so a non-zero exit with an
+`observability contract violated:` message is the gate. To inspect the count
+directly, parse `result.assertions` — each entry has an `assertion` boolean:
+run it against the branch's `lib/tests/observability-contract.nix` in a
+detached worktree, not `--file` from an arbitrary cwd (relative imports resolve
+against the file).
 
 **Why this matters:** the previous session lost hours to ncurses 6.6 terminfo
 corruption that only occurs when cross-building, because the case-hack renames
@@ -117,7 +121,20 @@ for in history. Confirm with the user before writing it in.
 
 ## The work, in order
 
-### Step 0 — make `feat/box-311-observability` evaluate at all (NEW, blocks everything)
+### Step 0 — make `feat/box-311-observability` evaluate at all (DONE 2026-11-26)
+
+**Resolved on `feat/box-311-integration` (commit `37ae5dc`).** `hosts/calamansi/configuration.nix`
+now declares systemd-boot on the `/boot` ESP (no LUKS/TPM2 — calamansi's root is
+unencrypted). Verified on lumquat against a detached worktree of the branch:
+
+| Gate | Result |
+| --- | --- |
+| `nix eval` calamansi drvPath | evaluates (previously: assertion failure) |
+| `nix build` calamansi toplevel | builds, full observability closure |
+| contract test | 120/120 assertions, 0 failing |
+| lumquat still evaluates | yes |
+
+The original diagnosis, kept for context:
 
 The branch that holds the whole observability stack **does not evaluate**, on
 the branch that has calamansi's real hardware file:
@@ -141,8 +158,21 @@ must be re-added where the real hardware file expects it. Calamansi is EFI, so
 systemd-boot is the pattern (`hosts/lumquat/hardware-configuration.nix:54`
 shows the shape, but lumquat also has LUKS — calamansi does not).
 
-**This is the literal first task.** Nothing below can be verified until
-calamansi evaluates.
+**This was the literal first task.** Nothing below could be verified until
+calamansi evaluated — now it does.
+
+### Where the branches actually stand (verified 2026-11-26)
+
+`feat/box-311-integration` exists and is the tip to work from. It is
+`feat/box-311-observability` plus BOX-338's merge (`8e695d5`) plus the boot-loader
+fix (`37ae5dc`). So the "two stacked branches" problem described in Step 4 is
+**already collapsed for practical purposes** — this single branch carries the
+whole stack.
+
+```
+box-311-integration vs main:  51 ahead, 1 behind (cb04d37, the Darwin NLB fix)
+box-311-integration vs box-311: 7 ahead, 0 behind
+```
 
 ### Step 1 — BOX-324: install and deploy
 
