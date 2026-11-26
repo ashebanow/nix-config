@@ -256,7 +256,25 @@ vm:
 # Manager Homelab project (see SECRET_SYNC.md). Never committed anywhere.
 # Usage: just bootstrap-bws [HOST]   (default: lumquat)
 # Works from a dev machine (SSH to root@HOST) or on the host itself (local
-# passwordless sudo for the podman user).
+# sudo, which may or may not be passwordless).
+#
+# Two failure modes this recipe guards against, both found on calamansi's bare
+# install (2026-11-26):
+#
+#   1. sudo needing a password. A freshly installed NixOS host has
+#      security.sudo.wheelNeedsPassword at its default (true) because our
+#      repo is not on it yet; base.nix is what turns it off. The old local
+#      branch assumed passwordless sudo and would fail.
+#   2. The token being eaten by the password prompt. The install pipes the
+#      token into `sudo sh -c ...`, so sudo's stdin is the token itself. If
+#      sudo decides to prompt, it can consume the token as the *password* —
+#      which both fails confusingly and pushes a real secret through PAM.
+#
+#   (The `#` in the sentence above confused just's help extraction, so this
+#   note is kept plain.) The fix: prime sudo's timestamp with a prompt that has
+#   the terminal's own stdin, before any token is in flight.
+#
+# Install the BWS access token on a host (one-time, root-only file).
 [group('secrets')]
 bootstrap-bws HOST="lumquat":
     #!/usr/bin/env bash
@@ -289,9 +307,30 @@ bootstrap-bws HOST="lumquat":
         # back to ourselves: root SSH is disabled and podman's key isn't in
         # root's authorizedKeys (only the dev machine's key is).
         echo "Installing locally on $(hostname) ..."
+
+        # Prime sudo BEFORE the token is in play. `sudo -v` prompts for a
+        # password with the terminal as its stdin, which is what we want; the
+        # install below then runs off the cached timestamp. Redirecting stdin
+        # from /dev/tty keeps the prompt off the pipe even in odd callers.
+        if ! sudo -n true 2>/dev/null; then
+            echo "sudo needs a password on this host (expected before our config lands)." >&2
+            sudo -v < /dev/tty || {
+                echo "error: could not obtain sudo" >&2
+                exit 1
+            }
+        fi
+
         sudo install -d -m 0700 /var/lib/secrets
-        # No trailing newline: bws rejects the token if one is present.
-        printf '%s' "$token" | sudo sh -c 'umask 077 && cat > /var/lib/secrets/bws-access-token'
+        # Note the redirect: sudo re-prompts only if the timestamp expired, and
+        # `sudo -v` above already covered that. Even so, send the token through
+        # a heredoc into an already-privileged shell rather than into sudo's
+        # stdin, so a surprise prompt can never read it.
+        sudo -n sh -c 'umask 077 && cat > /var/lib/secrets/bws-access-token' <<< "$token"
+        # The heredoc adds a newline; bws rejects a trailing newline. Strip it
+        # with a privileged, stdin-safe rewrite.
+        sudo -n truncate -s -1 /var/lib/secrets/bws-access-token
+        sudo -n chmod 0600 /var/lib/secrets/bws-access-token
+        sudo -n chown root:root /var/lib/secrets/bws-access-token
     else
         # Running on a dev machine — pipe the token over SSH to root@HOST.
         echo "Installing on {{HOST}} over SSH ..."
