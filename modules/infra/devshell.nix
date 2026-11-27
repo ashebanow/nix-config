@@ -101,6 +101,7 @@
 
         packages = with devPkgs; [
           github-cli
+          jq
           # Pinned-ahead-of-nixpkgs dev tools. The hosts install these too
           # (feature modules); they stay in the shell so a shell session works
           # on a host where the relevant feature flag is off.
