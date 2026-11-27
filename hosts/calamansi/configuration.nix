@@ -94,10 +94,10 @@
   # observability host as on the AI host — and it is how the operator reaches
   # this machine when SSH is inconvenient.
   #
-  # The tsnet node needs its own one-time key, REX_CALAMANSI_TS_AUTHKEY, which
-  # modules/features/secrets.nix passes only when this flag is on. It is a
-  # non-reusable key: re-enrolling after wiping /var/lib/rex needs a freshly
-  # minted one (see docs/rex.md).
+  # The tsnet node needs its own key, REX_CALAMANSI_TS_AUTHKEY, which
+  # modules/features/secrets.nix passes only when this flag is on. The key is
+  # currently reusable (see the note above REX_* in secretspec.toml); the plan
+  # is to move all of these to non-reusable keys once the hosts have settled.
   my.rexServer = true;
   my.rexServerUser = "podman";
 
