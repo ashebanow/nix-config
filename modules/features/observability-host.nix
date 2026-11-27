@@ -319,18 +319,25 @@
       # shape the agent renders its targets. They are stack-internal, so they
       # are not declared through `my.observability.scrapeTargets` — that
       # collection is for a *feature's* targets.
+      #
+      # Each carries the same `instance` rewrite the agent applies, so these
+      # components name themselves in Grafana and in alert text instead of
+      # showing the loopback port. Without it they were the only jobs whose
+      # `instance` stayed `127.0.0.1:<port>`.
       alertingScrapeJobs = [
         {
           job_name = "vmalert";
           static_configs = [
             { targets = [ "127.0.0.1:${toString config.my.observabilityVmalertPort}" ]; }
           ];
+          metric_relabel_configs = [ (obs.rewriteInstanceTo "vmalert") ];
         }
         {
           job_name = "alertmanager";
           static_configs = [
             { targets = [ "127.0.0.1:${toString config.my.observabilityAlertmanagerPort}" ]; }
           ];
+          metric_relabel_configs = [ (obs.rewriteInstanceTo "alertmanager") ];
         }
       ];
 

@@ -123,6 +123,11 @@ _: {
             static_configs = [
               { targets = [ "127.0.0.1:${toString config.services.prometheus.exporters.node.port}" ]; }
             ];
+            # `instance` becomes the host's name. Left alone it would be
+            # `127.0.0.1:9100` on every machine, which is what Grafana legends
+            # and alert templates would then show. See `rewriteInstanceTo` in
+            # lib/observability.nix.
+            metric_relabel_configs = [ (obs.rewriteInstanceTo config.my.hostName) ];
           }
         ]
         ++ lib.optional config.my.observabilityContainerMetrics {
@@ -130,6 +135,7 @@ _: {
           static_configs = [
             { targets = [ "127.0.0.1:${toString config.my.observabilityPodmanExporterPort}" ]; }
           ];
+          metric_relabel_configs = [ (obs.rewriteInstanceTo config.my.hostName) ];
         }
         ++ obs.renderScrapeConfigs config.my.observability.scrapeTargets;
       };

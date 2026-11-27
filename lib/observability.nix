@@ -28,14 +28,26 @@ rec {
       staticConfig = {
         targets = hosts;
       }
-      // lib.optionalAttrs (target.labels != { }) {
-        labels = target.labels;
+      // lib.optionalAttrs (labelsWithoutInstance != { }) {
+        labels = labelsWithoutInstance;
       };
+      # `instance`, when declared, is applied by the relabel rule instead of as a
+      # static label: Prometheus rejects a static label that collides with a
+      # relabel target, and keeping one path for it means the override cannot
+      # silently disagree with the relabel below.
+      labelsWithoutInstance = builtins.removeAttrs target.labels [ "instance" ];
     in
     {
       job_name = name;
       metrics_path = target.metricsPath;
       static_configs = [ staticConfig ];
+      # `instance` names what is monitored, not the loopback port the exporter
+      # happens to sit on. A target may override it by setting `instance` in its
+      # `labels`, which is how storage2 reports the NAS address rather than the
+      # local exporter: that target scrapes `127.0.0.1:9116/snmp?target=<nas>`,
+      # so the declared address says nothing about which device is behind it.
+      metric_relabel_configs =
+        [ (rewriteInstanceTo (target.labels.instance or (lib.head hosts))) ];
     }
     // lib.optionalAttrs (target.interval != null) { scrape_interval = target.interval; }
     // lib.optionalAttrs (target.scrapeTimeout != null) { scrape_timeout = target.scrapeTimeout; };
@@ -45,6 +57,45 @@ rec {
   # is not defined, and a config that reorders on every eval would restart
   # vmagent for no reason and make the diff worthless.
   renderScrapeConfigs = scrapeTargets: lib.mapAttrsToList scrapeTargetToJob scrapeTargets;
+
+  # ── Why `instance` is rewritten ────────────────────────────────────────
+  #
+  # Every exporter these agents scrape binds to loopback, so Prometheus records
+  # `instance` as the address it dialled: `127.0.0.1:9100`, `127.0.0.1:9882`,
+  # `127.0.0.1:9116`. That is literally true and completely useless — the value
+  # is identical on every host and carries no information a reader can act on,
+  # yet it is the label stock Grafana panels put in legends and the label the
+  # alert templates interpolate, so the noisy value ends up in front of a human:
+  #
+  #   "The SNMP poll of 127.0.0.1:9116 has failed for at least 10 minutes."
+  #
+  #   ...which names the exporter, not the NAS at 10.40.0.59 that is down.
+  #
+  # So `instance` is relabelled per job to the thing being monitored:
+  #
+  #   job="node"           -> instance = the host's own name
+  #   job="storage2"       -> instance = the device address (10.40.0.59)
+  #   job="<other target>" -> instance = the target address as declared
+  #
+  # `host` stays the collector, which is what separates one agent's series from
+  # another's. `instance` becomes the monitored subject, which is what dashboards
+  # and alerts should show. The two are different questions and now have
+  # different labels.
+  #
+  # Implemented as `metric_relabel_configs` rather than by scraping a non-loopback
+  # address: keeping exporters on loopback is deliberate (nothing else has any
+  # reason to reach them), and relabelling is the supported way to change what
+  # Prometheus calls a target.
+  #
+  # `replacement` is only applied when the source label exists, so a target with
+  # no address keeps Prometheus' own `instance` rather than getting an empty one.
+  rewriteInstanceTo =
+    value:
+    {
+      source_labels = [ "__address__" ];
+      target_label = "instance";
+      replacement = value;
+    };
 
   # The whole Prometheus scrape config document. Named after the file the
   # service consumes so a reader can go straight from a rendered path to this

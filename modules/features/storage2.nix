@@ -468,9 +468,12 @@
         metricsPath = "/snmp?target=${cfg.storage2Address}&module=storage2&auth=storage2";
         interval = "60s";
         scrapeTimeout = "30s";
+        # The monitored subject is the NAS, not the exporter that polls it. Without
+        # this, `instance` is the loopback port and an alert reads "The SNMP poll
+        # of 127.0.0.1:9116 has failed" — which names the wrong machine entirely.
+        labels.instance = cfg.storage2Address;
       };
-    in
-    {
+    in    {
       config = lib.mkIf (config.my.storage2 && config.my.observabilityHost) {
         # The exporter is an SNMP poller, so it only makes sense on the host
         # that does the polling. ADR 0006: native service, never a container.
