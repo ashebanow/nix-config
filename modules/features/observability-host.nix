@@ -886,29 +886,39 @@
           ''
         );
 
-        systemd.services.alertmanager.serviceConfig.ExecStart = lib.mkForce "${
-          lib.escapeShellArgs [
-            "${pkgs.secretspec}/bin/secretspec"
-            "run"
-            "-P"
-            "production"
-            "-S"
-            "alerting"
-            "--"
-            "${pkgs.envsubst}/bin/envsubst"
-            "-i"
-            "${alertmanagerTemplate}"
-            "-o"
-            "/run/secretspec-alerting/alertmanager.yml"
-          ]
-        } && exec ${
-          lib.escapeShellArgs [
-            "${config.services.prometheus.alertmanager.package}/bin/alertmanager"
-            "--config.file=/run/secretspec-alerting/alertmanager.yml"
-            "--storage.path=/var/lib/alertmanager"
-            "--web.listen-address=127.0.0.1:${toString config.my.observabilityAlertmanagerPort}"
-          ]
-        }";
+        # The `&&` chain needs a shell. Like the pre-start, this was a bare
+        # string, so systemd execs the first word and the `&&` is never seen as
+        # syntax — the substitution ran, the chain ended, and the unit exited 0
+        # immediately, which Restart=always dutifully turned into a crash loop
+        # ("Deactivated successfully" then "start-limit-hit"). writeShellScript
+        # gives it an interpreter.
+        systemd.services.alertmanager.serviceConfig.ExecStart = lib.mkForce (
+          pkgs.writeShellScript "alertmanager-run" ''
+            set -euo pipefail
+            ${lib.escapeShellArgs [
+              "${pkgs.secretspec}/bin/secretspec"
+              "run"
+              "-P"
+              "production"
+              "-S"
+              "alerting"
+              "--"
+              "${pkgs.envsubst}/bin/envsubst"
+              "-i"
+              "${alertmanagerTemplate}"
+              "-o"
+              "/run/secretspec-alerting/alertmanager.yml"
+            ]}
+            exec ${
+              lib.escapeShellArgs [
+                "${config.services.prometheus.alertmanager.package}/bin/alertmanager"
+                "--config.file=/run/secretspec-alerting/alertmanager.yml"
+                "--storage.path=/var/lib/alertmanager"
+                "--web.listen-address=127.0.0.1:${toString config.my.observabilityAlertmanagerPort}"
+              ]
+            }
+          ''
+        );
 
         # ── vmalert: evaluate rules, notify Alertmanager ───────────────
         #
