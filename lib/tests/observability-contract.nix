@@ -393,8 +393,17 @@ let
   podmanJobs = builtins.filter (j: j.job_name == "podman") lumquatScrapeJobs;
 
   # The podman exporter unit, and where it listens.
+  #
+  # `ExecStart` is a generated launcher script, not a command line: the unit needs
+  # to set XDG_RUNTIME_DIR and CONTAINER_HOST from the running user's uid and then
+  # `exec` the exporter, and a raw multi-line ExecStart is rejected by systemd.
+  # So the properties worth asserting live in the script's text and are read from
+  # there. Reading the file keeps these as real assertions rather than dropping
+  # them — they still fail if the socket path or the listen address regresses,
+  # which is exactly the mistake they were written to catch.
   podmanExporterUnit = lumquat.systemd.services.prometheus-podman-exporter;
   podmanExporterExecStart = podmanExporterUnit.serviceConfig.ExecStart;
+  podmanExporterScript = builtins.readFile podmanExporterExecStart;
   podmanExporterEnv = podmanExporterUnit.serviceConfig.Environment;
 
   # The BOX-331 ruleset and dashboards, as committed.
@@ -1073,11 +1082,15 @@ let
       message = "The podman exporter does not run as my.baseUsername. lumquat's containers are rootless under that account, so an exporter running as root would report an empty container list — indistinguishable from 'nothing is running'.";
     }
     {
-      assertion = builtins.any (e: lib.hasInfix "CONTAINER_HOST=" e) podmanExporterEnv;
+      # The script exports CONTAINER_HOST rather than the unit setting it in
+      # `Environment`, which is the whole reason the launcher exists: the socket
+      # path needs the running user's uid, and systemd's %U expands against the
+      # manager (uid 0), not the unit's User=.
+      assertion = lib.hasInfix "CONTAINER_HOST=" podmanExporterScript;
       message = "The podman exporter unit sets no CONTAINER_HOST, so it would fall back to podman's own guess at the rootless socket from a system unit that has no $XDG_RUNTIME_DIR.";
     }
     {
-      assertion = lib.hasInfix "--web.listen-address=127.0.0.1:" podmanExporterExecStart;
+      assertion = lib.hasInfix "--web.listen-address=127.0.0.1:" podmanExporterScript;
       message = "The podman exporter does not bind loopback. Its /metrics lists every container on the host, which is not something to publish on the LAN.";
     }
     {
