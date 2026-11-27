@@ -477,6 +477,20 @@
         services.prometheus.exporters.snmp = {
           enable = true;
 
+          # The exporter runs `secretspec`, which resolves its own uid at
+          # startup. Under `DynamicUser` that lookup needs `libnss_systemd.so.2`,
+          # which is not on the binary's library path, so it fails and
+          # secretspec misreports it as a missing manifest. A static user takes
+          # the uid from /etc/passwd and needs no NSS. nixpkgs creates the
+          # `snmp-exporter` user and group itself when this is false (see
+          # `mkExporterConf` in prometheus/exporters.nix), which is why the
+          # module declares no user of its own.
+          #
+          # Confirmed on calamansi with strace: /etc/secretspec.toml opened
+          # successfully, then four ENOENT attempts at libnss_systemd.so.2, then
+          # exit 1.
+          serviceConfig.DynamicUser = false;
+
           # The config document, exposed as a *value* too so the contract test
           # can assert on it as data (that the credentials are references and
           # not values) instead of grep-ing rendered YAML.

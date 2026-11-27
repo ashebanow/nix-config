@@ -350,6 +350,51 @@
     in
     {
       config = lib.mkIf config.my.observabilityHost {
+        # ── Static users for the units that resolve secrets ──────────────
+        #
+        # These units run `secretspec`, and secretspec resolves its own uid at
+        # startup. Under `DynamicUser` that lookup needs `libnss_systemd.so.2`,
+        # which is not on the binary's library search path, so the lookup fails
+        # and secretspec reports it as "No secretspec.toml found in current or
+        # any parent directory" — a message that points at the manifest while
+        # the manifest opened successfully (confirmed by strace on calamansi:
+        # `openat("/etc/secretspec.toml") = 3` succeeded, then four ENOENT
+        # attempts at libnss_systemd.so.2, then exit 1).
+        #
+        # Declaring a real system user sidesteps NSS entirely: the uid comes
+        # from /etc/passwd. This is also what the older, working secretspec
+        # consumers do (host-secrets-populate runs as root; rex and flakehub
+        # use static users), so it restores consistency rather than inventing
+        # a new pattern.
+        #
+        # Deliberately scoped to the secretspec consumers: `vmalert` also uses
+        # DynamicUser and works, because it never resolves a user through NSS.
+        # Nothing here weakens that unit. See docs/runbooks/provision-new-host.md.
+        users.users.snmp-exporter = {
+          isSystemUser = true;
+          group = "snmp-exporter";
+          description = "prometheus snmp_exporter (BOX-334)";
+        };
+        users.groups.snmp-exporter = { };
+
+        users.users.vmalert = {
+          isSystemUser = true;
+          group = "vmalert";
+          description = "VictoriaMetrics vmalert (BOX-329)";
+        };
+        users.groups.vmalert = { };
+
+        users.users.healthchecks-webhook = {
+          isSystemUser = true;
+          group = "healthchecks-webhook";
+          description = "healthchecks.io webhook bridge (BOX-329)";
+        };
+        users.groups.healthchecks-webhook = { };
+
+        # Alertmanager's own user is created by the nixpkgs module, which also
+        # defaults it to DynamicUser. Overriding the boolean is enough; the
+        # module already declares `users.users.alertmanager` when it is off.
+
         # A dashboard key declared by two hosts would silently shadow one of them
         # in the link farm above, which looks exactly like "that host's dashboard
         # does not exist". Fail loudly at eval instead.
@@ -537,17 +582,25 @@
           #     the login form — and the login form is reachable from the
           #     tailnet even though nothing but Serve publishes the port.
           #
-          #   admin_password is set to a file-provider reference anyway,
-          #     because the alternative is nixpkgs' literal "admin" default
-          #     written into the world-readable store. The file does not exist,
-          #     so the value is unusable rather than merely unadvertised: the
-          #     account is the one created by the first Tailscale identity.
+          #   admin_password is set to the empty string. It used to be a
+          #     `$__file{/run/grafana/does-not-exist}` reference on the theory
+          #     that a missing file made the value unusable. It does not: Grafana
+          #     treats a file-provider reference whose target is absent as a
+          #     *fatal* startup error, not an unset value —
+          #
+          #       Error: ✗ got error while expanding security.admin_password
+          #       with expander 'file': stat /run/grafa/does-not-exist: no such
+          #       file or directory
+          #
+          #     which crash-looped grafana on calamansi (BOX-324). The empty
+          #     string keeps the literal "admin" default out of the store, which
+          #     is what that line existed to prevent, without failing to boot.
           #
           # The first identity through Serve becomes Grafana's admin, which is
           # the operator. There is deliberately no option to set a real
           # password, and no secret to store, rotate or leak.
           settings.security.disable_initial_admin_creation = true;
-          settings.security.admin_password = "$__file{/run/grafana/does-not-exist}";
+          settings.security.admin_password = "";
 
           # ── The home dashboard (BOX-338) ───────────────────────────
           #
@@ -757,6 +810,11 @@
         systemd.services.alertmanager = {
           wants = [ "network-online.target" ];
           after = [ "network-online.target" ];
+          # Alertmanager's unit runs `secretspec` in its preStart, so it resolves
+          # a uid and needs NSS — which fails under DynamicUser (the exporter in
+          # storage2.nix documents the strace evidence). nixpkgs already declares
+          # the `alertmanager` user when this is false, so no user is added here.
+          serviceConfig.DynamicUser = false;
           path = [
             pkgs.secretspec
             pkgs.bws
@@ -867,7 +925,10 @@
             Type = "simple";
             User = "vmalert";
             Group = "vmalert";
-            DynamicUser = true;
+            # Static user, not DynamicUser: see the note on `users.users` at the
+            # top of this module. vmalert itself resolves no uid, but keeping the
+            # whole stack on one user model is one fewer thing to get wrong.
+            DynamicUser = false;
             Restart = "always";
             RestartSec = 5;
             ExecStart = lib.escapeShellArgs ([
@@ -912,7 +973,11 @@
           ];
           serviceConfig = {
             Type = "oneshot";
-            DynamicUser = true;
+            # Static user: secretspec resolves its own uid and needs NSS, which
+            # fails under DynamicUser. See the note on `users.users` above.
+            User = "healthchecks-webhook";
+            Group = "healthchecks-webhook";
+            DynamicUser = false;
             Environment = [
               "SECRETSPEC_FILE=${config.my.secretspecManifest}"
               "SECRETSPEC_PROVIDER=bws-service"
