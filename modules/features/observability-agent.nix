@@ -418,8 +418,29 @@ _: {
         # vmagent's own metrics are the "who watches the watcher" layer: the
         # host's VictoriaMetrics scrapes this port, so a silent vmagent is
         # visible. Loopback, like everything else on an agent host.
+        #
+        # `remoteWrite.label` is not cosmetic and not optional here. Without it
+        # every agent stamps its series with the *scraped target's* labels and
+        # nothing about which machine they came from, so two hosts' samples
+        # collide on the same label set once they reach one VictoriaMetrics:
+        #
+        #   lumquat   scrapes 127.0.0.1:9100 job="node"
+        #   calamansi scrapes 127.0.0.1:9100 job="node"
+        #
+        # Both push `up{job="node",instance="127.0.0.1:9100"}` and the last
+        # writer wins. That is what made lumquat's metrics appear to be missing
+        # on calamansi while vmagent reported 331 successful remote writes and
+        # the query side showed only local instances (measured on calamansi
+        # 2026-11-27). Adding `host` separates them and gives every dashboard
+        # and rule one label to filter on.
+        #
+        # VictoriaLogs did not need this because it stamps `_HOSTNAME` itself;
+        # VictoriaMetrics has no automatic origin label, so it has to be
+        # declared. The value is `my.hostName`, not the scraped instance, so it
+        # identifies the machine that *collected* the sample.
         services.vmagent.extraArgs = [
           "-httpListenAddr=127.0.0.1:8429"
+          "-remoteWrite.label=host=${config.my.hostName}"
         ];
 
         # ── Logs ────────────────────────────────────────────────────────
