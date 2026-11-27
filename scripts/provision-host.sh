@@ -246,6 +246,13 @@ else
   # A brief appearance in the remote shell's argv is the acceptable cost; it is
   # not written to disk anywhere and is unset immediately after.
   token_b64=$(printf '%s' "$token" | base64 | tr -d '\n')
+  # The directory must exist first. An earlier revision dropped this line when
+  # the write was rewritten, and the first attempt failed with "install: cannot
+  # create regular file '/var/lib/secrets/bws-access-token': No such file or
+  # directory" — after the token had already been pasted. mkdir -p so a second
+  # run is harmless.
+  as_root "install -d -m 0700 /var/lib/secrets" \
+    || die "could not create /var/lib/secrets"
   as_root "sh -c 'printf %s \"\$1\" | base64 -d | install -m 0600 -o root -g root /dev/stdin /var/lib/secrets/bws-access-token' _ '${token_b64}'" \
     || die "could not install the BWS token"
   unset token token_b64
