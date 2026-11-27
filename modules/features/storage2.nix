@@ -489,7 +489,11 @@
           # Confirmed on calamansi with strace: /etc/secretspec.toml opened
           # successfully, then four ENOENT attempts at libnss_systemd.so.2, then
           # exit 1.
-          serviceConfig.DynamicUser = false;
+          #
+          # Set on the *unit*, not on this option set: the exporter module
+          # declares `serviceConfig.DynamicUser = mkDefault enableDynamicUser`,
+          # so the override belongs on the unit (below), and there is no
+          # `serviceConfig` sub-option here.
 
           # The config document, exposed as a *value* too so the contract test
           # can assert on it as data (that the credentials are references and
@@ -559,6 +563,11 @@
         systemd.services.prometheus-snmp-exporter = {
           wants = [ "network-online.target" ];
           after = [ "network-online.target" ];
+          # Static user rather than DynamicUser — see the note on the exporter's
+          # `enable` block above for the strace evidence. `mkForce`, not a plain
+          # assignment: the exporter module sets `mkDefault true`, and this must
+          # win regardless of module order.
+          serviceConfig.DynamicUser = lib.mkForce false;
           path = [
             pkgs.secretspec
             pkgs.bws

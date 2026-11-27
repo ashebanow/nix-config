@@ -814,7 +814,9 @@
           # a uid and needs NSS — which fails under DynamicUser (the exporter in
           # storage2.nix documents the strace evidence). nixpkgs already declares
           # the `alertmanager` user when this is false, so no user is added here.
-          serviceConfig.DynamicUser = false;
+          # `mkForce` because the nixpkgs module sets this with mkDefault and the
+          # override must win regardless of module ordering.
+          serviceConfig.DynamicUser = lib.mkForce false;
           path = [
             pkgs.secretspec
             pkgs.bws
