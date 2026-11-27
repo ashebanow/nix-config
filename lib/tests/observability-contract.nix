@@ -1008,8 +1008,18 @@ let
       assertion = pushoverConfig.user_key == "\${PUSHOVER_USER_KEY}";
       message = "Alertmanager's Pushover user key is not a \${PUSHOVER_USER_KEY} reference. Anything else would put a credential in the Nix store.";
     }
+    # The unit's ExecStart is a generated shell script (it needs a shell for
+    # `set -euo pipefail` and `exec`), so the property is checked against the
+    # script's text rather than the ExecStart path. Reading the file keeps this a
+    # real assertion: it still fails if the scope is dropped, just at the place
+    # the command now lives.
     {
-      assertion = lib.hasInfix "-S alerting" hostCfg.systemd.services.alertmanager.serviceConfig.ExecStart;
+      assertion =
+        let
+          execStart = hostCfg.systemd.services.alertmanager.serviceConfig.ExecStart;
+          script = builtins.readFile execStart;
+        in
+        lib.hasInfix "-S alerting" script;
       message = "Alertmanager's unit does not resolve the `alerting` scope, so the \${VAR} references in its config would never be substituted at start-up.";
     }
 
