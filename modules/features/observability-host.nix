@@ -866,16 +866,25 @@
         # change to that template (or a stray env var) one bug away from a
         # readable token. The expansion here writes 0400 inside the unit's
         # RuntimeDirectory instead.
-        systemd.services.alertmanager.serviceConfig.ExecStartPre = lib.mkForce ''
-          umask 077
-          ${lib.escapeShellArgs [
-            "${pkgs.envsubst}/bin/envsubst"
-            "-i"
-            "${alertmanagerTemplate}"
-            "-o"
-            "/run/secretspec-alerting/alertmanager.yml"
-          ]}
-        '';
+        # `writeShellScript` rather than a raw multi-line string: systemd execs
+        # the first word of a string ExecStartPre directly, so a script starting
+        # with `umask 077` tried to exec a program called `umask` and died with
+        # 203/EXEC ("Unable to locate executable 'umask'"). `umask` is a shell
+        # builtin, so the script needs a real interpreter — which is what
+        # writeShellScript supplies. Found on calamansi after the DynamicUser
+        # fix let the unit get this far.
+        systemd.services.alertmanager.serviceConfig.ExecStartPre = lib.mkForce (
+          pkgs.writeShellScript "alertmanager-substitute-config" ''
+            umask 077
+            ${lib.escapeShellArgs [
+              "${pkgs.envsubst}/bin/envsubst"
+              "-i"
+              "${alertmanagerTemplate}"
+              "-o"
+              "/run/secretspec-alerting/alertmanager.yml"
+            ]}
+          ''
+        );
 
         systemd.services.alertmanager.serviceConfig.ExecStart = lib.mkForce "${
           lib.escapeShellArgs [
