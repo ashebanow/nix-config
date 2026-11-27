@@ -391,9 +391,19 @@
         };
         users.groups.healthchecks-webhook = { };
 
-        # Alertmanager's own user is created by the nixpkgs module, which also
-        # defaults it to DynamicUser. Overriding the boolean is enough; the
-        # module already declares `users.users.alertmanager` when it is off.
+        # Alertmanager keeps state at --storage.path /var/lib/alertmanager, so the
+        # static user must own it; with DynamicUser systemd managed that and the
+        # directory ownership was implicit.
+        users.users.alertmanager = {
+          isSystemUser = true;
+          group = "alertmanager";
+          home = "/var/lib/alertmanager";
+          description = "Prometheus Alertmanager (BOX-329)";
+        };
+        users.groups.alertmanager = { };
+        systemd.tmpfiles.rules = [
+          "d /var/lib/alertmanager 0750 alertmanager alertmanager -"
+        ];
 
         # A dashboard key declared by two hosts would silently shadow one of them
         # in the link farm above, which looks exactly like "that host's dashboard
