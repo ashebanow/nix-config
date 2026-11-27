@@ -85,5 +85,6 @@ host and not queried live — storage2.
 _Avoid_: backup.
 
 **monitoring**:
-Not used for this stack. It names the Cockpit capability until that flag is
-renamed; say observability for logs, metrics, alerting and dashboards.
+Not used for this stack. It named the Cockpit capability until BOX-325
+renamed that flag to `my.cockpit`; it is not used for Cockpit either. Say
+observability for logs, metrics, alerting and dashboards.

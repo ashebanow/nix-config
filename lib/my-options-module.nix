@@ -114,16 +114,749 @@
       description = "Fallback SSH port.";
     };
 
-    # Monitoring feature
-    monitoring = lib.mkOption {
+    # Cockpit feature (web UI for system administration). Named for the tool,
+    # not for "monitoring": that word belongs to observability (see CONTEXT.md).
+    # Cockpit is administration, not observability — do not fold it in here.
+    cockpit = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable Cockpit web UI for system monitoring.";
+      description = "Enable Cockpit web UI for system administration.";
     };
-    monitoringPort = lib.mkOption {
+    cockpitPort = lib.mkOption {
       type = lib.types.port;
       default = 9090;
       description = "Cockpit web interface port.";
+    };
+
+    # ── storage2 (the UniFi UNAS Pro archive) ────────────────────────────
+    #
+    # storage2 cannot run services, so its health can only be observed from
+    # outside. These options are the SNMP poller the observability host runs
+    # for it (BOX-334).
+    #
+    # Set `storage2` on the **observability host** and nowhere else: the
+    # exporter it enables is a loopback service on that machine, and nothing
+    # else scrapes it. The module asserts this rather than silently starting a
+    # poller that produces no reachable series.
+    storage2 = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Poll storage2 (UniFi UNAS Pro) over SNMPv3 and ship its fans,
+        temperatures, per-drive I/O, load, memory and CPU as metrics.
+
+        Needs the `unifi-snmp` secretspec scope (`UNIFI_SNMP_USER`,
+        `UNIFI_SNMP_PASSWORD`) resolved from BWS; the values never enter the
+        Nix store. See `modules/features/storage2.nix` for what the device does
+        and does not expose — capacity, SMART and pool state are **not**
+        available over SNMP and stay with UniFi's own notifications (BOX-314).
+      '';
+    };
+    storage2Address = lib.mkOption {
+      type = lib.types.str;
+      default = "10.40.0.59";
+      example = "10.40.0.59";
+      description = ''
+        LAN address the SNMP exporter polls. From `docs/network.md`, which is
+        the source of truth for addresses: storage2 is on the servers/storage
+        subnet (`10.40.0.0/24`), not the workstation one.
+      '';
+    };
+    storage2ExporterPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9116;
+      description = ''
+        Loopback port `prometheus-snmp-exporter` serves on. Upstream's default,
+        kept so the exporter's own documentation and its `/snmp` query API match
+        without translation. Nothing is published: only this host's own vmagent
+        scrapes it.
+      '';
+    };
+    storage2AuthProtocol = lib.mkOption {
+      type = lib.types.enum [
+        "MD5"
+        "SHA"
+        "SHA224"
+        "SHA256"
+        "SHA384"
+        "SHA512"
+      ];
+      default = "SHA";
+      description = ''
+        SNMPv3 authentication protocol.
+
+        Default `SHA` because BOX-320 recorded the device answering
+        SNMPv3 `authPriv` with SHA authentication. **Unverified beyond that
+        single observation**: no one has confirmed which SHA variant the UNAS
+        Pro negotiates, and SHA-1 (plain `SHA`) is what UniFi documents as its
+        choice. If the poll fails with an authentication error on the host,
+        suspect this first — `Storage2PollDead` exists to make that visible.
+      '';
+    };
+    storage2PrivProtocol = lib.mkOption {
+      type = lib.types.enum [
+        "DES"
+        "AES"
+        "AES192"
+        "AES192C"
+        "AES256"
+        "AES256C"
+      ];
+      default = "AES";
+      description = ''
+        SNMPv3 privacy (encryption) protocol.
+
+        Default `AES` (AES-128) because BOX-320 recorded the device answering
+        SNMPv3 `authPriv` with AES privacy. **Unverified beyond that single
+        observation**: AES-128 is what UniFi documents, but AES-192/256 were
+        not distinguished on the wire. If the poll fails with a privacy or
+        decryption error, suspect this after the auth protocol.
+      '';
+    };
+
+    # ── Observability ────────────────────────────────────────────────────
+    #
+    # Two roles, two flags. They are separate roles, not alternatives: the
+    # observability host stores, queries, alerts on and displays; an
+    # observability agent only collects the machine it runs on. calamansi is
+    # both (and so sets both). Vocabulary is CONTEXT.md's Observability
+    # section, and these are NixOS-scope only — Home Manager has no opinion.
+    #
+    # Declaring a source is the `my.observability` option set below, not the
+    # flags: a feature module registers its scrape target or dashboard
+    # whether or not it knows which host it is running on.
+    # see docs/adr/0006-observability-runs-as-native-services.md
+    observabilityTailnetDomain = lib.mkOption {
+      type = lib.types.str;
+      default = "fluffy-walleye.ts.net";
+      example = "fluffy-walleye.ts.net";
+      description = ''
+        This tailnet's MagicDNS domain, without a leading `https://`.
+
+        Needed because a service published through Tailscale Serve has to be
+        told its own public URL — Grafana builds its asset and redirect links
+        from it, and a wrong value gives a page that half-loads rather than an
+        error that says so. Keeping it as an option rather than a literal in
+        the host module means a tailnet rename is one edit, and it pairs with
+        `accessTailnetName` to form the full `<host>.<tailnet>.ts.net`.
+
+        Not a secret: the tailnet name appears in every ts.net hostname and is
+        discoverable by anyone already on the tailnet. ACLs restrict access,
+        not the name.
+      '';
+    };
+    observabilityHost = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        This host is the **observability host**: the one machine that stores,
+        queries, alerts on and displays every server's logs and metrics.
+
+        It runs VictoriaMetrics, VictoriaLogs, vmalert, Alertmanager and
+        Grafana as native NixOS services (ADR 0006), and gathers every agent
+        host's rules, dashboards and redactions at build time. Exactly one
+        host should set this; the ticket that installs a second one gets to
+        add the assertion.
+      '';
+    };
+    observabilityAgent = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        This host runs an **observability agent**: the set of collector
+        processes (node_exporter, vmagent, `systemd-journal-upload`) that
+        gathers this machine's logs and metrics and ships them to the
+        observability host.
+
+        There is one agent per machine, shared by every service on it — a
+        service never brings its own collector. Setting this flag is also how
+        the observability host discovers which hosts' `my.observability`
+        collections to gather, so an agent host with rules or dashboards
+        contributes them automatically.
+      '';
+    };
+    observabilityGatheredHosts = lib.mkOption {
+      type = lib.types.attrsOf lib.types.unspecified;
+      default = { };
+      description = ''
+        **Test hook. Never set this in a host configuration.**
+
+        The set of hosts whose `my.observability` collections the observability
+        host gathers, as an attrset shaped like `nixosConfigurations`. Empty (the
+        default) means "the committed flake's `nixosConfigurations`", which is
+        what every real deployment does.
+
+        It exists because the gather reads `inputs.self`, and an
+        `extendModules`-ed configuration is not in `inputs.self`: without a seam
+        there is no way to demonstrate "a rule declared on lumquat reaches
+        calamansi" before the rule itself is committed. A test sets this to an
+        attrset of extended hosts; nothing else does.
+      '';
+    };
+    observabilityVmalertPort = lib.mkOption {
+      type = lib.types.port;
+      default = 8880;
+      description = ''
+        Loopback port vmalert serves its own `/metrics` and web UI on, so the
+        observability host's agent can scrape the alert engine and a silent
+        vmalert is visible. vmalert's upstream default; nothing is published.
+      '';
+    };
+    observabilityAlertmanagerPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9093;
+      description = ''
+        Loopback port Alertmanager listens on, which is where vmalert sends
+        alerts and where Grafana's Alertmanager datasource sends silences.
+        Alertmanager's upstream default.
+
+        Never published: no Tailscale Serve entry, no firewall rule. Silences
+        are made through Grafana, so there is no reason for a second, uglier
+        UI to be reachable at all.
+      '';
+    };
+    observabilityHostAddress = lib.mkOption {
+      type = lib.types.str;
+      default = "127.0.0.1";
+      example = "10.40.0.50";
+      description = ''
+        Where a non-host agent remote-writes its metrics: the observability
+        host's address, as `<host>` or `<host>:<port>`.
+
+        Set on **agent hosts that are not the observability host**. The
+        default, loopback, is right for the observability host itself (it
+        both scrapes and stores locally) and wrong for every other machine,
+        where it would silently buffer forever — so a remote agent must set
+        it. A later ticket can derive it from the tailnet instead of a literal
+        LAN address; today it is a plain shared value, deliberately, because
+        reading another host's config from this module would be a dependency
+        in the wrong direction.
+      '';
+    };
+    observabilityGpuMetrics = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        This agent host has a GPU whose telemetry node_exporter can read, so
+        the machine's node_exporter enables its `drm` collector — busy
+        percentage and VRAM / visible-VRAM / GTT usage — on top of the
+        `hwmon` collector every agent already runs for temperatures and
+        power.
+
+        Off by default because `drm` is AMD-specific and scans
+        `/sys/class/drm` on every scrape: on a host without an AMD GPU that is
+        a wasted sysfs walk, and on one with no GPU at all it is noise. It is
+        a flag rather than "enable drm everywhere" for the same reason the
+        other capability flags exist at all — the host knows its own hardware,
+        the shared agent module does not.
+
+        Per BOX-315 this is the whole GPU story: no ROCm, no amd-smi, no
+        amdgpu_top. Which of these metrics an APU actually populates is a
+        hardware question, recorded per host — for lumquat, in
+        `docs/lumquat-hardware.md`.
+      '';
+    };
+    observabilityContainerMetrics = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        This agent host runs podman containers whose metrics matter, so the
+        agent starts the **podman exporter** and scrapes it as `job="podman"`
+        (BOX-331).
+
+        Separate from `observabilityAgent` because container metrics are not
+        universal: a host that runs no containers would get an exporter that
+        reports nothing, and a running podman API is a real dependency (the
+        unit orders after `podman.socket` and `linger-users`) that an agent host
+        without containers should not have.
+
+        The exporter is `prometheus-podman-exporter`, packaged in
+        `lib/overlays/prometheus-podman-exporter.nix` because our pinned nixpkgs
+        does not contain it. It runs as `my.baseUsername` and talks to that
+        user's **rootless** podman socket, so what it reports is the containers
+        that account actually owns. A root exporter against a rootless socket
+        reports an empty list, which is indistinguishable from "no containers
+        running" — that is the failure mode this option exists to avoid, and why
+        the unit's user is not configurable.
+      '';
+    };
+    observabilityPodmanExporterPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9882;
+      description = ''
+        Loopback port the podman exporter serves `/metrics` on, and the port the
+        agent scrapes as `job="podman"`.
+
+        Upstream's default (9882), kept so the binary, the upstream docs and the
+        rendered scrape config all name one number. Bound to 127.0.0.1: a
+        metrics endpoint on the LAN would advertise which containers exist on
+        the machine for no benefit.
+      '';
+    };
+    observabilityIngestPort = lib.mkOption {
+      type = lib.types.port;
+      default = 8428;
+      description = ''
+        TCP port the observability host listens on for VictoriaMetrics ingest
+        (vmagent's remote-write) and query traffic. This is upstream
+        VictoriaMetrics' default, kept so the binary and the firewall agree
+        without anyone having to remember a number.
+
+        The host binds this port on `observabilityIngestAddress`; every other
+        VictoriaMetrics listener stays on loopback.
+      '';
+    };
+    observabilityIngestAddress = lib.mkOption {
+      type = lib.types.str;
+      default = "0.0.0.0";
+      description = ''
+        Address the observability host binds the VictoriaMetrics HTTP listener
+        to. The default is every interface; the firewall, not the bind, is
+        what restricts who may reach it.
+      '';
+    };
+    observabilityLogsPort = lib.mkOption {
+      type = lib.types.port;
+      default = 9428;
+      description = ''
+        TCP port the observability host listens on for VictoriaLogs: both the
+        journald ingest from every agent host and Grafana's LogsQL query path.
+
+        Upstream VictoriaLogs' own default, kept for the same reason as the
+        metrics port — the binary, the firewall, the Grafana datasource URL and
+        the upstream documentation all name one number, so nothing has to be
+        translated.
+      '';
+    };
+    observabilityLogRetention = lib.mkOption {
+      type = lib.types.str;
+      default = "90d";
+      example = "30d";
+      description = ''
+        How long the observability host keeps logs, as a duration VictoriaLogs'
+        `-retentionPeriod` accepts (1d up to 100y).
+
+        **The suffix is mandatory.** A bare number is read as *months*, so `90`
+        would mean 90 months; `90d` is the 90 days BOX-319 decided. VictoriaLogs
+        rejects anything below one day.
+
+        This is a time bound and it applies even when the disk cap below is what
+        actually triggers a drop, so the two are complementary rather than
+        alternatives: 90 days normally, with the cap as the safety net.
+      '';
+    };
+    observabilityLogDiskUsagePercent = lib.mkOption {
+      type = lib.types.int;
+      default = 80;
+      description = ''
+        Safety net: the percentage of the filesystem holding VictoriaLogs' data
+        directory above which VictoriaLogs drops its oldest per-day partitions.
+
+        Set by BOX-319 as "90 days of logs, with a disk-usage cap at 80% as a
+        safety net". VictoriaLogs' `-retention.maxDiskUsagePercent` is exactly
+        this, and takes 1-100.
+
+        Two things to know before changing it:
+
+        - It is a **filesystem** percentage, not a share of the store's own
+          directory. The store must therefore live on the disk whose capacity
+          the cap is meant to describe (calamansi's 2 TB SSD), not on a small
+          separate `/var`.
+        - VictoriaLogs keeps at least the last two days' partitions regardless,
+          so usage can exceed this transiently. That is upstream behaviour, not
+          a misconfiguration.
+
+        VictoriaLogs also has an absolute `-retention.maxDiskSpaceUsageBytes`
+        and refuses to start if both are set; the percentage is used because
+        "80% of the disk" is the decision and the disk size is not knowable
+        here.
+      '';
+    };
+    observabilityHostAllowedSources = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = lib.literalExpression ''[ "10.40.0.87" ]'';
+      description = ''
+        Source IP addresses allowed to reach the observability host's ingest
+        ports: `observabilityIngestPort` (metrics) and `observabilityLogsPort`
+        (logs) — the LAN addresses of the agent hosts.
+
+        One list for both, deliberately: they are the same set of machines
+        (every observability agent ships metrics *and* its journal), so two
+        lists could only ever disagree. If a future source needs one port but
+        not the other, that is the point at which a second list is justified.
+
+        **An empty list opens nothing**, which is the deliberate default — an
+        ingest port reachable from a wrong address is either useless (the
+        agent that needs it is refused) or too broad (the whole LAN). The
+        observability host's own agent writes over loopback and needs no
+        entry here.
+
+        The value is per-install, not per-repo: BOX-324 sets it from the real
+        LAN addresses once calamansi is on the network. Until then,
+        `hosts/calamansi/configuration.nix` carries a documented placeholder.
+      '';
+    };
+
+    # ── my.observability: how a feature declares its observability ───────
+    #
+    # Five **named** collections (named, not lists: an entry cannot silently
+    # duplicate, and a host can override one by name). This is the option set
+    # every service uses to say "here is how to watch me"; adding a source to
+    # a host is then a feature-module change, not an observability change.
+    #
+    # Who reads what, per BOX-318:
+    #
+    #   scrapeTargets, textfileChecks   the machine's own agent
+    #   rules, dashboards, redactions   the observability host, gathered at
+    #                                   build time from every host whose
+    #                                   observabilityAgent flag is on
+    #
+    # The gather is one-way (servers never read calamansi's config), so it
+    # cannot cycle; the cost is that changing a lumquat feature's rule means
+    # redeploying calamansi.
+    #
+    # `scrapeTargets`, `dashboards` and `rules` are consumed (BOX-326, BOX-329);
+    # `textfileChecks` (BOX-332) and `redactions` (BOX-337) are declared with
+    # their real types so those tickets extend this set rather than reshape it.
+    # Setting one of those two is inert today.
+    #
+    # Note what is NOT in this collection and never will be: a log source.
+    # BOX-330 ships every agent host's whole journal (container logs included)
+    # from the shared agent module, so a feature's logs are indexed with no
+    # declaration at all. `redactions` is the one log-adjacent exception, and it
+    # modifies the *archive*, not the shipping.
+    observability = lib.mkOption {
+      default = { };
+      description = ''
+        What this host's services contribute to observability. Every
+        collection is keyed by a name the contributor chooses; the convention
+        is to prefix with the owning feature (`llama-qwen`, `bifrost-logs-db`)
+        so the origin is obvious in Grafana and in the rendered agent config.
+
+        Feature modules write these through `config.my.observability` guarded
+        by their own flag, e.g.
+        `lib.mkIf config.my.bifrost { my.observability.scrapeTargets.bifrost = { ... }; }`.
+        Logs need no declaration: every service's output already reaches the
+        journal, the agent ships the whole journal, and VictoriaLogs indexes the
+        journal's own fields (`_SYSTEMD_UNIT`, `CONTAINER_NAME`,
+        `SYSLOG_IDENTIFIER`). That is not a convention to remember — there is no
+        option to set, so a service cannot forget to declare its logs. The catch
+        worth knowing is that it depends on the writer reaching the journal at
+        all: podman containers do by default (`log-driver=journald`), a
+        container pinned to `k8s-file` does not.
+      '';
+      type = lib.types.submodule {
+        options = {
+          scrapeTargets = lib.mkOption {
+            default = { };
+            description = ''
+              Endpoints this host's agent scrapes, in Prometheus format, keyed
+              by a name this host chooses. The entry's name becomes the
+              rendered config's `job_name`, so it is what a Grafana query
+              filters on: keep it stable, and name it for the *thing scraped*
+              rather than for the feature that scrapes it where those differ.
+
+              Consumed by the observability agent (`my.observabilityAgent`).
+            '';
+            type = lib.types.attrsOf (
+              lib.types.submodule {
+                options = {
+                  address = lib.mkOption {
+                    type = lib.types.str;
+                    example = "127.0.0.1:8080";
+                    description = ''
+                      What to scrape: `host:port`, a URL, or — for a
+                      multi-instance service — a list joined with commas, as
+                      Prometheus' `targets` accepts. A loopback address means
+                      the service publishes a metrics port only to this host,
+                      which is the usual arrangement for a container: bind the
+                      published port to 127.0.0.1 and scrape it here rather
+                      than exposing it on the LAN.
+                    '';
+                  };
+                  metricsPath = lib.mkOption {
+                    type = lib.types.str;
+                    default = "/metrics";
+                    description = ''
+                      Path the metrics are served from. Defaults to the
+                      Prometheus convention; set it for a service that serves
+                      them elsewhere.
+                    '';
+                  };
+                  labels = lib.mkOption {
+                    type = lib.types.attrsOf lib.types.str;
+                    default = { };
+                    example = lib.literalExpression ''{ model = "qwen-27b"; }'';
+                    description = ''
+                      Extra labels attached to every sample from this target,
+                      alongside the automatic `instance` and `job`. This is
+                      where a service's own identity goes — the model name for
+                      an inference server, the database for an exporter — so
+                      dashboards can group by it.
+
+                      `instance` and `job` are reserved: the agent sets them
+                      and the rendered config would not survive a second
+                      definition of either.
+                    '';
+                  };
+                  interval = lib.mkOption {
+                    type = lib.types.nullOr lib.types.str;
+                    default = null;
+                    example = "60s";
+                    description = ''
+                      How often to scrape, as a Prometheus duration. `null`
+                      takes the agent's default (15s), which is right for a
+                      host-local exporter and too eager for a service whose
+                      counters move slowly.
+                    '';
+                  };
+                  scrapeTimeout = lib.mkOption {
+                    type = lib.types.nullOr lib.types.str;
+                    default = null;
+                    example = "10s";
+                    description = ''
+                      Per-scrape timeout, as a Prometheus duration. `null`
+                      takes the agent's default, which is derived from the
+                      scrape interval.
+                    '';
+                  };
+                };
+              }
+            );
+          };
+
+          dashboards = lib.mkOption {
+            default = { };
+            description = ''
+              Grafana dashboards this host contributes, keyed by a file name
+              that is also what Grafana displays in its dashboard list (the
+              `title` inside the JSON is what a reader sees, so keep the two
+              close).
+
+              Bodies are **JSON files**, one per dashboard, committed next to
+              the module that owns the service (e.g.
+              `modules/features/llm.json`). Panels are never written in Nix:
+              hundreds of lines of nested config read worse than JSON and
+              cannot round-trip through Grafana's own editor. The loop is: edit
+              in the UI, export JSON, commit, `nixos-rebuild switch`. Grafana
+              runs with `allowUiUpdates = false`, so a UI edit is discarded
+              rather than silently drifting from the repo.
+
+              Gathered by the observability host. A prebuilt community or
+              upstream dashboard is not declared here — it is fetched pinned
+              by hash in `modules/features/observability-host.nix`, because it
+              has no owning feature module to sit beside.
+            '';
+            type = lib.types.attrsOf (
+              lib.types.submodule {
+                options = {
+                  path = lib.mkOption {
+                    type = lib.types.path;
+                    description = ''
+                      Path to the dashboard's JSON file, relative to the module
+                      declaring it (a bare `./llm.json` is the normal form).
+                    '';
+                  };
+                  # Grafana's own dashboard list has no folders here (BOX-322: flat
+                  # list), so there is deliberately no `folder` option. Add one
+                  # when a second consumer needs grouping — not before.
+                };
+              }
+            );
+          };
+
+          # Consumed by the observability host (BOX-329). See the collection's
+          # own description for the contract.
+          rules = lib.mkOption {
+            default = { };
+            description = ''
+              Alerting and recording rules, as **native vmalert YAML files**
+              — one entry per feature, beside the module that owns the thing
+              being alerted on (e.g. `my.observability.rules.bifrost = {
+              files = [ ./bifrost.rules.yaml ]; }`).
+
+              A ruleset is a *list of files* rather than a single path because
+              one owning feature can legitimately need more than one: a shared
+              feature's rules, and separately the rules for a specific
+              service. `files` is concatenated, so adding a file never means
+              rewriting the entry that was already there.
+
+              Not Nix attrsets: rule expressions are a language of their own,
+              and keeping them as YAML lets them be copied from documentation
+              and checked with `vmalert -dryRun` unchanged. The rendered files
+              are copied verbatim into vmalert's rule directory; only their
+              names are chosen here (`<ruleset>.<n>.yaml`).
+
+              **A malformed file fails the build**, not the service: the
+              observability host loads the whole directory into
+              `vmalert -dryRun` as part of the derivation's own build.
+
+              Gathered by the observability host from every agent host at
+              build time, so a rule added on lumquat means redeploying
+              calamansi (one-way dependency by design).
+            '';
+            type = lib.types.attrsOf (
+              lib.types.submodule {
+                options = {
+                  files = lib.mkOption {
+                    type = lib.types.listOf lib.types.path;
+                    default = [ ];
+                    example = lib.literalExpression "[ ./bifrost.rules.yaml ]";
+                    description = ''
+                      Paths to the vmalert rule files (YAML), relative to the
+                      module declaring them. Each is loaded as its own group
+                      file, so files do not participate in each other's group
+                      names.
+                    '';
+                  };
+                  type = lib.mkOption {
+                    type = lib.types.enum [
+                      "metrics"
+                      "logs"
+                    ];
+                    default = "metrics";
+                    description = ''
+                      Which datasource the rules query: `metrics` against
+                      VictoriaMetrics, `logs` against VictoriaLogs. vmalert
+                      runs one instance per type, so this decides which one
+                      loads the files.
+
+                      **`logs` is reserved and not implemented**: VictoriaLogs
+                      arrives with BOX-330, and until it does a `logs` ruleset
+                      would query a store that does not exist. Declaring one
+                      now is a build error naming the ticket, not a silently
+                      dead rule (see `modules/features/observability-host.nix`).
+                    '';
+                  };
+                };
+              }
+            );
+          };
+
+          textfileChecks = lib.mkOption {
+            default = { };
+            description = ''
+              Periodic checks whose result node_exporter exposes as metrics: a
+              systemd timer runs the check and atomically writes `<name>.prom`
+              into node_exporter's textfile directory. The answer to "a number
+              only a shell command knows" (a database size, a certificate's
+              remaining days) without writing an exporter.
+
+              **Implemented by BOX-332.** The runner is in the agent module
+              (`modules/features/observability-agent.nix`), and the builders —
+              `obs.sqliteCheck`, `obs.textfileScript`, `obs.emitTextfile` — are
+              in `lib/observability.nix`. A feature normally declares a check by
+              calling a builder rather than writing the script itself:
+
+              ```nix
+              my.observability.textfileChecks.bifrost-logs-db =
+                obs.sqliteCheck {
+                  name = "bifrost-logs-db";
+                  database = "…/_data/logs.db";
+                  table = "request_logs";
+                  user = "podman";
+                  unreadableAs = "…/_data/logs.db";
+                };
+              ```
+
+              The `user` option is the point of the shape, not an
+              afterthought: a check that reads another service's file runs as
+              that file's **owning** user, so it can be given read permission
+              rather than being run as root (the BOX-202 trap — a check that
+              ran as the wrong user crash-looped bifrost). `unreadableAs` is the
+              documented escape hatch for the one case where that is
+              impossible; see its description.
+            '';
+            type = lib.types.attrsOf (
+              lib.types.submodule {
+                options = {
+                  script = lib.mkOption {
+                    type = lib.types.lines;
+                    description = ''
+                      Shell script producing the check's metrics on stdout, in
+                      Prometheus text exposition format. The runner writes it
+                      to `<name>.prom` in node_exporter's textfile directory.
+                    '';
+                  };
+                  interval = lib.mkOption {
+                    type = lib.types.str;
+                    default = "15m";
+                    example = "5m";
+                    description = ''
+                      How often the check runs, as a systemd timer duration.
+                      Checks read a file or query a database, so they are far
+                      less frequent than a scrape.
+                    '';
+                  };
+                  user = lib.mkOption {
+                    type = lib.types.str;
+                    description = ''
+                      The account the check runs as. This is the owning user of
+                      whatever the check reads — the service's own user
+                      (`podman` for a container's data file) — so the check
+                      needs read permission rather than privilege.
+                    '';
+                  };
+                  unreadableAs = lib.mkOption {
+                    type = lib.types.nullOr lib.types.str;
+                    default = null;
+                    example = "/home/podman/.local/share/containers/storage/volumes/bifrost_bifrost-data/_data/logs.db";
+                    description = ''
+                      Escape hatch for when `user` genuinely cannot read the
+                      path: the check probes this path **as that user** and,
+                      if unreadable, runs as root instead.
+
+                      This exists for one real case — a rootless container's
+                      volume, whose files are owned by a uid mapped into the
+                      owning user's subuid range. The owning user cannot read
+                      its own container's data while root can, so "run as the
+                      owning user" would produce a permanently failing unit.
+
+                      **Only safe for a read-only check.** Running as root does
+                      not reintroduce the BOX-202 trap when the check cannot
+                      write: `obs.sqliteCheck` opens `mode=ro&immutable=1`,
+                      which takes no lock and creates no `-wal`/`-shm` sidecar.
+                      A check that writes to its data must leave this `null`.
+                    '';
+                  };
+                };
+              }
+            );
+          };
+
+          redactions = lib.mkOption {
+            default = { };
+            description = ''
+              Patterns to strip from log lines before they reach the archive:
+              the daily export applies them so a secret that was logged by
+              accident does not land in long-term off-host storage.
+
+              A feature declares the patterns only it knows about (a bearer
+              token shape, an API key format); the export job carries a
+              generic list of its own.
+
+              **Not implemented yet (BOX-337 adds the archive export).**
+              Declared with its final type so BOX-337 adds a reader, not a
+              reshape.
+            '';
+            type = lib.types.attrsOf (
+              lib.types.submodule {
+                options = {
+                  patterns = lib.mkOption {
+                    type = lib.types.listOf lib.types.str;
+                    example = lib.literalExpression ''[ "sk-[A-Za-z0-9]{32,}" ]'';
+                    description = ''
+                      Regular expressions to match against exported log lines;
+                      matches are replaced before the line is written.
+                    '';
+                  };
+                };
+              }
+            );
+          };
+        };
+      };
     };
 
     # Printing feature (CUPS). The service is declarative; so are the queues:

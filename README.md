@@ -92,7 +92,10 @@ ssh root@lumquat 'install -d -m 0700 /var/lib/secrets && \
 ```
 
 The token is created in the BW web console: **Secrets Manager → Homelab →
-Machine Accounts → chezmoi → Access Tokens**.
+Machine Accounts → chezmoi → Access Tokens**. Accounts that no machine can
+create for you (Pushover, healthchecks.io) are set up from
+[`docs/runbooks/`](docs/runbooks/) — currently
+[`alerting-accounts.md`](docs/runbooks/alerting-accounts.md).
 
 ### 5. Verify Secret Resolution
 
@@ -328,7 +331,8 @@ To add a second model:
 
 There is no remote deployment tool and no per-host fan-out: `just switch` runs
 `nh os switch` for the current hostname, so it is run **on the host being updated**.
-NixOS hosts are lumquat (server, `podman`) and yuzu (desktop, `ashebanow`).
+NixOS hosts are lumquat (AI server, `podman`), calamansi (observability host,
+`podman`) and yuzu (desktop, `ashebanow`).
 
 ```bash
 just dry-run       # show what would change

@@ -1,0 +1,175 @@
+# Container and llama.cpp alert rules (BOX-331).
+#
+# Loaded on the observability host against every agent host's metrics — declared
+# by `modules/features/llm.nix` under the ruleset key `llm`, gathered at build
+# time from every host whose `my.observabilityAgent` is on (BOX-329). A change
+# here means redeploying calamansi.
+#
+# Thresholds are BOX-320's decided v1 list, quoted rather than invented:
+#
+#   Container crash-looping   >3 restarts in 15 min            warning
+#   llama.cpp backing up      queued requests for 10 min       warning
+#
+# ## The metric names, and why they are what they are
+#
+# Read out of the pinned upstream sources (`containers/prometheus-podman-exporter`
+# v2.0.0, `collector/container.go`), not guessed:
+#
+#   podman_container_state             -1 unknown, 0 created, 1 initialized,
+#                                      2 running, 3 stopped, 4 paused, 5 exited,
+#                                      6 removing, 7 stopping
+#   podman_container_health            -1 unknown, 0 healthy, 1 unhealthy,
+#                                      2 starting
+#   podman_container_started_seconds   container start time, **unixtime** (a
+#                                      gauge, not an age)
+#   podman_container_exit_code         last exit code; 0 if never exited
+#   podman_container_mem_usage_bytes / podman_container_mem_limit_bytes
+#   podman_container_cpu_seconds_total
+#
+# Every container metric carries `name` (the container name) alongside `id`,
+# `pod_id` and `pod_name`; `instance` and `job` come from the scrape.
+#
+# ## Why crash-looping is counted from `started_seconds`
+#
+# The exporter exposes **no restart counter**. What it does expose is the
+# container's start time as a unix timestamp, which moves every time podman
+# restarts it — so `changes()` over that series *is* the restart count, and it
+# is exact rather than derived from `state` transitions (which miss a fast
+# exit-and-restart entirely, because the state is back to 2 before the next
+# scrape lands). This is the whole reason the rule is written the way it is;
+# a `state != 2` rule would be a different and much weaker alert.
+#
+# `[15m]` with the 30 s llm scrape interval is 30 samples: enough that one
+# missed scrape cannot manufacture a restart, and few enough that the count is
+# not rounded down.
+#
+# ## Why llama.cpp has a rule at all when it has no queue metric in v1
+#
+# BOX-320's wording is "queued requests for 10 min". llama-server does expose
+# queue depth (`llamacpp:requests_deferred`, and `llamacpp:requests_processing`),
+# so this is directly expressible. The catch worth recording: **that endpoint
+# only exists because `--metrics` is passed**, and it is the same listener as
+# the inference port — which lumquat deliberately does not publish (BOX-138).
+# BOX-331 therefore publishes it on a separate loopback-only port per model
+# (`lib/models.nix`'s `metricsPort`), and this rule is the first consumer.
+#
+# The full metric set llama.cpp emits under `--metrics` is recorded as a
+# **prediction** in `docs/lumquat-hardware.md`, with the on-host command that
+# settles it — none of it has been observed yet, so nothing below is quoted as
+# if it had been. The rule uses only the two names the llama.cpp server
+# documents as stable (`requests_deferred` is its own queue gauge); if the
+# deployed binary names them differently the rule is silently silent, which is
+# why the doc carries the command rather than a claim.
+#
+# Severities map to Pushover priorities in Alertmanager's receiver (BOX-320):
+#   critical  priority 1 — sounds once, bypasses the phone's quiet hours
+#   warning   priority 0 — respects quiet hours
+#
+# No rule sets a `host` label: vmagent attaches `instance` and vmalert copies
+# the alerting series' labels onto the alert, so the hostname is already there
+# (same reasoning as observability-default.rules.yaml).
+groups:
+  - name: llm-containers
+    interval: 1m
+    rules:
+      # ── Container crash-looping ────────────────────────────────────
+      #
+      # BOX-320: more than 3 restarts in 15 minutes. `> 3` means four or more,
+      # which is the literal reading and also the sensible one: a container that
+      # restarts exactly three times in a quarter hour has been unlucky, not
+      # broken.
+      #
+      # `for: 0s` is not needed and is not written: the 15-minute range
+      # selector already carries the whole threshold, the same construction as
+      # `HostDown` in the generic file. Adding a `for:` would make the alert
+      # slower than BOX-320 asked for.
+      - alert: ContainerCrashLooping
+        expr: |
+          max by (instance, name) (
+            changes(podman_container_started_seconds{job="podman"}[15m])
+          ) > 3
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.name }} on {{ $labels.instance }} is restarting repeatedly'
+          description: 'Container {{ $labels.name }} has restarted more than 3 times in 15 minutes. It is crash-looping: check `journalctl CONTAINER_NAME={{ $labels.name }}` on {{ $labels.instance }}.'
+
+      # ── Container unhealthy ─────────────────────────────────────────
+      #
+      # Not in BOX-320's list, and included deliberately rather than smuggled
+      # in: the qwen container declares a `--health-cmd` (llm.nix) and the
+      # exporter reports podman's own health verdict, so "the model server
+      # answered /health on time" is already being measured once a scrape. A
+      # health check that has been failing for 10 minutes is the same class of
+      # event as crash-looping (the process is up but not serving) and is
+      # strictly cheaper to detect, because podman does the probing.
+      #
+      # `== 1` is unhealthy specifically; -1 (unknown, i.e. no health check
+      # declared) and 2 (starting) must not fire, which is why the rule is an
+      # equality rather than `!= 0`.
+      #
+      # Warning, like crash-looping: a model container whose health check fails
+      # while a request is in flight is worth knowing about, not worth waking
+      # for. `--health-retries 60` on the container means podman itself tolerates
+      # a long warm-up before it reports unhealthy at all.
+      - alert: ContainerUnhealthy
+        expr: podman_container_health{job="podman"} == 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.name }} on {{ $labels.instance }} is unhealthy'
+          description: 'Container {{ $labels.name }} has reported unhealthy to podman for 10 minutes. The process is running but its health check is failing.'
+
+  - name: llm-inference
+    interval: 1m
+    rules:
+      # ── llama.cpp backing up ────────────────────────────────────────
+      #
+      # BOX-320: queued requests for 10 minutes.
+      #
+      # `requests_deferred` is llama-server's own queue depth: requests waiting
+      # for a slot. With `-np 4` on lumquat's qwen (four parallel slots) a
+      # sustained queue means the server cannot keep up with what the gateway is
+      # sending it, which is the thing worth knowing before users notice.
+      #
+      # `> 0` rather than a depth threshold: a single deferred request for 10
+      # minutes already means one request has been waiting 10 minutes, and
+      # under normal operation llama-server admits a request to a slot
+      # immediately. A depth threshold would need a tuning decision BOX-320 did
+      # not make.
+      #
+      # `max by (instance, model)`: the metric is per-server, and `model` is the
+      # label `llm.nix` attaches per scrape target — it is what makes the alert
+      # name a model rather than a port.
+      #
+      # `job=~"llama-.*"` rather than `job="podman"`: these series come from the
+      # llama-server endpoints, one job per model (`llama-qwen-35b-a3b`), not
+      # from the container exporter.
+      - alert: LlamaCppBackingUp
+        expr: |
+          max by (instance, job, model) (
+            llamacpp:requests_deferred{job=~"llama-.*"}
+          ) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'llama.cpp is queueing requests on {{ $labels.instance }}'
+          description: 'Model {{ $labels.model }} has had requests waiting in the queue for 10 minutes. The server is saturated: check slot count (-np) and GPU memory pressure.'
+
+      # ── Deliberately not here: a "llama.cpp metrics endpoint is down" rule ──
+      #
+      # An earlier version of this file had `LlamaCppDown` as
+      # `min_over_time(up{job=~"llama-.*"}[10m]) == 0`, described as the
+      # "narrower, more useful" case. It is neither: the generic `SourceDown` is
+      # `min_over_time(up{job!="node"}[10m]) == 0`, and `job=~"llama-.*"` is a
+      # strict subset of `job!="node"`. Same series, same ten minutes, same
+      # warning severity — so it fired a second Pushover notification for one
+      # event and made the alert list look richer than it was.
+      #
+      # A reviewer caught it. If a llama-specific down signal is ever wanted, it
+      # has to be *narrower in what it detects*, not narrower in what it selects:
+      # e.g. the container is up and healthy but the endpoint still 404s. That
+      # needs `podman_container_health` alongside `up`, not another subset of
+      # `up`.

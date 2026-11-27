@@ -32,6 +32,18 @@ let
     # pi.nix's build, because nixpkgs' does not work in NixOS's read-only
     # store. Reaches a host via cli-ai-tools.nix.
     (import ../../lib/overlays/pi.nix { inherit (inputs) pi-nix; })
+    # Rex's release archive has no enclosing directory, so its flake sets
+    # sourceRoot = "." and stdenv's chmod then walks into Nix's read-only
+    # builder metadata (BOX-339). Provides `rex-patched`, consumed by
+    # modules/features/rex.nix.
+    (import ../../lib/overlays/rex.nix { inherit (inputs) rex; })
+    # prometheus-podman-exporter is absent from our pinned nixpkgs (it was
+    # initialised upstream at a *newer* rev) and has no NixOS module at any rev,
+    # so BOX-331 packages it here rather than bumping the whole lock for one Go
+    # binary. Provides `pkgs.prometheus-podman-exporter`, consumed by
+    # modules/features/observability-agent.nix. Delete this line and the file
+    # once our nixpkgs pin passes d70e8bc28a.
+    (import ../../lib/overlays/prometheus-podman-exporter.nix)
   ];
 
   # mkNixosHost — build one NixOS host from hosts/<hostName>/.
@@ -188,6 +200,31 @@ let
     chezmoiActivation = true;
   };
 
+  # calamansi — the observability host (BOX-311): logs, metrics, alerting and
+  # dashboards for the servers. Not an AI-serving host; lumquat owns that.
+  #
+  # Same operator account, home directory and HM state version as lumquat, so
+  # the two servers behave alike. No capabilities.nix either: like lumquat,
+  # calamansi's Home Manager profile is the baseline CLI set that
+  # hm-infra.nix's `my.cliTools = true` pulls in, so there are no flags for the
+  # Home Manager scope to read.
+  #
+  # remoteBuilder = false: calamansi is a deployment target, not a build host.
+  #
+  # chezmoiActivation = false, deliberately, though calamansi *is* headless:
+  # its dotfiles will be applied by hand. The only way this flake builds
+  # calamansi is `nixos-rebuild --target-host` over the tailnet, and the BWS
+  # bootstrap token (BOX-174) is not installed on a machine the operator does
+  # not sit at; an activation whose chezmoi apply has no token is a failure mode
+  # worth not owning. Nothing calamansi runs depends on chezmoi-managed
+  # dotfiles. Revisit if a dotfile ever matters there.
+  calamansi = mkNixosHost {
+    hostName = "calamansi";
+    username = "podman";
+    homeDirectory = "/home/podman";
+    hmStateVersion = "26.05";
+  };
+
   yuzu = mkNixosHost {
     hostName = "yuzu";
     username = "ashebanow";
@@ -198,6 +235,7 @@ in
 {
   flake = {
     nixosConfigurations = {
+      calamansi = calamansi.nixos;
       lumquat = lumquat.nixos;
       yuzu = yuzu.nixos;
     };

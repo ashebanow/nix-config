@@ -217,7 +217,22 @@
   # option tree, so importing it from more than one fragment re-declares it and
   # evaluation fails. It is inert here — every option keeps its default until
   # rex-server sets it.
-  my.modules.nixos.rex-module = {
+  #
+  # BOX-339 — `package` is overridden HERE, not by a nixpkgs overlay.
+  #
+  # Rex's release archive has no enclosing directory, and its flake sets
+  # `sourceRoot = "."` to match. stdenv then runs `chmod -R u+w -- .`, which
+  # walks into Nix's own root-owned, read-only `builder.json` and `env-vars` and
+  # dies with EPERM — breaking `nix build` of every host with Rex enabled, for
+  # any non-root builder user. lib/overlays/rex.nix carries the patch and the
+  # full explanation.
+  #
+  # It has to be applied on the option because the Rex module resolves its
+  # default package from its *own* flake (`self.packages.<system>.rex`), not
+  # from `pkgs`, so a package-set overlay never reaches it.
+  my.modules.nixos.rex-module = { pkgs, ... }: {
     imports = [ inputs.rex.nixosModules.default ];
+
+    services.rex.package = pkgs.rex-patched;
   };
 }

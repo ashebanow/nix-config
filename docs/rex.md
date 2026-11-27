@@ -71,31 +71,42 @@ BWS as:
 | --- | --- | --- |
 | `lumquat-rex-tailscale-auth-key` | `REX_LUMQUAT_TS_AUTHKEY` | `host-lumquat` |
 | `yuzu-rex-tailscale-auth-key` | `REX_YUZU_TS_AUTHKEY` | `host-yuzu` |
+| `calamansi-rex-tailscale-auth-key` | `REX_CALAMANSI_TS_AUTHKEY` | `host-calamansi` |
 
 `host-secrets-populate` writes the host's key to
 `/run/secrets/rex-tailscale-auth-key`, and the service reads it as a systemd
 credential.
 
-**These are non-reusable (one-time) keys**, deliberately: the key is spent at
-first enrolment, after which the node identity persists under
-`/var/lib/rex/tsnet/<hostname>`. A leaked key therefore enrols nothing. They are
-per-node rather than shared so one leaked key cannot create a node named after
-another host.
+**These keys are currently REUSABLE.** This file previously claimed they were
+non-reusable one-time keys and reasoned from that ("a leaked key therefore
+enrols nothing"). That was wrong, and the conclusion does not hold: treat every
+`*-rex-tailscale-auth-key` as a live credential, and rotate by revoking it in the
+Tailscale admin console rather than only deleting the BWS item.
+
+The per-node split still stands: one key per host, so a single leaked key cannot
+create a node named after a different host.
+
+**Intended end state.** Once the hosts have been stable for a while, move to
+non-reusable keys: delete the existing nodes in the Tailscale admin console,
+replace each key, and reboot so every machine re-enrols from scratch. At that
+point the "a leaked key enrols nothing" property becomes true, and this section
+should be updated to say so.
 
 ### Re-enrolling a node
 
-A one-time key is **consumed on first start**, so these situations need a
-freshly minted key:
+While the keys are reusable, re-enrolling uses the **same** key. This applies
+when:
 
 - `/var/lib/rex` was wiped (a rebuild from scratch);
 - the node was deleted in the Tailscale admin console.
 
-Symptom: `rex.service` fails to start and the journal shows an enrolment error.
-Mint a new key in the admin console, replace the BWS item value, then
+Once the keys are non-reusable, both situations need a freshly minted key
+instead. Symptom in either case: `rex.service` fails to start and the journal
+shows an enrolment error. Replace the BWS item value if required, then
 `just switch` (or restart `host-secrets-populate` and `rex`).
 
 Note the ordering: create the BWS item **before** the first switch that enables
-the server, or the first start fails and wastes the key.
+the server, or the first start fails (and, with a one-time key, wastes it).
 
 ### Startup ordering
 
@@ -109,9 +120,10 @@ rex.service: Failed to set up credentials: No such file or directory
 rex.service: Failed at step CREDENTIALS (status=243)
 ```
 
-That failed a whole `nixos-rebuild switch` on the first deploy. It does **not**
-consume the one-time key (systemd aborts before exec), so a retry with the same
-key works — but the switch itself reports failure.
+That failed a whole `nixos-rebuild switch` on the first deploy. With the current
+reusable keys a retry with the same key works; once they are non-reusable, an
+aborted start does **not** consume the key (systemd aborts before exec), so a
+retry is still safe — but the switch itself reports failure.
 
 ## Local access
 
@@ -171,7 +183,9 @@ deliberately.
 
 Updating does **not** require re-enrolling the tsnet node: its identity lives in
 `/var/lib/rex/tsnet/node/tailscaled.state`, a systemd `StateDirectory` that
-survives rebuilds, so the one-time auth key stays spent.
+survives rebuilds, so the enrolled identity — not the key — is what persists.
+With the current reusable keys the key remains usable afterwards; once they are
+non-reusable it will already have been spent, which is the intended end state.
 
 ### Channel choice is a protocol decision, not a freshness preference
 

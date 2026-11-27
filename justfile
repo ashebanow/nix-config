@@ -256,7 +256,25 @@ vm:
 # Manager Homelab project (see SECRET_SYNC.md). Never committed anywhere.
 # Usage: just bootstrap-bws [HOST]   (default: lumquat)
 # Works from a dev machine (SSH to root@HOST) or on the host itself (local
-# passwordless sudo for the podman user).
+# sudo, which may or may not be passwordless).
+#
+# Two failure modes this recipe guards against, both found on calamansi's bare
+# install (2026-11-26):
+#
+#   1. sudo needing a password. A freshly installed NixOS host has
+#      security.sudo.wheelNeedsPassword at its default (true) because our
+#      repo is not on it yet; base.nix is what turns it off. The old local
+#      branch assumed passwordless sudo and would fail.
+#   2. The token being eaten by the password prompt. The install pipes the
+#      token into `sudo sh -c ...`, so sudo's stdin is the token itself. If
+#      sudo decides to prompt, it can consume the token as the *password* —
+#      which both fails confusingly and pushes a real secret through PAM.
+#
+#   (The `#` in the sentence above confused just's help extraction, so this
+#   note is kept plain.) The fix: prime sudo's timestamp with a prompt that has
+#   the terminal's own stdin, before any token is in flight.
+#
+# Install the BWS access token on a host (one-time, root-only file).
 [group('secrets')]
 bootstrap-bws HOST="lumquat":
     #!/usr/bin/env bash
@@ -284,17 +302,80 @@ bootstrap-bws HOST="lumquat":
         echo "       personal Bitwarden vault: item 'BWS Chezmoi Access Token'" >&2
         exit 1
     }
-    if [[ "$(hostname)" == "{{HOST}}" || "$(hostname -s)" == "{{HOST}}" ]]; then
+    # Are we running ON the target host?
+    #
+    # This used to compare $(hostname) against {{HOST}} alone, which broke two
+    # ordinary cases:
+    #
+    #   * passing an IP. A bare NixOS install is hostnamed `nixos`, so
+    #     `just bootstrap-bws 10.40.0.61` on that box compared "nixos" to
+    #     "10.40.0.61", decided it was remote, and tried `ssh root@...` — which
+    #     our config forbids (base.nix sets PermitRootLogin = "no").
+    #   * a name that does not resolve from the host itself (no DNS/hosts entry
+    #     yet), which is the normal state before the config lands.
+    #
+    # So consider the local IP set too. If any argument matches one of our own
+    # addresses, we are local — that is exactly what "is this host me?" means.
+    local_addrs() {
+        { ip -o addr show 2>/dev/null | awk '{print $4}' | cut -d/ -f1
+          hostname -I 2>/dev/null | tr ' ' '\n'
+        } | grep -v '^$' | sort -u
+    }
+    is_local_host() {
+        local want="$1"
+        [[ "$want" == "$(hostname)" || "$want" == "$(hostname -s)" ]] && return 0
+        local_addrs | grep -qx -- "$want" && return 0
+        return 1
+    }
+
+    if is_local_host '{{HOST}}'; then
         # Running ON the target host — install locally with sudo. Never SSH
         # back to ourselves: root SSH is disabled and podman's key isn't in
         # root's authorizedKeys (only the dev machine's key is).
         echo "Installing locally on $(hostname) ..."
+
+        # Prime sudo BEFORE the token is in play. `sudo -v` prompts for a
+        # password with the terminal as its stdin, which is what we want; the
+        # install below then runs off the cached timestamp. Redirecting stdin
+        # from /dev/tty keeps the prompt off the pipe even in odd callers.
+        if ! sudo -n true 2>/dev/null; then
+            echo "sudo needs a password on this host (expected before our config lands)." >&2
+            sudo -v < /dev/tty || {
+                echo "error: could not obtain sudo" >&2
+                exit 1
+            }
+        fi
+
         sudo install -d -m 0700 /var/lib/secrets
-        # No trailing newline: bws rejects the token if one is present.
-        printf '%s' "$token" | sudo sh -c 'umask 077 && cat > /var/lib/secrets/bws-access-token'
+        # Note the redirect: sudo re-prompts only if the timestamp expired, and
+        # `sudo -v` above already covered that. Even so, send the token through
+        # a heredoc into an already-privileged shell rather than into sudo's
+        # stdin, so a surprise prompt can never read it.
+        sudo -n sh -c 'umask 077 && cat > /var/lib/secrets/bws-access-token' <<< "$token"
+        # The heredoc adds a newline; bws rejects a trailing newline. Strip it
+        # with a privileged, stdin-safe rewrite.
+        sudo -n truncate -s -1 /var/lib/secrets/bws-access-token
+        sudo -n chmod 0600 /var/lib/secrets/bws-access-token
+        sudo -n chown root:root /var/lib/secrets/bws-access-token
     else
         # Running on a dev machine — pipe the token over SSH to root@HOST.
-        echo "Installing on {{HOST}} over SSH ..."
+        #
+        # This path requires root SSH, which our own config disables
+        # (base.nix: PermitRootLogin = "no"). It therefore only works on a host
+        # that has not been switched to our config yet AND still permits root
+        # login — a narrow window. Say so plainly instead of dropping the user
+        # into a bare `root@host` password prompt they cannot satisfy.
+        echo "Installing on {{HOST}} over SSH as root ..." >&2
+        if ! ssh -o BatchMode=yes -o ConnectTimeout=8 "root@{{HOST}}" true 2>/dev/null; then
+            echo "error: cannot reach root@{{HOST}} without a prompt." >&2
+            echo "       Our config forbids root SSH (PermitRootLogin = no), and a" >&2
+            echo "       bare install has no key for root. Run this recipe ON the host" >&2
+            echo "       instead, as the operator user — it then installs locally with" >&2
+            echo "       sudo and never contacts root:" >&2
+            echo "         ssh podman@{{HOST}}   # then, in that shell:" >&2
+            echo "         just bootstrap-bws $(hostname -s)" >&2
+            exit 1
+        fi
         printf '%s' "$token" | ssh "root@{{HOST}}" 'install -d -m 0700 /var/lib/secrets && umask 077 && cat > /var/lib/secrets/bws-access-token'
     fi
     echo "Bootstrap token installed at {{HOST}}:/var/lib/secrets/bws-access-token"
@@ -319,6 +400,15 @@ bootstrap-bws HOST="lumquat":
 [group('secrets')]
 secrets-check reason="operator: manual manifest check":
     SECRETSPEC_REASON="{{reason}}" secretspec check -f secretspec.toml -P production --no-prompt
+
+# Turn a bare NixOS install into a configured host. Run from a dev machine; the
+# target needs nothing but stock NixOS (no just, no dotfiles, no checkout, no
+# root SSH, no key yet). The password is typed once into ssh's own prompt.
+# Usage: just provision <host> <address> [branch]
+# See docs/runbooks/provision-new-host.md.
+[group('secrets')]
+provision host address branch="main":
+    scripts/provision-host.sh --host {{host}} --address {{address}} --branch {{branch}}
 
 # ===== LLM GATEWAY =====
 

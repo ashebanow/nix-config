@@ -2,6 +2,18 @@
 
 This document describes the architectural decisions and patterns for the lumquat AI server configuration.
 
+## Hosts
+
+One flake, three NixOS hosts, built by `modules/infra/nixos-builder.nix`.
+
+| Host | Role | Operator account | Notes |
+|------|------|------------------|-------|
+| `lumquat` | AI server — llama.cpp containers, the Bifrost gateway, model storage | `podman` | the only build host (`remoteBuilder`) |
+| `calamansi` | Observability host — logs, metrics, alerting and dashboards for the servers; everything not AI serving | `podman` | see BOX-311 |
+| `yuzu` | Desktop workstation | `ashebanow` | |
+
+The Macs (`bergamot`, `miraclemax`) are nix-darwin hosts, not NixOS ones.
+
 ## Core Architecture Decisions
 
 | Decision | Choice |
@@ -13,7 +25,7 @@ This document describes the architectural decisions and patterns for the lumquat
 | Container Runtime | Podman with Quadlets |
 | LLM Containers | Separate containers per model (from Strix Halo toolboxes) |
 | GPU | AMD RDNA 3.5 with GPU passthrough |
-| Monitoring | Cockpit web UI |
+| Cockpit | Cockpit web UI (system administration) |
 | Remote Access | Tailscale (LLMs routed through Aperture only) |
 | Secrets | Bitwarden Secrets Manager + SecretSpec (single root `secretspec.toml`) |
 | Extensibility | Designed for future servers |
@@ -135,7 +147,7 @@ inputs = {
   # Bitwarden Secrets Manager at runtime (see SECRET_SYNC.md) — no flake input
   # needed.
 
-  # Monitoring
+  # Cockpit
   # Cockpit is available in nixpkgs
 
   # Hardware quirks
@@ -205,7 +217,7 @@ _: {
   my.bifrostServe = true; # Bifrost LLM gateway (modules/features/bifrost.nix)
   my.llmModelStorage = "/var/lib/llm-models";
   my.access = true;     # Tailscale + SSH
-  my.monitoring = true; # Cockpit
+  my.cockpit = true;    # Cockpit web UI (system administration)
   my.secrets = true;    # BWS + SecretSpec host secrets
   my.memory = true;     # Mnemosyne memory layer
 }
@@ -330,6 +342,22 @@ and the open IOMMU question. This section summarises it rather than duplicating 
 
 ---
 
+## Network Addresses
+
+The LAN addresses the hosts and devices actually use live in
+[`docs/network.md`](./network.md). Start there before writing any address into a
+firewall rule or a remote-write URL.
+
+The house runs **two** `/24`s — `10.40.0.0/24` for the servers and storage
+(lumquat `10.40.0.87`, storage2 `10.40.0.59`) and `10.40.60.0/24` for the
+workstations and devices (gateway `10.40.60.1`, bergamot `.74`, miracle_max
+`.97`, printer `.111`). Git history mentions only the `.60` side, which is
+exactly why several tickets guessed wrong and wrote firewall rules for a subnet
+lumquat is not on. A rule for the wrong subnet matches nothing and looks like a
+firewall bug.
+
+---
+
 ## Tailscale Configuration
 
 ### NixOS Server (lumquat)
@@ -395,12 +423,12 @@ _: {
   my.modules.nixos.cockpit = _: {
     services.cockpit = {
       enable = true;
-      port = 9090;
+      port = config.my.cockpitPort;   # my.cockpitPort, default 9090
       # Optional: restrict to Tailscale
       # listenAddresses = [{ addr = "127.0.0.1"; port = 9090; }];
     };
 
-    networking.firewall.allowedTCPPorts = [ 9090 ];
+    networking.firewall.allowedTCPPorts = [ config.my.cockpitPort ];
 
     environment.systemPackages = with pkgs; [
       cockpit-podman  # Podman UI in Cockpit
@@ -445,6 +473,16 @@ The BWS access token is provisioned once, out-of-band, at
 `/var/lib/secrets/bws-access-token` (root-only, 0600) via `just bootstrap-bws`,
 and delivered to services through `LoadCredential` + the
 `systemd-credential://` provider. See `SECRET_SYNC.md` for details.
+
+### Runbooks
+
+Some secrets have no value anyone can generate on a machine — they are issued by
+a third-party account a human has to create. Those accounts are set up from a
+runbook, not from Nix; `docs/runbooks/` collects them.
+
+| Runbook | Covers |
+|---------|--------|
+| [`alerting-accounts.md`](./runbooks/alerting-accounts.md) | Pushover app and quiet hours, the healthchecks.io watchdog check, and the three `alerting` scope values in BWS |
 
 ---
 

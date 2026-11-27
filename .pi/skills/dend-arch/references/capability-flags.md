@@ -9,7 +9,7 @@ Capability flags control which features activate on which hosts.
 | `my.hostName` | string | — | Hostname |
 | `my.hasDesktop` | bool | false | Graphical desktop |
 | `my.hasNvidia` | bool | false | NVIDIA GPU |
-| `my.hasMonitoring` | bool | false | Monitoring enabled |
+| `my.cockpit` | bool | false | Cockpit web UI enabled |
 
 ## Defining Flags
 
@@ -38,7 +38,7 @@ Capability flags control which features activate on which hosts.
 {...}: {
   config = {
     my.hostName = "lumquat";
-    my.hasMonitoring = true;
+    my.cockpit = true;
   };
 }
 ```
@@ -47,8 +47,8 @@ Capability flags control which features activate on which hosts.
 
 ```nix
 # In feature modules
-config = lib.mkIf config.my.hasMonitoring {
-  # Only applies when monitoring is enabled
+config = lib.mkIf config.my.cockpit {
+  # Only applies when Cockpit is enabled
   services.prometheus.exporters.node.enable = true;
 };
 ```
@@ -56,5 +56,5 @@ config = lib.mkIf config.my.hasMonitoring {
 ## Flag Naming Conventions
 
 - Prefix with `has` for booleans: `hasDesktop`, `hasNvidia`
-- Use singular nouns: `hasMonitoring`, not `hasMonitorings`
+- Use singular nouns: `hasDesktop`, not `hasDesktops`
 - Be specific: `hasAmdGpu` > `hasGpu`
