@@ -330,14 +330,14 @@
           static_configs = [
             { targets = [ "127.0.0.1:${toString config.my.observabilityVmalertPort}" ]; }
           ];
-          metric_relabel_configs = [ (obs.rewriteInstanceTo "vmalert") ];
+          relabel_configs = [ (obs.rewriteInstanceTo "vmalert") ];
         }
         {
           job_name = "alertmanager";
           static_configs = [
             { targets = [ "127.0.0.1:${toString config.my.observabilityAlertmanagerPort}" ]; }
           ];
-          metric_relabel_configs = [ (obs.rewriteInstanceTo "alertmanager") ];
+          relabel_configs = [ (obs.rewriteInstanceTo "alertmanager") ];
         }
       ];
 

@@ -46,7 +46,7 @@ rec {
       # `labels`, which is how storage2 reports the NAS address rather than the
       # local exporter: that target scrapes `127.0.0.1:9116/snmp?target=<nas>`,
       # so the declared address says nothing about which device is behind it.
-      metric_relabel_configs =
+      relabel_configs =
         [ (rewriteInstanceTo (target.labels.instance or (lib.head hosts))) ];
     }
     // lib.optionalAttrs (target.interval != null) { scrape_interval = target.interval; }
@@ -82,17 +82,19 @@ rec {
   # and alerts should show. The two are different questions and now have
   # different labels.
   #
-  # Implemented as `metric_relabel_configs` rather than by scraping a non-loopback
-  # address: keeping exporters on loopback is deliberate (nothing else has any
-  # reason to reach them), and relabelling is the supported way to change what
-  # Prometheus calls a target.
+  # Implemented as `relabel_configs`, NOT `metric_relabel_configs`. Prometheus
+  # assigns `instance` from `__address__` during *target* relabeling unless it
+  # was already set there; metric relabeling runs afterwards on the scraped
+  # series and cannot change the identity. Using the metric stage silently did
+  # nothing — the config was correct on paper and every sample kept arriving as
+  # `127.0.0.1:9100` (measured on lumquat 2026-11-27, after the relabel was
+  # confirmed present in the rendered config and vmagent had restarted).
   #
-  # `replacement` is only applied when the source label exists, so a target with
-  # no address keeps Prometheus' own `instance` rather than getting an empty one.
+  # `regex` is `""` (match everything) with no `source_labels`, which is the
+  # documented way to write a constant into a label at target-relabel time.
   rewriteInstanceTo =
     value:
     {
-      source_labels = [ "__address__" ];
       target_label = "instance";
       replacement = value;
     };
