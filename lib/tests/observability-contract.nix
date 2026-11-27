@@ -415,7 +415,7 @@ let
   # The ruleset name the host renders for lumquat's `llm` entry, in the
   # `<host>-<ruleset>.<n>.yaml` scheme (obs.mkRuleFiles).
   committedLlmRuleFiles = builtins.filter (n: lib.hasPrefix "lumquat-llm." n) committedRuleFiles;
-  # ── BOX-332: textfile checks ──────────────────────────────���──────────
+  # ── BOX-332: textfile checks ───────────────────────────────────────────
   #
   # The acceptance criterion is "the helper is generic: another feature could add
   # a sqlite check in a few lines", so the test declares **two** checks that it

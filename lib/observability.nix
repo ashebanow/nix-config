@@ -255,6 +255,25 @@ rec {
   # could create files there could also replace another check's output.
   textfileDirectory = "/var/lib/node_exporter/textfile";
 
+  # The group that owns the textfile directory, so a check can write its own
+  # `<name>.prom` without running as root.
+  #
+  # `ReadWritePaths` (which every check unit sets) only lifts systemd's
+  # `ProtectSystem=strict` namespace restriction; it is not a POSIX permission.
+  # A root-owned 0755 directory therefore still refuses the write from the
+  # non-root account a check deliberately runs as — which is what made
+  # `textfile-check-bifrost-logs-db` fail on lumquat with
+  # "`.bifrost-logs-db.prom.<pid>`: Permission denied" on the first switch that
+  # enabled it.
+  #
+  # A shared group fixes both halves without weakening the property the old
+  # comment was reaching for: the directory stays root-owned and NOT
+  # world-writable, so an unrelated account still cannot create files in it,
+  # while each check gets exactly the write it was granted. `02770` keeps the
+  # group inherited (setgid) so a `.prom` a check creates is group-writable too
+  # and the next run can still replace it.
+  textfileGroup = "node-exporter-textfile";
+
   # The shell prelude every generated check script is wrapped in.
   #
   # `emitTextfile` takes prom text on stdin, so a builder pipes its output

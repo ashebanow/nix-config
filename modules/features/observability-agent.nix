@@ -76,6 +76,36 @@ _: {
     let
       obs = import ../../lib/observability.nix { inherit lib; };
 
+      # The exporter needs the running user's *numeric* uid for its socket path,
+      # and nothing at build time can supply it: `users.users.<name>.uid` is
+      # unset in config (NixOS assigns it at activation), and systemd's `%U`
+      # specifier expands against the *manager's* uid — measured on lumquat, a
+      # unit with `User=podman` and `Environment=XDG_RUNTIME_DIR=/run/user/%U`
+      # received `/run/user/0`, which is why the exporter exited with
+      # `lstat /run/user/0: no such file or directory` on the first switch that
+      # enabled it. Both variants were also checked against the real binary:
+      # `unix:///...` serves 170 `podman_*` series, `unix:/...` connects to
+      # nothing.
+      #
+      # A wrapper script rather than an `ExecStart` one-liner because a
+      # multi-line `ExecStart` is a "bad unit file setting" (systemd rejects the
+      # embedded newlines), and a single escaped line is unreadable.
+      podmanExporterLauncher = pkgs.writeShellApplication {
+        name = "prometheus-podman-exporter-launch";
+        # `exec` is the point of the wrapper, so the exporter is PID 1 of the
+        # unit and gets systemd's signals directly rather than inheriting a
+        # shell that has to forward them.
+        text = ''
+          uid="$(id -u)"
+          export XDG_RUNTIME_DIR="/run/user/$uid"
+          export CONTAINER_HOST="unix:///run/user/$uid/podman/podman.sock"
+          exec ${pkgs.prometheus-podman-exporter}/bin/prometheus-podman-exporter \
+            --web.listen-address=127.0.0.1:${toString config.my.observabilityPodmanExporterPort} \
+            --collector.enable-all \
+            --collector.container-stats-timeout=10s
+        '';
+      };
+
       # Everything the agent scrapes, as the Prometheus document vmagent
       # consumes. Three sources, in the order they matter:
       #
@@ -148,8 +178,12 @@ _: {
             # which is right for both cases — `podman:podman` for a check that
             # runs as the owning account, and `root:root` for one that may drop
             # to it. Setting it explicitly here was wrong for the first case.
-            # The check must be able to write exactly one file, in the textfile
-            # directory, and nothing else anywhere.
+            #
+            # The check writes exactly one file, in the textfile directory, and
+            # nothing else anywhere. `ReadWritePaths` lifts the namespace
+            # restriction; membership of `obs.textfileGroup` is the POSIX
+            # permission that actually lets the write through.
+            SupplementaryGroups = [ obs.textfileGroup ];
             ProtectSystem = "strict";
             PrivateTmp = true;
             NoNewPrivileges = true;
@@ -216,12 +250,47 @@ _: {
           ];
         };
 
-        # Root-owned and 0755 — deliberately NOT writable by the accounts the
-        # checks run as. A check that could create files here could also
-        # replace another check's output; a check writes into it because its
-        # unit is granted it (`ReadWritePaths`), not because the mode allows it.
+        # Granted to every account a check runs as, so a check can write its
+        # own `<name>.prom`. See `obs.textfileGroup` for why a group is needed
+        # at all and what it deliberately does not loosen.
+        #
+        # The check's *user* is added to it, not just the unit's
+        # `SupplementaryGroups`: an `unreadableAs` check re-execs itself through
+        # `runuser -u <user>`, and that starts a new session for that user with
+        # its own group list. A group granted only to the unit therefore
+        # disappears at exactly the point the check tries to write — which is
+        # what kept `textfile-check-bifrost-logs-db` failing after the first
+        # fix (journal: `runuser` closed the session, then
+        # `.prom.<pid>: Permission denied`).
+        users.groups.${obs.textfileGroup} = { };
+        # Writers first, then the reader. Both are in one definition because
+        # NixOS permits only one `users.users` path per module block.
+        #
+        # `node-exporter` needs the group too, not just the writers: the
+        # directory is 2770, so the collector cannot even traverse it to reach
+        # the 0644 `*.prom` files inside unless it is a member. The file mode
+        # alone is not enough, which is why the textfile collector reported
+        # success while emitting no `bifrost_logs_db_*` series on the first,
+        # member-less layout.
+        users.users =
+          lib.mapAttrs' (
+            _: check: lib.nameValuePair check.user { extraGroups = [ obs.textfileGroup ]; }
+          ) config.my.observability.textfileChecks
+          // {
+            node-exporter.extraGroups = [ obs.textfileGroup ];
+          };
+
+        # Root-owned, group-writable by the checks' shared group, and NOT world
+        # writable: an unrelated account still cannot create files here, so one
+        # check cannot replace another's output. `ReadWritePaths` on each unit
+        # lifts the `ProtectSystem=strict` restriction; this tmpfiles rule is
+        # what supplies the POSIX permission — both are required, and the
+        # first version of this module only had the former.
+        #
+        # `02770` (setgid) so files a check creates inherit the group and stay
+        # group-writable, which the next run's `mv -f` needs.
         systemd.tmpfiles.rules = [
-          "d ${obs.textfileDirectory} 0755 root root -"
+          "d ${obs.textfileDirectory} 02770 root ${obs.textfileGroup} -"
         ];
 
         systemd.timers = textfileCheckTimers;
@@ -312,19 +381,14 @@ _: {
             serviceConfig = {
               User = config.my.baseUsername;
               Group = config.my.baseUsername;
-              # A system unit running as a user has no $HOME or $XDG_RUNTIME_DIR.
-              # podman's client needs both to find the rootless socket.
+              # The socket path needs the user's numeric uid, which only the
+              # running process can resolve; `podmanExporterLauncher` above does
+              # that and documents both traps it exists to avoid. `HOME` is
+              # still set here because it is a static, build-time value.
               Environment = [
-                "HOME=/home/${config.my.baseUsername}"
-                "XDG_RUNTIME_DIR=/run/user/%U"
-                "CONTAINER_HOST=unix:/run/user/%U/podman/podman.sock"
+                "HOME=${config.users.users.${config.my.baseUsername}.home}"
               ];
-              ExecStart = lib.concatStringsSep " " [
-                "${pkgs.prometheus-podman-exporter}/bin/prometheus-podman-exporter"
-                "--web.listen-address=127.0.0.1:${toString config.my.observabilityPodmanExporterPort}"
-                "--collector.enable-all"
-                "--collector.container-stats-timeout=10s"
-              ];
+              ExecStart = "${podmanExporterLauncher}/bin/prometheus-podman-exporter-launch";
               Restart = "always";
               RestartSec = "10s";
             };
