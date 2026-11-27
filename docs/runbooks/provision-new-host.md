@@ -115,12 +115,27 @@ What it does:
 4. **Root SSH is closed by our own config** (`PermitRootLogin = "no"`). Any path
    shaped `ssh root@host` only works on a machine that has never had our config,
    and even then has no key. Do the work as the operator user with sudo.
-5. **`-t` does not survive multiplexing** when stdin is not a terminal. Interactive
+5. **`sudo -v` + `ssh -t` does not persist a sudo timestamp.** sudo caches
+   "already authenticated" per TTY (`timestamp_type` defaults to `tty`), and
+   `ssh -t CMD` allocates a PTY for one command and destroys it on exit — so the
+   timestamp is keyed to a terminal that no longer exists, and every later
+   `sudo -n` fails with "a password is required" despite the password having
+   just been typed. `sudo -v -t global` is not a fix: `-t` is a Defaults
+   setting, not a flag, and sudo 1.9.17 rejects it on `-v`. Use `sudo -S`
+   (password on stdin), which needs no TTY. Proven against calamansi: a wrong
+   password exits 1, the right one runs as root.
+6. **Do not put two herestrings on one command.** `cmd <<<"$a" <<<"$b"` keeps
+   only the second — which in this script would have fed the BWS token to sudo
+   as the password. When stdin carries the sudo password, pass everything else
+   as quoted arguments.
+7. **`-t` does not survive multiplexing** when stdin is not a terminal. Interactive
    steps need a real terminal; run the script from a shell, not from a harness
-   that pipes stdin.
-6. **`/var/lib/secrets/bws-access-token` must have no trailing newline.** `bws`
+   that pipes stdin. (With `sudo -S` this now only affects the password `read`.)
+8. **`/var/lib/secrets/bws-access-token` must have no trailing newline.** `bws`
    rejects the token otherwise, and the error is about a MAC mismatch, which
-   does not point at the newline.
+   does not point at the newline. The script asserts this after writing.
+9. **Ask for sudo before asking for the token.** A failure after the token paste
+   wastes a secret that BWS shows exactly once.
 
 ## If it goes wrong
 
