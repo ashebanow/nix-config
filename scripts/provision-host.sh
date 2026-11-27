@@ -153,16 +153,75 @@ if $dry_run; then
   say "would install the BWS token (${token_state}) and switch to ${branch}"
   exit 0
 fi
+# ── Helper: privileged commands ──────────────────────────────────────────────
+#
+# sudo caches "already authenticated" PER TTY by default (timestamp_type=tty).
+# The obvious approach — `ssh -t host sudo -v`, then `sudo -n` afterwards — does
+# not work, and it is what broke the first real run:
+#
+#   `ssh -t CMD` allocates a PTY for that one command and destroys it on exit,
+#   so the cached timestamp is keyed to a terminal that no longer exists. The
+#   next connection gets a new PTY, sudo sees no timestamp, and every later
+#   `sudo -n` fails with "a password is required" even though the password was
+#   typed correctly seconds earlier.
+#
+#   `sudo -v -t global` looks like the fix but is not: `-t` is a Defaults
+#   setting, not a flag, and sudo 1.9.17 rejects it on `-v` with a usage error
+#   (verified on calamansi and lumquat). Writing `Defaults timestamp_type=global`
+#   into sudoers would work, but permanently loosens the host to speed up a
+#   one-time bootstrap — the wrong trade.
+#
+#   `sudo -S` reads the password from stdin and needs no TTY at all. Verified
+#   against calamansi: it consumes the piped password and reports a wrong one
+#   correctly ("1 incorrect password attempt"). So the password is read once,
+#   interactively, and piped to sudo per command. It never enters the
+#   environment, a file, an argument list, or a shell history.
+sudo_pw=""
+
+# Run a command as root, feeding the cached sudo password on stdin.
+as_root() {
+  [[ -n "$sudo_pw" ]] || die "internal: sudo password not set"
+  run_target "sudo -S -p '' $1" <<<"$sudo_pw"
+}
+
+ask_sudo_password() {
+  local attempts=0
+  while (( attempts < 3 )); do
+    read -rsp "sudo password for ${operator_user}@${address}: " sudo_pw; echo
+    [[ -n "$sudo_pw" ]] || { info "empty password"; continue; }
+    if as_root true >/dev/null 2>&1; then
+      info "sudo: authorised"
+      return 0
+    fi
+    ((attempts++)) || true
+    info "sudo: rejected (attempt ${attempts} of 3)"
+    sudo_pw=""
+  done
+  die "could not obtain sudo"
+}
 
 # ── 2 & 3. The BWS token ────────────────────────────────────────────────────
 #
 # One token, written root-only, with no trailing newline. Everything the host
 # needs is resolved from it at boot by host-secrets-populate.
-if $skip_token; then
-  info "note: --skip-token given, so an existing token will not be replaced."
-elif [[ "$token_state" == "token-present" ]]; then
-  say "BWS token already present — leaving it alone"
+if $skip_token || [[ "$token_state" == "token-present" ]]; then
+  if $skip_token; then
+    info "note: --skip-token given, so an existing token will not be replaced."
+  else
+    say "BWS token already present — leaving it alone"
+  fi
+  # The switch below still needs root, so sudo has to be obtained even when the
+  # token step is skipped.
+  if ! $skip_switch; then
+    say "obtaining sudo on the target"
+    ask_sudo_password
+  fi
 else
+  # Obtain sudo BEFORE asking for the token. The first real run asked for the
+  # token and then died in sudo, wasting a paste of a secret BWS shows once.
+  say "obtaining sudo on the target"
+  ask_sudo_password
+
   say "installing the BWS access token"
   info "paste it at the prompt. BWS shows a token once, so this comes from the"
   info "personal Bitwarden vault: item 'BWS Chezmoi Access Token'."
@@ -176,51 +235,40 @@ else
   [[ "$token" =~ ^0\.[A-Za-z0-9-]+\.[A-Za-z0-9_-]+:[A-Za-z0-9+/=]+$ ]] \
     || die "that does not look like a BWS access token (expected 0.<uuid>.<secret>:<base64>)"
 
-  # Prime sudo BEFORE any token is in flight.
+  # base64 so the token survives the hop unchanged: no newline ambiguity, and
+  # only [A-Za-z0-9+/=] characters, so it is safe as a quoted shell argument.
   #
-  # `sudo -v` needs a TTY to prompt, and a multiplexed session has none, so this
-  # one call allocates `-t` and lets the operator type the sudo password into
-  # ssh's own prompt. Doing it here — rather than inside the write below — is
-  # what keeps sudo from ever seeing the token on its stdin: a password prompt
-  # that appears mid-write could otherwise consume the token as the password,
-  # which fails confusingly and pushes a real secret through PAM.
-  say "obtaining sudo on the target"
-  ssh -t "${ssh_base[@]}" -o ControlPath="${ctl_sock}" \
-    "${operator_user}@${address}" \
-    'if sudo -n true 2>/dev/null; then echo "sudo: already authorised"; else sudo -v; fi' \
-    || die "could not obtain sudo"
+  # It is passed as an ARGUMENT rather than on stdin on purpose: stdin is
+  # carrying the sudo password (`sudo -S`). An earlier draft used two herestring
+  # redirections, which does not work — the second silently replaces the first,
+  # so the token would have been fed to sudo as the password.
+  #
+  # A brief appearance in the remote shell's argv is the acceptable cost; it is
+  # not written to disk anywhere and is unset immediately after.
+  token_b64=$(printf '%s' "$token" | base64 | tr -d '\n')
+  as_root "sh -c 'printf %s \"\$1\" | base64 -d | install -m 0600 -o root -g root /dev/stdin /var/lib/secrets/bws-access-token' _ '${token_b64}'" \
+    || die "could not install the BWS token"
+  unset token token_b64
 
-  # The token travels base64-encoded on stdin: no shell quoting, no newline
-  # ambiguity, and nothing on the command line that a process list could show.
-  # sudo is invoked with `-n` so a surprise prompt fails loudly instead of
-  # silently reading the token as a password.
-  printf '%s' "$token" | base64 | run_target 'set -e
-    sudo -n install -d -m 0700 /var/lib/secrets
-    tmp=$(sudo -n mktemp /var/lib/secrets/.token.XXXXXX)
-    sudo -n sh -c "base64 -d > \"$tmp\""
-    # bws rejects a trailing newline. `base64 -d` reproduces the input exactly,
-    # so none was added — assert that rather than assume it.
-    if [ "$(sudo -n tail -c1 "$tmp" | xxd -p)" = "0a" ]; then
-      sudo -n truncate -s -1 "$tmp"
-    fi
-    sudo -n chown root:root "$tmp"
-    sudo -n chmod 0600 "$tmp"
-    sudo -n mv -f "$tmp" /var/lib/secrets/bws-access-token
-  ' || die "could not install the BWS token"
-  unset token
-
-  verify=$(run_target 'set -e
+  # Verify what actually landed, rather than trusting the pipeline: mode, owner,
+  # size, and that the file ends in a base64 character rather than a newline
+  # (bws rejects a trailing newline, and the failure it reports is about a MAC
+  # mismatch, which points nowhere useful).
+  verify=$(as_root "sh -c '
     f=/var/lib/secrets/bws-access-token
-    sudo test -f "$f" || { echo MISSING; exit 1; }
-    echo "mode=$(sudo stat -c %a "$f") owner=$(sudo stat -c %U:%G "$f") bytes=$(sudo wc -c < "$f")"
-    # A token is `0.` + payload; check the two ends survive the round trip.
-    sudo head -c2 "$f"; echo
-  ' ) || die "token verification failed"
+    [ -f \"\$f\" ] || { echo MISSING; exit 1; }
+    printf \"mode=%s owner=%s:%s bytes=%s last=%s first=%s\\n\" \\
+      \"\$(stat -c %a \"\$f\")\" \"\$(stat -c %U \"\$f\")\" \"\$(stat -c %G \"\$f\")\" \\
+      \"\$(wc -c < \"\$f\")\" \"\$(tail -c1 \"\$f\" | od -An -tx1 | tr -d \" \\n\")\" \\
+      \"\$(head -c2 \"\$f\")\"
+  '") || die "token verification failed"
   info "${verify}"
-  echo "$verify" | grep -q '^mode=600 owner=root:root' \
+  echo "$verify" | grep -q 'mode=600 owner=root:root' \
     || die "token file has the wrong mode or owner"
-  echo "$verify" | grep -qx '0\.' \
+  echo "$verify" | grep -q 'first=0\.' \
     || die "token file does not start with the expected '0.' prefix"
+  echo "$verify" | grep -q 'last=0a' \
+    && die "token file ends in a newline, which bws rejects"
   say "BWS token installed"
 fi
 
@@ -232,18 +280,24 @@ else
   # rsync of the tree. This is what makes provisioning a bare host one command.
   flake="git+https://github.com/ashebanow/nix-config?ref=${branch}"
   say "switching ${host} to ${flake}"
-  info "this is the point where the password-only SSH session stops being able to"
-  info "authenticate (PasswordAuthentication=false) and the operator key takes over."
+  info "this is the point where password-only SSH stops working"
+  info "(PasswordAuthentication=false) and the operator key takes over."
 
-  # `-t` again: the rebuild is long-running and its progress output is worth
-  # seeing live. sudo's timestamp was primed above, so this does not re-prompt.
-  ssh -t "${ssh_base[@]}" -o ControlPath="${ctl_sock}" \
-    "${operator_user}@${address}" \
-    "set -e; sudo -n nixos-rebuild switch --flake '${flake}#${host}'" \
+  # `sudo -S` with `-p ''`: the password comes on stdin, so this needs no TTY
+  # and works through the multiplexed connection. Note `-S` reads exactly one
+  # line for the password and leaves the rest of stdin alone, and
+  # nixos-rebuild does not read stdin itself, so the two do not compete.
+  #
+  # The switch restarts sshd. That kills the ControlMaster, so the verification
+  # below opens fresh connections (it does anyway) and a failure here is
+  # reported rather than retried blindly: `nixos-rebuild` is atomic per
+  # generation, so the host is either fully on the new generation or fully on
+  # the old one.
+  as_root "nixos-rebuild switch --flake '${flake}#${host}'" \
     || die "nixos-rebuild switch failed — the host is still on its previous generation"
 
   say "generation list"
-  run_target 'sudo nix-env --list-generations --profile /nix/var/nix/profiles/system 2>/dev/null | tail -3'
+  as_root 'nix-env --list-generations --profile /nix/var/nix/profiles/system' 2>/dev/null | tail -3 || true
 fi
 
 # ── 5. Verify ───────────────────────────────────────────────────────────────
@@ -280,22 +334,25 @@ fi
 
 # The console password is a different credential and must survive. Check the
 # shadow entry has a real hash; this is what break-glass depends on.
-console=$(run_target 'sudo getent shadow '"$operator_user"' | cut -d: -f2 | cut -c1-3' 2>/dev/null || echo "?")
+console=$(as_root "getent shadow ${operator_user}" 2>/dev/null | cut -d: -f2 | cut -c1-3 || echo "?")
 case "$console" in
   '$y$' | '$6$' | '$2*') info "console password: present (hash prefix ${console}) — break-glass intact" ;;
   '' | '!'* | '*'*) info "console password: ABSENT — no break-glass login on the console" ;;
-  *) info "console password: unrecognised hash prefix '${console}'" ;;
+  *) info "console password: could not read (prefix '${console}')" ;;
 esac
 
-# Tailnet, if this host enables access. Absence here is not fatal to the switch
-# but means the host has no tailnet identity yet.
-tn=$(run_target 'test -d /var/lib/tailscale && tailscale ip -4 2>/dev/null | head -1 || echo -' 2>/dev/null || echo "-")
+# Tailnet, if this host enables access. Absence is not fatal to the switch but
+# means the host has no tailnet identity yet.
+tn=$(run_target 'tailscale ip -4 2>/dev/null | head -1 || echo -' 2>/dev/null || echo "-")
 if [[ "$tn" != "-" && -n "$tn" ]]; then
   info "tailnet address: ${tn}"
 else
   info "tailnet address: none yet — check 'systemctl status host-secrets-populate'"
   info "                 (it must succeed before tailscaled-autoconnect can enrol)"
 fi
+
+# Do not leave the password cached in this shell.
+unset sudo_pw
 
 say "done"
 info "next: confirm the host is healthy, then record its address in docs/network.md"
