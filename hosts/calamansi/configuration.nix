@@ -83,7 +83,23 @@
   #
   # Deliberately not carried over from lumquat either, because each is specific
   # to what lumquat does rather than to being a server: my.llm* and
-  # my.bifrostServe (AI serving), my.memory, my.rexServer, my.zmx.
+  # my.bifrostServe (AI serving), my.memory, my.zmx.
+
+  # Rex — a server for the `podman` account, published through Rex's own tailnet
+  # node (BOX-292), reachable as calamansi-rex.fluffy-walleye.ts.net.
+  #
+  # Previously excluded here on the theory that Rex was specific to lumquat.
+  # It is not: the point of a Rex server on a headless host is attaching to
+  # persistent sessions for debugging, which is at least as useful on the
+  # observability host as on the AI host — and it is how the operator reaches
+  # this machine when SSH is inconvenient.
+  #
+  # The tsnet node needs its own one-time key, REX_CALAMANSI_TS_AUTHKEY, which
+  # modules/features/secrets.nix passes only when this flag is on. It is a
+  # non-reusable key: re-enrolling after wiping /var/lib/rex needs a freshly
+  # minted one (see docs/rex.md).
+  my.rexServer = true;
+  my.rexServerUser = "podman";
 
   # Boot loader. Belongs here rather than in hardware-configuration.nix:
   # `nixos-generate-config` deliberately does not write `boot.loader`, and the
