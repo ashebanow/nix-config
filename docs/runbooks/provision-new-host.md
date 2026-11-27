@@ -33,6 +33,24 @@ starts with `import "~/.justfile"`, which chezmoi installs from the dotfiles
 repo, which needs provisioning. Use `scripts/provision-host.sh`, which uses only
 the first list.
 
+### `/etc/nixos/` is installer scratch — the flake is authoritative
+
+A bare install's `/etc/nixos/configuration.nix` is the stock `nixos-generate-config`
+template plus whatever was hand-edited on the box. **Our flake never reads it:**
+`nixos-rebuild switch --flake ...` builds from `hosts/<host>/`, and the box's own
+`/etc/nixos/` is not an input. Nothing in it needs preserving, and anything
+edited there is silently discarded by the first switch.
+
+This is worth stating because it already cost a debugging round. Calamansi's
+stock `configuration.nix` declares `boot.loader.systemd-boot.enable = true`, so
+the machine booted fine and looked correctly configured — yet the flake failed
+nixpkgs' boot-loader assertion, because `nixos-generate-config` writes only
+`hardware-configuration.nix` and deliberately omits `boot.loader`. The file that
+prevented the symptom was not in the flake at all.
+
+Corollary: when a host fails to evaluate on an option the installer clearly set,
+look at `hosts/<host>/`, not at `/etc/nixos/`.
+
 ## Steps
 
 ```sh
