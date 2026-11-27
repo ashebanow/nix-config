@@ -303,7 +303,13 @@
       # Loopback port for the healthchecks.io bridge. Not an option: nothing
       # outside this module has an opinion about it, and a published port would
       # be a way to keep the dead-man's switch quiet.
-      healthchecksReceiverPort = 9094;
+      #
+      # 9095, not the 9094 this used to be: 9094 is Alertmanager's own default
+      # cluster port, so the socket and the daemon fought over it and the daemon
+      # lost — `failed to start TCP listener on "0.0.0.0" port 9094: bind:
+      # address already in use` on calamansi. Neither side was misconfigured on
+      # its own; the two just happened to pick the same number.
+      healthchecksReceiverPort = 9095;
 
       alertmanagerConfig = obs.mkAlertmanagerConfig {
         healthchecksReceiverUrl = "http://127.0.0.1:${toString healthchecksReceiverPort}/";
